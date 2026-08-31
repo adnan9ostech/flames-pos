@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import styles from './users.module.css';
 import {
     listUsers, createUser, updateUser, setPermissions, resetPassword, toggleActive, deleteUser,
@@ -171,6 +171,37 @@ export default function UsersPage() {
         setBusy(false);
     };
 
+    /*
+     * Administrators first, in their own band. Everyone else follows. Who
+     * holds the keys is the question this screen gets asked most, and it
+     * should not have to be answered by reading an alphabetical list —
+     * "Admin" happened to sort second here, which is exactly the accident
+     * worth removing. Within each band the signed-in account leads, then
+     * active accounts by name, with suspended ones last.
+     */
+    const groups = useMemo(() => {
+        const rank = (u) => [u.is_you ? 0 : 1, u.is_active ? 0 : 1, (u.full_name || u.username || '').toLowerCase()];
+        const byRank = (a, b) => {
+            const [ax, ay, az] = rank(a); const [bx, by, bz] = rank(b);
+            return ax - bx || ay - by || az.localeCompare(bz);
+        };
+        const isAdmin = (u) => u.role === 'admin';
+        return [
+            {
+                key: 'admins',
+                title: 'Administrators',
+                hint: 'Full access, including who else may sign in',
+                rows: users.filter(isAdmin).sort(byRank),
+            },
+            {
+                key: 'team',
+                title: 'Team',
+                hint: 'Access follows their role',
+                rows: users.filter((u) => !isAdmin(u)).sort(byRank),
+            },
+        ];
+    }, [users]);
+
     if (loading) {
         return (
             <div className={styles.container}>
@@ -251,7 +282,17 @@ export default function UsersPage() {
                                 No accounts yet — add the first one.
                             </td></tr>
                         )}
-                        {users.map((row) => (
+                        {groups.map(({ key, title, hint, rows }) => (
+                            <Fragment key={key}>
+                                {rows.length > 0 && (
+                                    <tr className={styles.groupRow}>
+                                        <th colSpan={6} scope="colgroup" className={styles.groupHead}>
+                                            {title}
+                                            <span className={styles.groupHint}>{hint}</span>
+                                        </th>
+                                    </tr>
+                                )}
+                                {rows.map((row) => (
                             <UserRow
                                 key={row.id}
                                 row={row}
@@ -277,6 +318,8 @@ export default function UsersPage() {
                                 onFlip={() => flip(row)}
                                 onDelete={() => { setError(''); setTyped(''); setDeleting(row); }}
                             />
+                                ))}
+                            </Fragment>
                         ))}
                     </tbody>
                 </table>

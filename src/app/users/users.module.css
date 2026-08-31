@@ -552,3 +552,28 @@
     opacity: 0.45;
     cursor: default;
 }
+
+/* Section bands inside the one table, so the columns stay aligned across
+   groups — two separate tables would let the headings drift apart. */
+.groupRow {
+    background: transparent;
+}
+
+.groupHead {
+    padding: 1.1rem 0.5rem 0.4rem !important;
+    text-align: left;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--primary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.groupHint {
+    margin-left: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--muted-foreground);
+}
