@@ -2,7 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -48,7 +48,7 @@ export async function getHourlySales(businessDate = null) {
     // Admin-only. Returned rather than thrown — production redacts thrown
     // action errors.
     try {
-        await requireAdmin()
+        await requirePermission('reports')
     } catch (e) {
         return { error: e.message }
     }

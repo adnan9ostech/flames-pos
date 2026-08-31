@@ -1,12 +1,23 @@
 /*
- * Creates or updates the two shared role accounts (admin / staff).
+ * Creates or updates the one admin account a fresh install needs to sign in.
+ * Everybody else is made from the Users screen once that admin is in.
  *
- *   SEED_ADMIN_PIN=123456 SEED_STAFF_PIN=654321 node scripts/db/seed-users.mjs
- *   node scripts/db/seed-users.mjs     # prompts for any PIN not in the env
+ *   node scripts/db/seed-users.mjs                       # prompts for the password
+ *   SEED_ADMIN_PASSWORD=… node scripts/db/seed-users.mjs # unattended (provisioning)
  *
- * Updating an existing row bumps pin_version, so every device signed in as
- * that role is stranded at its next action — re-seeding is a PIN rotation,
- * not a no-op.
+ * Env, all optional except the password:
+ *   SEED_ADMIN_USERNAME   defaults to 'admin'
+ *   SEED_ADMIN_EMAIL      optional second way to sign in
+ *   SEED_ADMIN_FULL_NAME  defaults to 'Administrator'
+ *   SEED_ADMIN_PASSWORD   prompted for when absent
+ *
+ * A password that arrived through the environment is treated as already
+ * compromised — it sat in a shell history, a CI variable, or somebody's
+ * clipboard — so the account is flagged must_change_password. One typed at
+ * this prompt was never written down and is not.
+ *
+ * Re-running is a password rotation, not a no-op: token_version is bumped, so
+ * every device holding that account's cookie is signed out at its next action.
  *
  * Env (from .env.local / .env.production or the shell):
  *   DB_NAME (required), DB_USER, DB_PASSWORD, DB_HOST/DB_PORT or DB_SOCKET.
@@ -42,40 +53,55 @@ if (!DB_NAME) {
     process.exit(1);
 }
 
-const PIN_SHAPE = /^\d{6}$/;
+const MIN_PASSWORD = 8;
 
-// PIN entry stays off the screen: the prompt is printed directly, then
-// readline's echo is silenced for the answer.
-const promptPin = (label) => new Promise((resolve) => {
+const die = (message) => {
+    console.error(message);
+    process.exit(1);
+};
+
+const ask = (label, { hidden = false } = {}) => new Promise((resolve) => {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     process.stdout.write(label);
-    rl._writeToOutput = () => {};
+    // The prompt is written directly above, so readline can be struck mute for
+    // the answer without losing the question.
+    if (hidden) rl._writeToOutput = () => {};
     rl.question('', (answer) => {
         rl.close();
-        process.stdout.write('\n');
+        if (hidden) process.stdout.write('\n');
         resolve(answer.trim());
     });
 });
 
-const pinFor = async (role, envName) => {
-    const fromEnv = process.env[envName];
-    if (fromEnv !== undefined) {
-        if (!PIN_SHAPE.test(fromEnv)) {
-            console.error(`${envName} must be exactly 6 digits.`);
-            process.exit(1);
-        }
-        return fromEnv;
-    }
-    const typed = await promptPin(`6-digit PIN for ${role}: `);
-    if (!PIN_SHAPE.test(typed)) {
-        console.error(`The ${role} PIN must be exactly 6 digits.`);
-        process.exit(1);
-    }
-    return typed;
-};
+const username = (process.env.SEED_ADMIN_USERNAME || 'admin').trim();
+if (!/^[A-Za-z0-9._-]{2,64}$/.test(username)) {
+    die('SEED_ADMIN_USERNAME must be 2–64 characters of letters, digits, dot, dash or underscore.');
+}
 
-const adminPin = await pinFor('admin', 'SEED_ADMIN_PIN');
-const staffPin = await pinFor('staff', 'SEED_STAFF_PIN');
+const email = (process.env.SEED_ADMIN_EMAIL || '').trim() || null;
+if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    die(`SEED_ADMIN_EMAIL does not look like an address: ${email}`);
+}
+
+const fullName = (process.env.SEED_ADMIN_FULL_NAME || '').trim() || 'Administrator';
+
+const fromEnv = process.env.SEED_ADMIN_PASSWORD !== undefined;
+let password;
+if (fromEnv) {
+    password = process.env.SEED_ADMIN_PASSWORD;
+    if (password.length < MIN_PASSWORD) {
+        die(`SEED_ADMIN_PASSWORD must be at least ${MIN_PASSWORD} characters.`);
+    }
+} else {
+    password = await ask(`Password for ${username} (min ${MIN_PASSWORD} chars): `, { hidden: true });
+    if (password.length < MIN_PASSWORD) {
+        die(`Refused: the password must be at least ${MIN_PASSWORD} characters.`);
+    }
+    // Typed blind and, when interactive, not flagged for a change at first
+    // sign-in — a typo here would lock the only admin out of a fresh install.
+    const again = await ask('Type it again: ', { hidden: true });
+    if (again !== password) die('The two entries did not match. Nothing was changed.');
+}
 
 const conn = await mysql.createConnection({
     ...(DB_SOCKET ? { socketPath: DB_SOCKET } : { host: DB_HOST, port: Number(DB_PORT) }),
@@ -86,22 +112,69 @@ const conn = await mysql.createConnection({
 });
 await conn.query("SET time_zone = '+00:00'");
 
-for (const [role, pin] of [['admin', adminPin], ['staff', staffPin]]) {
-    const hash = await bcrypt.hash(pin, 12);
-    const [rows] = await conn.query('SELECT id FROM users WHERE role = ?', [role]);
-    if (rows.length === 0) {
-        await conn.query(
-            'INSERT INTO users (id, role, pin_hash) VALUES (?, ?, ?)',
-            [randomUUID(), role, hash],
-        );
-        console.log(`created ${role} account on ${DB_NAME}`);
-    } else {
-        await conn.query(
-            'UPDATE users SET pin_hash = ?, pin_version = pin_version + 1, updated_at = CURRENT_TIMESTAMP(3) WHERE role = ?',
-            [hash, role],
-        );
-        console.log(`updated ${role} PIN on ${DB_NAME} (pin_version bumped — other devices sign out at their next action)`);
+// Both username and email are unique, so an ON DUPLICATE KEY insert would
+// happily rewrite a *different* person's row if the email were already theirs.
+// Caught here instead, where the message can say whose it is.
+if (email) {
+    const [clash] = await conn.query(
+        'SELECT username FROM users WHERE email = ? AND (username IS NULL OR username <> ?)',
+        [email, username],
+    );
+    if (clash.length > 0) {
+        await conn.end();
+        die(`${email} already belongs to '${clash[0].username ?? 'another account'}' — seed a different address.`);
     }
 }
+
+const [[existing = null]] = await conn.query(
+    'SELECT id, role, is_active FROM users WHERE username = ?',
+    [username],
+);
+
+const hash = await bcrypt.hash(password, 12);
+const mustChange = fromEnv ? 1 : 0;
+
+await conn.query(
+    `INSERT INTO users (id, email, username, full_name, role, password_hash,
+                        must_change_password, is_active, permissions)
+     VALUES (?, ?, ?, ?, 'admin', ?, ?, 1, NULL) AS new_row
+     ON DUPLICATE KEY UPDATE
+       email = new_row.email,
+       full_name = new_row.full_name,
+       role = 'admin',
+       password_hash = new_row.password_hash,
+       must_change_password = new_row.must_change_password,
+       is_active = 1,
+       -- Re-seeding is the fix-it path: clear any override that had taken a
+       -- right away from the account that is supposed to hold all of them.
+       permissions = NULL,
+       token_version = token_version + 1,
+       updated_at = CURRENT_TIMESTAMP(3)`,
+    [randomUUID(), email, username, fullName, hash, mustChange],
+);
+
+await conn.query(
+    `INSERT INTO audit_log (branch_id, business_date, action, details)
+     VALUES (1, CURRENT_DATE, 'seed_admin', ?)`,
+    [JSON.stringify({
+        username,
+        email,
+        created: existing === null,
+        must_change_password: Boolean(mustChange),
+        source: fromEnv ? 'env' : 'prompt',
+    })],
+);
+
+if (existing === null) {
+    console.log(`created admin '${username}'${email ? ` <${email}>` : ''} on ${DB_NAME}`);
+} else {
+    console.log(`updated '${username}' on ${DB_NAME} — password reset, role set to admin, `
+        + 'token_version bumped (other devices sign out at their next action)');
+    if (existing.role !== 'admin') console.log(`  role was '${existing.role}'`);
+    if (!existing.is_active) console.log('  account was disabled and is now active again');
+}
+console.log(mustChange
+    ? '  must change password at first sign-in (the password came from the environment)'
+    : '  password is ready to use');
 
 await conn.end();

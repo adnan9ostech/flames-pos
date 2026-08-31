@@ -1,7 +1,7 @@
 'use server'
 
 import { query } from '@/lib/db/pool.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { transferStock, adjustStock, miscConsumption, postCount } from '@/lib/db/inventory.mjs'
 
@@ -90,7 +90,7 @@ export async function getDocsData() {
 
 export async function createTransfer({ fromWarehouseId, toWarehouseId, lines, reason } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         return { data: await transferStock({ fromWarehouseId, toWarehouseId, lines, reason }) }
     } catch (e) {
         return { error: e.message }
@@ -99,7 +99,7 @@ export async function createTransfer({ fromWarehouseId, toWarehouseId, lines, re
 
 export async function createAdjustment({ warehouseId, lines, reason } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         return { data: await adjustStock({ warehouseId, lines, reason }) }
     } catch (e) {
         return { error: e.message }
@@ -108,7 +108,7 @@ export async function createAdjustment({ warehouseId, lines, reason } = {}) {
 
 export async function createMisc({ warehouseId, lines, reason } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         return { data: await miscConsumption({ warehouseId, lines, reason }) }
     } catch (e) {
         return { error: e.message }
@@ -117,7 +117,7 @@ export async function createMisc({ warehouseId, lines, reason } = {}) {
 
 export async function createCount({ warehouseId, lines } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         return { data: await postCount({ warehouseId, lines }) }
     } catch (e) {
         return { error: e.message }

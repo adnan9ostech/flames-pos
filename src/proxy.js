@@ -1,24 +1,17 @@
 /*
  * Route gate (Next 16 proxy, née middleware). Pure cookie check — verify the
- * signed session, route accordingly. ZERO network or DB calls here: the
- * per-action pin_version check lives in requireUser(), where a stale cookie
+ * signed session, then ask the permission map whether this account may open
+ * this path. ZERO network or DB calls here: the per-action re-read of the
+ * account's live rights lives in requireUser(), where a stale cookie
  * actually matters.
  */
 import { NextResponse } from 'next/server'
 import { COOKIE_NAME, verifySession, signSession, shouldResign, cookieOptions } from './lib/auth/session.mjs'
+import { permissionForPath, landingPath } from './lib/auth/permissions.mjs'
 
-const protectedPaths = [
-    '/pos', '/orders', '/kds', '/profile', '/reports', '/settings',
-    // Back office (phases F–J). /drawer is deliberately staff-reachable —
-    // the cashier owns their drawer; everything else below is admin-only.
-    '/drawer', '/dayclose', '/expenses', '/companies', '/cityledger',
-    '/charges', '/discounts', '/inventory', '/floor',
-]
-const adminOnlyPaths = [
-    '/reports', '/settings',
-    '/dayclose', '/expenses', '/companies', '/cityledger',
-    '/charges', '/discounts', '/inventory', '/floor',
-]
+// Reachable with any valid session, whatever the account may otherwise do:
+// everyone can read and change their own profile.
+const ALWAYS_ALLOWED = ['/profile', '/logout']
 
 export async function proxy(request) {
     const pathname = request.nextUrl.pathname
@@ -30,21 +23,22 @@ export async function proxy(request) {
     }
 
     const session = await verifySession(request.cookies.get(COOKIE_NAME)?.value)
+    const needed = permissionForPath(pathname)
+    const guarded = needed !== null || ALWAYS_ALLOWED.some((p) => pathname.startsWith(p))
 
-    if (!session && protectedPaths.some((path) => pathname.startsWith(path))) {
+    if (!session && guarded) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
-    // Signed in but wrong role: redirect to /pos, not /login — they ARE
-    // authenticated, just not authorized for this route. The role claim is
-    // inside the HMAC-signed payload, so it is the server's word, not the
-    // client's.
     let response
-    if (session && session.role !== 'admin' && adminOnlyPaths.some((path) => pathname.startsWith(path))) {
+    if (session && needed && !session.perms.includes(needed)) {
+        // Signed in, but this screen is not theirs. Send them somewhere they
+        // can actually work rather than to /login, which would read as "your
+        // password is wrong".
         const url = request.nextUrl.clone()
-        url.pathname = '/pos'
+        url.pathname = landingPath(session.perms)
         response = NextResponse.redirect(url)
     } else {
         response = NextResponse.next()

@@ -1,7 +1,7 @@
 'use server';
 
 import { query } from '@/lib/db/pool.mjs';
-import { requireAdmin } from '@/lib/db/auth.mjs';
+import { requirePermission } from '@/lib/db/auth.mjs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -46,7 +46,7 @@ const modifierEntries = (raw) => {
  */
 export async function productMix(from, to) {
     try {
-        await requireAdmin();
+        await requirePermission('reports');
     } catch (e) {
         return { error: e.message };
     }

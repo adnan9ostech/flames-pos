@@ -3,13 +3,16 @@
  * app, in one file with zero dependencies.
  *
  * Token: base64url(JSON payload) + '.' + base64url(HMAC-SHA256(payload)).
- * Payload: { sub, role, pv, iat, exp } — user id, role, pin_version (bumping
- * it on a PIN change strands every other device's cookie), issued-at,
- * expiry. Web Crypto (crypto.subtle) on purpose: it exists in Node AND in
- * the middleware runtime, and subtle.verify is constant-time.
+ * Payload: { sub, role, pv, perms, iat, exp } — user id, role,
+ * token_version (bumping it on a password, role or permission change
+ * strands every other device's cookie), the granted permission keys, and
+ * the window. Web Crypto (crypto.subtle) on purpose: it exists in Node AND
+ * in the middleware runtime, and subtle.verify is constant-time.
  *
- * Verification is a pure cookie check — no network, no DB. The data layer's
- * requireUser() adds the pin_version DB check where it matters.
+ * The permissions ride along because the route gate runs before any
+ * database call and must still know what this person may open; they are
+ * signed, so they cannot be edited by the holder. Anything about to move
+ * money re-reads them through requireUser() instead of trusting the cookie.
  */
 
 const SECRET = () => {
@@ -41,9 +44,9 @@ const hmacKey = (usage) => crypto.subtle.importKey(
     'raw', enc.encode(SECRET()), { name: 'HMAC', hash: 'SHA-256' }, false, [usage],
 );
 
-export const signSession = async ({ sub, role, pv }) => {
+export const signSession = async ({ sub, role, pv, perms = [] }) => {
     const now = Math.floor(Date.now() / 1000);
-    const body = b64url(enc.encode(JSON.stringify({ sub, role, pv, iat: now, exp: now + MAX_AGE_S })));
+    const body = b64url(enc.encode(JSON.stringify({ sub, role, pv, perms, iat: now, exp: now + MAX_AGE_S })));
     const sig = await crypto.subtle.sign('HMAC', await hmacKey('sign'), enc.encode(body));
     return `${body}.${b64url(sig)}`;
 };
@@ -61,7 +64,10 @@ export const verifySession = async (token) => {
         if (!ok) return null;
         const payload = JSON.parse(new TextDecoder().decode(fromB64url(body)));
         if (typeof payload.exp !== 'number' || payload.exp * 1000 < Date.now()) return null;
-        if (payload.role !== 'admin' && payload.role !== 'staff') return null;
+        if (!payload.sub || !payload.role) return null;
+        // Older cookies (pre-roles) carry no perms; treat as none rather than
+        // as everything, so an upgrade cannot widen anyone's access.
+        if (!Array.isArray(payload.perms)) payload.perms = [];
         return payload;
     } catch {
         return null;

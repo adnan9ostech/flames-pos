@@ -4,8 +4,8 @@
  * Drawer sessions — one cashier's cash custody for one stretch of service.
  *
  * Staff-facing on purpose: the cashier owns their drawer, so every verb here
- * gates on requireUser, not requireAdmin (history is the one admin read —
- * variance across roles is a management question). Sessions key on the shared
+ * gates on requireUser alone (history is the one gated read — variance
+ * across roles is a management question). Sessions key on the shared
  * login's role: one drawer per role at a time, which is exactly one per
  * physical till today.
  *
@@ -20,7 +20,7 @@
  */
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRow, serializeRows } from '@/lib/db/serialize.mjs'
 
 const BRANCH_ID = 1
@@ -256,10 +256,10 @@ export async function closeDrawer({ counted_amount, notes } = {}) {
     }
 }
 
-/* Session history across all roles — a management read, so admin-gated. */
+/* Session history across all roles — a management read, so it wants `drawer`. */
 export async function listSessions({ from, to } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('drawer')
         const where = ['branch_id = ?']
         const params = [BRANCH_ID]
         if (from) { where.push('business_date >= ?'); params.push(from) }

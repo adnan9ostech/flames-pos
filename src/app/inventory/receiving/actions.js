@@ -1,7 +1,7 @@
 'use server'
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { receiveStock } from '@/lib/db/inventory.mjs'
 
@@ -113,7 +113,7 @@ export async function getReceivingData() {
  */
 export async function createReceiving({ supplierId, warehouseId, draftId, supplierInvoice, lines, notes } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const data = await receiveStock({ supplierId, warehouseId, draftId, supplierInvoice, lines, notes })
         return { data }
     } catch (e) {
@@ -127,7 +127,7 @@ export async function createReceiving({ supplierId, warehouseId, draftId, suppli
  */
 export async function createDraft({ lines, notes } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         if (!Array.isArray(lines) || lines.length === 0) {
             return { error: 'A draft needs at least one line' }
         }

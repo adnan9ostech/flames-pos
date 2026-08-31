@@ -2,7 +2,7 @@
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 const BRANCH_ID = 1
 
@@ -78,7 +78,7 @@ const loadState = async () => {
 
 export async function getDayCloseState() {
     try {
-        await requireAdmin()
+        await requirePermission('dayclose')
         return { data: await loadState() }
     } catch (e) {
         return { error: e.message }
@@ -101,7 +101,7 @@ export async function getDayCloseState() {
  */
 export async function startBusinessDay({ date = null } = {}) {
     try {
-        const user = await requireAdmin()
+        const user = await requirePermission('dayclose')
         const target = date || karachiDay()
 
         return await withTransaction(async (conn) => {
@@ -181,7 +181,7 @@ export async function startBusinessDay({ date = null } = {}) {
 
 export async function closeBusinessDay({ force = false } = {}) {
     try {
-        const user = await requireAdmin()
+        const user = await requirePermission('dayclose')
 
         // The gate. An unpaid bill left behind either settles onto the wrong
         // day's books or never settles at all, so the operator must settle or

@@ -1,7 +1,7 @@
 'use server'
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRow, serializeRows } from '@/lib/db/serialize.mjs'
 
 const PAID_FROM = ['drawer', 'bank', 'other']
@@ -53,7 +53,7 @@ const fetchVoucher = async (conn, id) => {
 
 export async function listExpenses({ from, to, status } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('expenses')
         const where = []
         const params = []
         if (from && DATE_RE.test(from)) { where.push('e.business_date >= ?'); params.push(from) }
@@ -78,7 +78,7 @@ export async function addExpense({
     paid_from = 'drawer', status = 'paid',
 } = {}) {
     try {
-        const user = await requireAdmin()
+        const user = await requirePermission('expenses')
 
         const desc = String(description ?? '').trim().slice(0, 191)
         if (!desc) return { error: 'A voucher needs a description' }
@@ -130,7 +130,7 @@ export async function addExpense({
 
 export async function markPaid(id) {
     try {
-        await requireAdmin()
+        await requirePermission('expenses')
         const expenseId = Number(id)
         if (!Number.isInteger(expenseId) || expenseId <= 0) return { error: 'Expense not found' }
 
@@ -166,7 +166,7 @@ export async function markPaid(id) {
 
 export async function deleteExpense(id) {
     try {
-        await requireAdmin()
+        await requirePermission('expenses')
         const expenseId = Number(id)
         if (!Number.isInteger(expenseId) || expenseId <= 0) return { error: 'Expense not found' }
 
@@ -211,7 +211,7 @@ export async function deleteExpense(id) {
 
 export async function listCategories() {
     try {
-        await requireAdmin()
+        await requirePermission('expenses')
         const rows = await query(
             'SELECT id, name, is_active FROM expense_categories ORDER BY name',
         )
@@ -223,7 +223,7 @@ export async function listCategories() {
 
 export async function addCategory(name) {
     try {
-        await requireAdmin()
+        await requirePermission('expenses')
         const clean = String(name ?? '').trim().slice(0, 64)
         if (!clean) return { error: 'A category needs a name' }
 
@@ -260,7 +260,7 @@ export async function addCategory(name) {
 
 export async function toggleCategory(id) {
     try {
-        await requireAdmin()
+        await requirePermission('expenses')
         const categoryId = Number(id)
         if (!Number.isInteger(categoryId) || categoryId <= 0) return { error: 'Category not found' }
 

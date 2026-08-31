@@ -1,7 +1,7 @@
 'use server'
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 
 /* The calendar day in Asia/Karachi (fixed UTC+5, no DST). */
 const karachiDay = () =>
@@ -88,7 +88,7 @@ export async function getMasters() {
  */
 export async function saveItem({ id = null, name, unit_id, reorder_level, is_active = true }) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const itemName = cleanName(name, 'An item')
         const unitId = Number(unit_id)
         if (!Number.isInteger(unitId) || unitId <= 0) throw new Error('Pick a unit')
@@ -129,7 +129,7 @@ export async function saveItem({ id = null, name, unit_id, reorder_level, is_act
 
 export async function saveUnit({ id = null, name, abbrev }) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const unitName = cleanName(name, 'A unit', 32)
         const short = String(abbrev ?? '').trim()
         if (!short) throw new Error('A unit needs an abbreviation')
@@ -160,7 +160,7 @@ export async function saveUnit({ id = null, name, abbrev }) {
 
 export async function saveSupplier({ id = null, name, phone, ntn, address, is_active = true }) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const supplierName = cleanName(name, 'A supplier')
         const clean = (v, max) => String(v ?? '').trim().slice(0, max) || null
 
@@ -195,7 +195,7 @@ export async function saveSupplier({ id = null, name, phone, ntn, address, is_ac
 
 export async function saveWarehouse({ id = null, name }) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const warehouseName = cleanName(name, 'A warehouse', 64)
 
         const savedId = await withTransaction(async (conn) => {

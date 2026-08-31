@@ -1,7 +1,7 @@
 'use server'
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 
 const SCOPES = ['order', 'category', 'item']
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -146,7 +146,7 @@ const requireId = (id) => {
 
 export async function listPlans() {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const rows = await query('SELECT * FROM discount_plans ORDER BY is_active DESC, name')
         return { data: rows.map(toPlan) }
     } catch (e) {
@@ -158,7 +158,7 @@ export async function listPlans() {
  * can group a 100-dish menu into something scannable. */
 export async function listScopeOptions() {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const [categories, items] = await Promise.all([
             query('SELECT id, name FROM categories ORDER BY sort_order, name'),
             query('SELECT id, name, category_id FROM menu_items ORDER BY name'),
@@ -171,7 +171,7 @@ export async function listScopeOptions() {
 
 export async function savePlan(input) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const clean = cleanPlan(input)
         const id = input?.id ? requireId(input.id) : null
         const bd = await businessDate()
@@ -225,7 +225,7 @@ export async function savePlan(input) {
 
 export async function togglePlan(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const planId = requireId(id)
         const bd = await businessDate()
 
@@ -250,7 +250,7 @@ export async function togglePlan(id) {
 
 export async function deletePlan(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const planId = requireId(id)
         const bd = await businessDate()
 

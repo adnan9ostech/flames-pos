@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { query } from '@/lib/db/pool.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 /*
  * The tax side of Settings, on its own tab: the two GST rates, the tax
@@ -13,7 +13,7 @@ import { requireAdmin } from '@/lib/db/auth.mjs'
  */
 export async function updateTaxSettings(formData) {
     try {
-        await requireAdmin()
+        await requirePermission('settings')
 
         // Clamped server-side too: the number input is a hint, not a
         // guarantee, and a rate above 1 would multiply every bill.
@@ -51,7 +51,7 @@ export async function updateTaxSettings(formData) {
  */
 export async function getFbrStatus() {
     try {
-        await requireAdmin()
+        await requirePermission('settings')
 
         const enabled = process.env.FBR_ENABLED === 'true'
         const queue = await query(

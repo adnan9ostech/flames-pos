@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { query } from '@/lib/db/pool.mjs'
 import { getStoreSettings } from '@/lib/db/reads.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 
 export async function getSettings() {
     // Returns null on any failure, auth included — the page already treats
@@ -22,7 +22,7 @@ export async function getSettings() {
 
 export async function updateSettings(formData) {
     try {
-        await requireAdmin()
+        await requirePermission('settings')
 
         // Trim before storing: a stray space in raast_id rides straight into the
         // EMVCo payload and produces a QR the bank app rejects.

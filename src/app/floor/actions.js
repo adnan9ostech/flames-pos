@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { query } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
-import { requireAdmin, requireUser } from '@/lib/db/auth.mjs'
+import { requirePermission, requireUser } from '@/lib/db/auth.mjs'
 
 /*
  * The floor: who serves and where they serve. Both lists are small, both are
@@ -25,7 +25,7 @@ const audit = (action, details) =>
 
 export async function listWaiters() {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         return {
             data: serializeRows('waiters', await query(
                 'SELECT * FROM waiters ORDER BY is_active DESC, name',
@@ -38,7 +38,7 @@ export async function listWaiters() {
 
 export async function saveWaiter({ id = null, name, code }) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const cleanName = (name || '').trim()
         const cleanCode = (code || '').trim() || null
         if (!cleanName) return { error: 'A waiter needs a name' }
@@ -69,7 +69,7 @@ export async function saveWaiter({ id = null, name, code }) {
 
 export async function toggleWaiter(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         await query('UPDATE waiters SET is_active = NOT is_active WHERE id = ?', [id])
         const [row] = await query('SELECT name, is_active FROM waiters WHERE id = ?', [id])
         await audit('waiter_toggle', { id, name: row?.name, active: Boolean(row?.is_active) })
@@ -87,7 +87,7 @@ export async function toggleWaiter(id) {
  */
 export async function waiterDeleteImpact(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const [w] = await query('SELECT name FROM waiters WHERE id = ?', [id])
         if (!w) return { error: 'That waiter is already gone' }
         const [{ n }] = await query('SELECT COUNT(*) AS n FROM orders WHERE waiter_id = ?', [id])
@@ -106,7 +106,7 @@ export async function waiterDeleteImpact(id) {
  */
 export async function deleteWaiter(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const [row] = await query('SELECT * FROM waiters WHERE id = ?', [id])
         if (!row) return { error: 'That waiter is already gone' }
         const [{ n }] = await query('SELECT COUNT(*) AS n FROM orders WHERE waiter_id = ?', [id])
@@ -126,7 +126,7 @@ export async function deleteWaiter(id) {
 
 export async function listTables() {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         return {
             data: serializeRows('dining_tables', await query(
                 'SELECT * FROM dining_tables ORDER BY is_active DESC, sort_order, name',
@@ -152,7 +152,7 @@ export async function listActiveTables() {
 
 export async function saveTable({ id = null, name, seats, area, sort_order }) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const cleanName = (name || '').trim()
         if (!cleanName) return { error: 'A table needs a name' }
         const seatCount = Number(seats) > 0 ? Math.floor(Number(seats)) : null
@@ -182,7 +182,7 @@ export async function saveTable({ id = null, name, seats, area, sort_order }) {
 
 export async function tableDeleteImpact(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const [t] = await query('SELECT name FROM dining_tables WHERE id = ?', [id])
         if (!t) return { error: 'That table is already gone' }
         // Matched by name, because that is what an order stores.
@@ -200,7 +200,7 @@ export async function tableDeleteImpact(id) {
  */
 export async function deleteTable(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         const [row] = await query('SELECT * FROM dining_tables WHERE id = ?', [id])
         if (!row) return { error: 'That table is already gone' }
         const [{ n }] = await query('SELECT COUNT(*) AS n FROM orders WHERE table_number = ?', [row.name])
@@ -217,7 +217,7 @@ export async function deleteTable(id) {
 
 export async function toggleTable(id) {
     try {
-        await requireAdmin()
+        await requirePermission('menu')
         await query('UPDATE dining_tables SET is_active = NOT is_active, updated_at = UTC_TIMESTAMP(3) WHERE id = ?', [id])
         const [row] = await query('SELECT name, is_active FROM dining_tables WHERE id = ?', [id])
         await audit('table_toggle', { id, name: row?.name, active: Boolean(row?.is_active) })

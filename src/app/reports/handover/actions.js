@@ -1,7 +1,7 @@
 'use server'
 
 import { query } from '@/lib/db/pool.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 // The calendar day in Asia/Karachi (fixed UTC+5, no DST) — the last-resort
 // default when neither business_days nor orders can name a trading day.
@@ -36,7 +36,7 @@ const defaultBusinessDate = async () => {
  */
 export async function getHandoverReport(businessDate = null) {
     try {
-        await requireAdmin()
+        await requirePermission('reports')
 
         if (businessDate != null && !YMD_RE.test(String(businessDate))) {
             return { error: 'Pick a valid date' }

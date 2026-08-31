@@ -1,78 +1,88 @@
-
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { headers, cookies } from 'next/headers'
 import bcrypt from 'bcryptjs'
 import { query } from '@/lib/db/pool.mjs'
-import { COOKIE_NAME, signSession, cookieOptions } from '@/lib/auth/session.mjs'
-
-// The role toggle only picks which account row to attempt — it is never
-// trusted as a role claim. The session's role comes from the users row this
-// login actually authenticates against, and every later check re-reads it
-// from the signed cookie or the DB.
-const ROLES = new Set(['admin', 'staff'])
+import { signSession, COOKIE_NAME, cookieOptions } from '@/lib/auth/session.mjs'
+import { effectivePermissions, grantedKeys, landingPath } from '@/lib/auth/permissions.mjs'
 
 /*
- * A 6-digit PIN is a million-key space, which online guessing chews through
- * unless failures cost time. Per role+IP, consecutive failures past 5 buy an
- * exponentially growing wait (capped — this must slow a script, not lock out
- * a fat-fingered waiter). In-memory on purpose: single-process deploy, and a
- * process restart forgiving the count is an acceptable trade.
+ * Sign in with an email OR a username — people remember one or the other,
+ * and the account carries both.
+ *
+ * Failures say "Incorrect email or password" whichever half was wrong: told
+ * which one matched, an attacker learns which accounts exist.
  */
-const failures = new Map()
-const FREE_ATTEMPTS = 5
+
+// Per-identifier throttle, in memory. A restaurant runs one server process,
+// so this is enough to make guessing slow without a table to maintain; a
+// restart forgives, which is the acceptable side of that trade.
+const attempts = new Map()
+const MAX_FREE = 5
 const MAX_DELAY_MS = 30_000
 
-const clientKey = async (role) => {
-    const h = await headers()
-    const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local'
-    return `${role}:${ip}`
+const backoff = async (key) => {
+    const n = attempts.get(key) || 0
+    if (n < MAX_FREE) return
+    const delay = Math.min(2 ** (n - MAX_FREE) * 1000, MAX_DELAY_MS)
+    await new Promise((r) => setTimeout(r, delay))
 }
 
-const failureDelay = (count) =>
-    count < FREE_ATTEMPTS ? 0 : Math.min(MAX_DELAY_MS, 1000 * 2 ** (count - FREE_ATTEMPTS))
-
 export async function login(formData) {
-    const role = formData.get('role')
-    const pin = formData.get('pin')
+    const identifier = String(formData.get('identifier') || '').trim()
+    const password = String(formData.get('password') || '')
 
-    if (!ROLES.has(role)) {
-        return { error: 'Unknown role' }
-    }
-    if (!/^\d{6}$/.test(pin || '')) {
-        return { error: 'Enter a 6-digit PIN' }
+    if (!identifier || !password) {
+        return { error: 'Enter your email or username and your password' }
     }
 
-    const key = await clientKey(role)
-    const delay = failureDelay(failures.get(key) ?? 0)
-    if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay))
-    }
+    const ip = (await headers()).get('x-forwarded-for') || 'local'
+    const throttleKey = `${identifier.toLowerCase()}|${ip}`
+    await backoff(throttleKey)
 
     const rows = await query(
-        'SELECT id, role, pin_hash, pin_version FROM users WHERE role = ?',
-        [role]
+        `SELECT id, role, password_hash, token_version, permissions, is_active,
+                must_change_password, full_name, username
+         FROM users
+         WHERE (email = ? OR username = ?) LIMIT 1`,
+        [identifier, identifier],
     )
-    // A missing row and a wrong PIN answer identically — the PIN's keyspace
-    // is small enough that error detail isn't worth leaking.
     const user = rows[0]
-    const ok = user ? await bcrypt.compare(pin, user.pin_hash) : false
 
-    if (!ok) {
-        failures.set(key, (failures.get(key) ?? 0) + 1)
-        return { error: 'Incorrect PIN' }
+    // Compared even when there is no such account, so a missing user and a
+    // wrong password take the same time to answer.
+    const ok = await bcrypt.compare(password, user?.password_hash || '$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalid')
+
+    if (!user || !ok) {
+        attempts.set(throttleKey, (attempts.get(throttleKey) || 0) + 1)
+        return { error: 'Incorrect email or password' }
     }
-    failures.delete(key)
+    if (!user.is_active) {
+        return { error: 'This account has been suspended — ask an admin.' }
+    }
 
+    attempts.delete(throttleKey)
+
+    const perms = effectivePermissions(user.role, user.permissions)
     const store = await cookies()
     store.set(
         COOKIE_NAME,
-        await signSession({ sub: user.id, role: user.role, pv: user.pin_version }),
-        cookieOptions()
+        await signSession({
+            sub: user.id,
+            role: user.role,
+            pv: user.token_version,
+            perms: grantedKeys(perms),
+        }),
+        cookieOptions(),
     )
 
-    revalidatePath('/pos', 'layout')
-    redirect('/pos')
+    await query('UPDATE users SET last_login_at = UTC_TIMESTAMP(3) WHERE id = ?', [user.id])
+
+    // A handed-over password is a shared secret until its owner changes it.
+    if (user.must_change_password) redirect('/profile?first=1')
+
+    // Everyone lands on the first screen their role can actually open — a
+    // kitchen account has no business bouncing off /pos on the way in.
+    redirect(landingPath(grantedKeys(perms)))
 }

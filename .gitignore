@@ -43,23 +43,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Source photography for the menu (~21MB of webp).
-# Not tracked: the originals are the designer's, and every one of them is already
-# uploaded to the Supabase `menu-images` bucket under menu-v3/, which is what the
-# app actually serves. supabase/seed/menu_v3.json records which file became which
-# item, so the mapping survives even without the folder.
+# Source photography and review pages. The dishes the app serves live in
+# public/menu-images/ and ARE tracked — they ship with the code. These are
+# working files: originals, review batches, and archives.
 /Digital_Menu_Item_Images (webp 800)/
-
-# Local preview of the menu photography review (half a MB of inlined images)
-menu-photo-review.html
-
-# Review batch of regenerated menu photos (not yet approved)
+/menu-images/
 menu-images-v2/
+menu-photo-review.html
 menu-photo-review-2.html
 menu-photo-review-final.html
-
-# Menu photography masters — 15MB, mirrored in Supabase Storage
-/menu-images/
 *.zip
 
 # Local QA review list

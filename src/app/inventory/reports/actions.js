@@ -8,7 +8,7 @@
  */
 
 import { query } from '@/lib/db/pool.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 /*
  * How far back consumption is averaged. Business days track the Karachi
@@ -36,7 +36,7 @@ const day = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v)
  */
 export async function getInventoryReports() {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const windowFrom = karachiDaysAgo(CONSUMPTION_DAYS - 1)
 
         const [stock, variance, consumption, items] = await Promise.all([
@@ -140,7 +140,7 @@ export async function getInventoryReports() {
  */
 export async function getItemLedger(itemId) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const id = Number(itemId)
         if (!Number.isInteger(id) || id <= 0) return { error: 'Pick an item' }
 

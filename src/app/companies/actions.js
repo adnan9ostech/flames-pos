@@ -10,7 +10,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 
 /* Sums of DECIMAL(12,2) arrive as JS numbers; pin every derived figure back
  * to paise so a long charge/receipt chain can't accumulate float dust. */
@@ -55,7 +55,7 @@ const companyRow = (row) => ({
  */
 export async function listCompanies({ activeOnly = false } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
         const rows = await query(
             `SELECT c.id, c.name, c.contact, c.phone, c.ntn, c.address,
                     c.credit_limit, c.is_active, c.created_at, c.updated_at,
@@ -82,7 +82,7 @@ export async function listCompanies({ activeOnly = false } = {}) {
 
 export async function saveCompany(input = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
 
         const name = String(input.name || '').trim()
         if (!name) return { error: 'A company needs a name' }
@@ -136,7 +136,7 @@ export async function saveCompany(input = {}) {
 
 export async function toggleCompany(id) {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
         if (!id) return { error: 'Which company?' }
 
         const row = await withTransaction(async (conn) => {
@@ -167,7 +167,7 @@ export async function toggleCompany(id) {
  */
 export async function getCompanyStatement(companyId) {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
         if (!companyId) return { error: 'Which company?' }
 
         const companies = await query('SELECT * FROM companies WHERE id = ?', [companyId])
@@ -230,9 +230,9 @@ export async function getCompanyStatement(companyId) {
 }
 
 /*
- * requireUser, not requireAdmin: the TILL calls this at settle time when the
- * operator picks City Ledger, and staff must be able to reach it. It hands
- * out only what the picker needs — no balances, no limits.
+ * requireUser, not the `cityledger` right: the TILL calls this at settle
+ * time when the operator picks City Ledger, and staff must be able to reach
+ * it. It hands out only what the picker needs — no balances, no limits.
  */
 export async function listCompaniesForPicker() {
     try {

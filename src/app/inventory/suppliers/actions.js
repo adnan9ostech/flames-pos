@@ -8,7 +8,7 @@
  */
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 /* Matches the CHECK on supplier_payments.method. */
 const PAYMENT_METHODS = ['cash', 'bank', 'cheque']
@@ -49,7 +49,7 @@ const auditTx = async (conn, action, details) => {
  */
 export async function listSupplierBalances() {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const rows = await query(
             `SELECT s.id, s.name, s.phone, s.is_active,
                     COALESCE(r.received, 0) AS received,
@@ -89,7 +89,7 @@ export async function listSupplierBalances() {
  */
 export async function getSupplierLedger(supplierId) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const id = Number(supplierId)
         if (!Number.isInteger(id) || id <= 0) return { error: 'Pick a supplier' }
 
@@ -157,7 +157,7 @@ export async function getSupplierLedger(supplierId) {
  */
 export async function recordSupplierPayment({ supplierId, amount, method = 'cash', reference = '' } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         const id = Number(supplierId)
         if (!Number.isInteger(id) || id <= 0) return { error: 'Pick a supplier' }
         const amt = Number(amount)

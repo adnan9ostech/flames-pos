@@ -3,7 +3,7 @@
 
 import { query } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 /*
  * Orders are selected and day-bucketed by business_date — the trading day
@@ -163,7 +163,7 @@ export async function getDashboardStats(range = 'today', endDateStr = null) {
     // Admin-only: takings and per-waiter figures are not floor reading.
     // Returned rather than thrown — production redacts thrown action errors.
     try {
-        await requireAdmin()
+        await requirePermission('reports')
     } catch (e) {
         return { error: e.message }
     }

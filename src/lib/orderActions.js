@@ -11,9 +11,10 @@
  * failure, message verbatim, and the dataClient wrapper rethrows it intact.
  *
  * Authorization lives here, not in the verbs: requireUser on everything,
- * requireAdmin on void — the gate that used to be a browser-side role check.
+ * the `void` right on void — the gate that used to be a browser-side role
+ * check.
  */
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs';
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs';
 import {
     createOrder,
     appendRound,
@@ -151,7 +152,8 @@ export const settleOrder = async (orderId, {
 };
 
 /*
- * Void. Admin only — the verb trusts its caller, so this is the gate.
+ * Void. Needs the `void` right — the verb trusts its caller, so this is the
+ * gate. A shift manager can hold it without holding the rest of admin.
  *
  * The three refusals below ran in the browser under Supabase; they keep
  * their exact wording (the till displays them) but now also run where they
@@ -161,7 +163,7 @@ export const settleOrder = async (orderId, {
  */
 export const cancelOrder = async (orderId, { reason, by } = {}) => {
     try {
-        await requireAdmin();
+        await requirePermission('void');
 
         const order = await getOrderById(orderId);
         if (order?.status === 'cancelled') {

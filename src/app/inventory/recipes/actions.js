@@ -1,7 +1,7 @@
 'use server'
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireUser, requireAdmin } from '@/lib/db/auth.mjs'
+import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
@@ -98,7 +98,7 @@ export async function getRecipe(menuItemId) {
  */
 export async function saveRecipe({ menuItemId, lines, notes }) {
     try {
-        await requireAdmin()
+        await requirePermission('inventory')
         if (!UUID_RE.test(String(menuItemId))) throw new Error('Pick a dish first')
 
         const cleanLines = (Array.isArray(lines) ? lines : []).map((line) => ({

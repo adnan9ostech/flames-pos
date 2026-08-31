@@ -8,7 +8,7 @@
  */
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const RECEIPT_METHODS = ['cash', 'card', 'bank', 'cheque']
@@ -50,7 +50,7 @@ const auditTx = async (conn, action, details) => {
  */
 export async function generateInvoice({ companyId, from, to } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
         if (!companyId) return { error: 'Pick a company' }
         if (!DAY_RE.test(from || '') || !DAY_RE.test(to || '')) return { error: 'Pick the period dates' }
         if (from > to) return { error: 'The period ends before it starts' }
@@ -130,7 +130,7 @@ export async function recordReceipt({
     companyId, invoiceId = null, amount, method = 'bank', reference = '', memo = '',
 } = {}) {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
         if (!companyId) return { error: 'Pick a company' }
         const amt = Number(amount)
         if (!Number.isFinite(amt) || amt <= 0) return { error: 'The amount must be more than zero' }
@@ -176,7 +176,7 @@ export async function recordReceipt({
 
 export async function listInvoices() {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
         const rows = await query(
             `SELECT i.id, i.invoice_no, i.company_id, c.name AS company_name,
                     i.period_from, i.period_to, i.total, i.created_at,
@@ -208,7 +208,7 @@ export async function listInvoices() {
 
 export async function listReceipts() {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
         const rows = await query(
             `SELECT r.id, r.company_id, c.name AS company_name, r.invoice_id, i.invoice_no,
                     r.amount, r.method, r.reference, r.memo, r.received_at
@@ -235,7 +235,7 @@ export async function listReceipts() {
  */
 export async function agingReport() {
     try {
-        await requireAdmin()
+        await requirePermission('cityledger')
 
         const [companies, uninvoiced, charged, receipts, invoices] = await Promise.all([
             query('SELECT id, name, is_active FROM companies ORDER BY name'),
