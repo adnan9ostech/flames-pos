@@ -388,9 +388,16 @@ function UserRow({
                     <button type="button" className={styles.linkBtn} onClick={onEdit} disabled={busy}>
                         Edit
                     </button>
-                    <button type="button" className={styles.linkBtn} onClick={onPermissions} disabled={busy}>
-                        Permissions
-                    </button>
+                    {/* An admin holds everything by definition, so there is
+                        nothing to tune — offering the panel would only invite
+                        an edit the server refuses. */}
+                    {row.role === 'admin' ? (
+                        <span className={styles.subtle}>Full access</span>
+                    ) : (
+                        <button type="button" className={styles.linkBtn} onClick={onPermissions} disabled={busy}>
+                            Permissions
+                        </button>
+                    )}
                     {/* Resetting your own password would sign this device out
                         mid-edit; the profile screen does it properly. */}
                     {!row.is_you && (

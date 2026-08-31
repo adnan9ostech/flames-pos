@@ -212,3 +212,18 @@ test('the landing every role gets is a page that role may open', () => {
         assert.equal(perms[needed], true, `${role} lands on ${path} but lacks '${needed}'`);
     }
 });
+
+test('an admin holds everything, whatever overrides say', () => {
+    // The role IS the grant. A stored override — left behind by a promotion,
+    // or hand-written into the row — must not be able to whittle an admin
+    // down, least of all out of the 'users' right that would lock them away
+    // from their own restaurant.
+    assert.deepEqual(
+        grantedKeys(effectivePermissions('admin', { users: false, settings: false })),
+        PERMISSION_KEYS,
+    );
+    assert.deepEqual(
+        grantedKeys(effectivePermissions('admin', null)),
+        PERMISSION_KEYS,
+    );
+});

@@ -62,8 +62,15 @@ export const ROLE_DEFAULTS = {
 /*
  * Role defaults with the user's own overrides applied. An override is
  * explicit either way — `false` takes a right away that the role grants.
+ *
+ * Except for admin: an admin holds everything, always. The role IS the
+ * grant, so there is nothing to tune and no way to whittle one down —
+ * which also means an admin can never be edited out of the `users` right
+ * and locked away from their own restaurant.
  */
 export const effectivePermissions = (role, overrides) => {
+    if (role === 'admin') return { ...ROLE_DEFAULTS.admin };
+
     const base = { ...(ROLE_DEFAULTS[role] || {}) };
     if (overrides && typeof overrides === 'object') {
         for (const [key, value] of Object.entries(overrides)) {

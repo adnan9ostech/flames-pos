@@ -204,12 +204,16 @@ export async function updateUser({ id, email, username, full_name, role }) {
 
         await query(
             `UPDATE users SET email = ?, username = ?, full_name = ?, role = ?,
+                    permissions = IF(? = 'admin', NULL, permissions),
                     token_version = token_version + ?, updated_at = CURRENT_TIMESTAMP(3)
              WHERE id = ?`,
             // A new role means a new set of rights, and the rights travel in
             // the signed cookie: bump the version so their other devices
-            // re-authenticate onto what they hold now.
-            [values.email, values.username, values.full_name, values.role, roleChanged ? 1 : 0, id],
+            // re-authenticate onto what they hold now. Promoting to admin
+            // drops any overrides — admin is absolute, so a leftover
+            // override would sit in the row meaning nothing.
+            [values.email, values.username, values.full_name, values.role,
+             values.role, roleChanged ? 1 : 0, id],
         )
         await audit(actor.id, 'user_update', { id, changed })
 
@@ -232,6 +236,11 @@ export async function setPermissions({ id, overrides }) {
         const actor = await requireAdmin()
         const [row] = await query('SELECT id, role, username, email FROM users WHERE id = ?', [id])
         if (!row) return { error: 'That account no longer exists' }
+        // An admin holds everything by definition; there is nothing here to
+        // tune, and a stored override would be a lie the UI has to explain.
+        if (row.role === 'admin') {
+            return { error: 'An admin has full access — there is nothing to change.' }
+        }
 
         const defaults = ROLE_DEFAULTS[row.role] || {}
         let delta = null
