@@ -63,10 +63,20 @@ touch global config; full runbook in `docs/deploy-cpanel.md`).
       reports hub links, ReceiptPreview charge lines, settings service
       charge, orderActions hooks
 
-## In progress RIGHT NOW
+## In progress RIGHT NOW (updated after the Tax tab request)
 
-- (nothing — F–J fully integrated; next step is Adnan's acceptance pass,
-  see Pending)
+- (nothing — F–J fully integrated and the Settings split is done; next
+  step is Adnan's acceptance pass, see Pending)
+
+Also done since:
+- [x] Settings split into tabs: General (merchant/QR/print) and
+      **Tax & FBR** at /settings/tax — GST cash/card %, tax name, service
+      charge % moved there, plus a read-only FBR Digital Invoicing panel
+      (enabled/mode, credential presence, queue pending/sent/failed).
+      updateSettings and updateTaxSettings each write only their own
+      columns so the two forms can't blank each other.
+- [x] POS top-bar responsive fix: search shrinks (flex, was fixed 400px),
+      pills nowrap, header wraps whole rows on narrow tills.
 
 Also done in the integration pass (was "in progress" above):
 - [x] Till wiring: charges price the cart live (scoped by order type, tab's

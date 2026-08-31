@@ -16,6 +16,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
+    /* On a narrow till the right-hand pills drop to their own row whole —
+       squeezing them makes their labels fold mid-word instead. */
+    flex-wrap: wrap;
     margin-bottom: 2rem;
 }
 
@@ -26,7 +30,10 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    width: 400px;
+    /* The search is the one thing here that can give up width. */
+    flex: 1 1 240px;
+    max-width: 400px;
+    min-width: 180px;
     border: 1px solid var(--border);
 }
 
@@ -48,6 +55,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-shrink: 0;
 }
 
 /* Way back into any unpaid check */
@@ -63,6 +71,7 @@
     font-size: 0.95rem;
     font-weight: 600;
     font-family: inherit;
+    white-space: nowrap;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -135,6 +144,7 @@
     gap: 0.5rem;
     color: var(--foreground);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .headerClock strong {

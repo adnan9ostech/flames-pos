@@ -17,12 +17,6 @@ const EMPTY = {
     raast_id: '',
     qr_enabled: true,
     auto_print: true,
-    // Stored as fractions; the fields below are edited as percentages. Two
-    // rates because ICT taxes cash and card sales differently — which one a
-    // bill pays is resolved at settle.
-    tax_rate_cash: 0.16,
-    tax_rate_card: 0.16,
-    tax_label: 'GST',
 }
 
 /*
@@ -63,12 +57,6 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState({ type: '', text: '' })
     const [settings, setSettings] = useState(EMPTY)
-    // The tax fields are edited as percentages but stored as fractions, so the
-    // operator's raw text lives here while they type.
-    const [taxCashInput, setTaxCashInput] = useState('')
-    const [taxCardInput, setTaxCardInput] = useState('')
-    // Already a percentage end to end, unlike the tax fractions above.
-    const [serviceChargeInput, setServiceChargeInput] = useState('')
     const [saved, setSaved] = useState(EMPTY)
 
     useEffect(() => {
@@ -78,17 +66,8 @@ export default function SettingsPage() {
             // toggle can't render as off against a database that has no opinion.
             next.qr_enabled = next.qr_enabled !== false
             next.auto_print = next.auto_print !== false
-            next.tax_rate_cash = Number(next.tax_rate_cash ?? EMPTY.tax_rate_cash)
-            next.tax_rate_card = Number(next.tax_rate_card ?? EMPTY.tax_rate_card)
-            next.service_charge_percent = Number(next.service_charge_percent ?? 0)
             setSettings(next)
             setSaved(next)
-            // Seeded here rather than in an effect: the percentage fields keep
-            // the operator's raw text while typing, so a half-entered "1" on the
-            // way to "16" isn't normalised under the cursor.
-            setTaxCashInput(String(Number((next.tax_rate_cash * 100).toFixed(2))))
-            setTaxCardInput(String(Number((next.tax_rate_card * 100).toFixed(2))))
-            setServiceChargeInput(String(next.service_charge_percent))
             setLoading(false)
         })
     }, [])
@@ -101,13 +80,10 @@ export default function SettingsPage() {
     }, [message])
 
     const isDirty = useMemo(
-        () => ['merchant_name', 'merchant_city', 'raast_id', 'tax_label']
+        () => ['merchant_name', 'merchant_city', 'raast_id']
             .some(k => (settings[k] || '').trim() !== (saved[k] || '').trim())
             || settings.qr_enabled !== saved.qr_enabled
-            || settings.auto_print !== saved.auto_print
-            || Number(settings.tax_rate_cash) !== Number(saved.tax_rate_cash)
-            || Number(settings.tax_rate_card) !== Number(saved.tax_rate_card)
-            || Number(settings.service_charge_percent) !== Number(saved.service_charge_percent),
+            || settings.auto_print !== saved.auto_print,
         [settings, saved]
     )
 
@@ -136,19 +112,6 @@ export default function SettingsPage() {
         setSettings(prev => ({ ...prev, [e.target.name]: e.target.value }))
     }
 
-    /*
-     * Edited as a percentage, stored as a fraction. Kept as a separate string in
-     * state while typing so a half-entered "1" on the way to "16" doesn't get
-     * normalised to 0.01 under the operator's cursor. One factory, two fields.
-     */
-
-    const handleTaxRateChange = (field, setInput) => (e) => {
-        const raw = e.target.value
-        setInput(raw)
-        const percent = Math.min(Math.max(Number(raw) || 0, 0), 100)
-        setSettings(prev => ({ ...prev, [field]: percent / 100 }))
-    }
-
     if (loading) {
         return (
             <div className="max-w-4xl mx-auto p-6 space-y-6" aria-busy="true">
@@ -163,11 +126,19 @@ export default function SettingsPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <div className="mb-8">
+            <div className="mb-6">
                 <h1 className="text-2xl sm:text-3xl font-bold text-white">Store Settings</h1>
                 <p className="mt-1 text-sm text-gray-400">
                     Merchant details used for Raast QR payments on receipts.
                 </p>
+            </div>
+
+            {/* Tax rates, service charge, and FBR live on their own tab. */}
+            <div className="mb-6 flex gap-2">
+                <span className="px-4 py-2 rounded-lg text-sm bg-orange-600 text-white font-semibold">General</span>
+                <a href="/settings/tax" className="px-4 py-2 rounded-lg text-sm bg-gray-900/70 border border-gray-800 text-gray-300 hover:text-white">
+                    Tax &amp; FBR
+                </a>
             </div>
 
             <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
@@ -221,8 +192,6 @@ export default function SettingsPage() {
                     <input type="hidden" name="qr_enabled" value={settings.qr_enabled ? 'true' : 'false'} />
                     <input type="hidden" name="auto_print" value={settings.auto_print ? 'true' : 'false'} />
                     {/* The visible fields are percentages; the stored values are the fractions. */}
-                    <input type="hidden" name="tax_rate_cash" value={settings.tax_rate_cash ?? 0.16} />
-                    <input type="hidden" name="tax_rate_card" value={settings.tax_rate_card ?? 0.16} />
                     <div className="grid gap-6 md:grid-cols-2">
                         <div>
                             <div className="flex items-baseline justify-between mb-1.5">
@@ -276,93 +245,13 @@ export default function SettingsPage() {
                             <p className="mt-1.5 text-xs text-gray-500">Defaults to Islamabad if left empty.</p>
                         </div>
 
-                        <div>
-                            <label htmlFor="tax_rate_cash_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
-                                GST — cash
-                            </label>
-                            <input
-                                id="tax_rate_cash_percent"
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                inputMode="decimal"
-                                value={taxCashInput}
-                                onChange={handleTaxRateChange('tax_rate_cash', setTaxCashInput)}
-                                autoComplete="off"
-                                className={fieldClass.replace('pl-10', 'pl-4')}
-                                placeholder="16"
-                            />
-                            <p className="mt-1.5 text-xs text-gray-500">
-                                Percent charged on cash bills. Applies to new orders only — past bills keep the tax they were charged.
-                            </p>
-                        </div>
+                        
 
-                        <div>
-                            <label htmlFor="tax_rate_card_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
-                                GST — card/digital
-                            </label>
-                            <input
-                                id="tax_rate_card_percent"
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                inputMode="decimal"
-                                value={taxCardInput}
-                                onChange={handleTaxRateChange('tax_rate_card', setTaxCardInput)}
-                                autoComplete="off"
-                                className={fieldClass.replace('pl-10', 'pl-4')}
-                                placeholder="5"
-                            />
-                            <p className="mt-1.5 text-xs text-gray-500">
-                                The ICT differential rate for card and digital payments — resolved when the bill settles.
-                            </p>
-                        </div>
+                        
 
-                        <div>
-                            <label htmlFor="service_charge_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
-                                Service charge
-                            </label>
-                            <input
-                                id="service_charge_percent"
-                                type="number"
-                                name="service_charge_percent"
-                                min="0"
-                                max="100"
-                                step="0.5"
-                                inputMode="decimal"
-                                value={serviceChargeInput}
-                                onChange={(e) => {
-                                    setServiceChargeInput(e.target.value)
-                                    setSettings(s => ({ ...s, service_charge_percent: Number(e.target.value) || 0 }))
-                                }}
-                                autoComplete="off"
-                                className={fieldClass.replace('pl-10', 'pl-4')}
-                                placeholder="5"
-                            />
-                            <p className="mt-1.5 text-xs text-gray-500">
-                                Percent added automatically to dine-in bills, taxed like the food. 0 switches it off; scope and more charges live under Charges.
-                            </p>
-                        </div>
+                        
 
-                        <div>
-                            <label htmlFor="tax_label" className="block text-sm font-medium text-gray-300 mb-1.5">
-                                Tax name
-                            </label>
-                            <input
-                                id="tax_label"
-                                type="text"
-                                name="tax_label"
-                                value={settings.tax_label || ''}
-                                onChange={handleChange}
-                                maxLength={16}
-                                autoComplete="off"
-                                className={fieldClass.replace('pl-10', 'pl-4')}
-                                placeholder="GST"
-                            />
-                            <p className="mt-1.5 text-xs text-gray-500">Shown on the receipt tax line.</p>
-                        </div>
+                        
 
                         <div className="md:col-span-2">
                             <label htmlFor="raast_id" className="block text-sm font-medium text-gray-300 mb-1.5">

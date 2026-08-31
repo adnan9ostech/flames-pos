@@ -48,53 +48,28 @@ export async function updateSettings(formData) {
         const qr_enabled = formData.get('qr_enabled') !== 'false'
         const auto_print = formData.get('auto_print') !== 'false'
 
-        // Clamped server-side too: the number input is a hint, not a guarantee,
-        // and a rate above 1 would silently multiply every bill. Two rates
-        // because ICT taxes cash and card sales differently; settle resolves
-        // which one a bill pays.
-        const rate = (key) => {
-            const raw = Number(formData.get(key))
-            return Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 1) : 0.16
-        }
-        const tax_rate_cash = rate('tax_rate_cash')
-        const tax_rate_card = rate('tax_rate_card')
-        const tax_label = clean('tax_label') || 'GST'
-
+        // Tax rates, the tax label, the service charge, and FBR status all
+        // live on their own tab now (settings/tax) with their own action —
+        // this one writes only the merchant/receipt columns, so the two
+        // forms can never blank each other's fields.
         const existing = await getStoreSettings()
         if (existing) {
             await query(
                 `UPDATE store_settings SET
                    merchant_name = ?, merchant_city = ?, raast_id = ?,
                    qr_enabled = ?, auto_print = ?,
-                   tax_rate_cash = ?, tax_rate_card = ?, tax_label = ?,
                    updated_at = UTC_TIMESTAMP(3)
                  WHERE id = ?`,
                 [merchant_name, merchant_city, raast_id,
-                    qr_enabled ? 1 : 0, auto_print ? 1 : 0,
-                    tax_rate_cash, tax_rate_card, tax_label, existing.id],
+                    qr_enabled ? 1 : 0, auto_print ? 1 : 0, existing.id],
             )
         } else {
             await query(
                 `INSERT INTO store_settings
-                   (id, merchant_name, merchant_city, raast_id,
-                    qr_enabled, auto_print, tax_rate_cash, tax_rate_card, tax_label)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                   (id, merchant_name, merchant_city, raast_id, qr_enabled, auto_print)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
                 [randomUUID(), merchant_name, merchant_city, raast_id,
-                    qr_enabled ? 1 : 0, auto_print ? 1 : 0,
-                    tax_rate_cash, tax_rate_card, tax_label],
-            )
-        }
-
-        // Service charge rides the charges engine, keyed by name: the quick
-        // field edits the percentage, 0 switches the charge off, and the
-        // Charges screen keeps full control of its shape.
-        const scRaw = Number(formData.get('service_charge_percent'))
-        if (Number.isFinite(scRaw)) {
-            const pct = Math.min(Math.max(scRaw, 0), 100)
-            await query(
-                `UPDATE charges SET value = ?, is_active = ?, updated_at = UTC_TIMESTAMP(3)
-                 WHERE name = 'Service Charge'`,
-                [pct, pct > 0 ? 1 : 0],
+                    qr_enabled ? 1 : 0, auto_print ? 1 : 0],
             )
         }
 
