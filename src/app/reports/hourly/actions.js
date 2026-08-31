@@ -45,7 +45,7 @@ const defaultBusinessDay = async () => {
  * when it was rung in for a tab still open. Voids are out entirely.
  */
 export async function getHourlySales(businessDate = null) {
-    // Admin-only. Returned rather than thrown — production redacts thrown
+    // Wants `reports`. Returned rather than thrown — production redacts thrown
     // action errors.
     try {
         await requirePermission('reports')

@@ -1,0 +1,348 @@
+.container {
+    padding: 1.5rem 2rem 3rem;
+    max-width: 900px;
+}
+
+.header {
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.subtitle {
+    margin-top: 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+    max-width: 60ch;
+}
+
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 4rem 0;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
+}
+
+/* The handover nudge. Loud on purpose — it is the one thing on this screen
+   that is actually urgent, and it is easy to walk away from. */
+.banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: var(--radius);
+    background: rgba(242, 101, 19, 0.12);
+    border: 1px solid rgba(242, 101, 19, 0.45);
+}
+
+.bannerIcon {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    color: var(--primary);
+}
+
+.bannerTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--card-foreground);
+}
+
+.bannerBody {
+    margin-top: 0.3rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--foreground);
+    max-width: 62ch;
+}
+
+.cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+}
+
+.cardHead {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.cardIcon {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(242, 101, 19, 0.14);
+    color: var(--primary);
+}
+
+.cardTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--card-foreground);
+}
+
+.cardHint {
+    margin-top: 0.2rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+    max-width: 60ch;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.1rem;
+}
+
+@media (max-width: 720px) {
+    .container { padding: 1.25rem 1rem 2.5rem; }
+    .grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+/* The current password stands alone above the pair it authorises. */
+.spanAll {
+    grid-column: 1 / -1;
+}
+
+.label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+/* 3rem clears a finger on the till's touchscreen. */
+.input {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius);
+    background: var(--background);
+    border: 1px solid var(--input);
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.input::placeholder {
+    color: var(--muted);
+}
+
+.input:focus {
+    border-color: var(--primary);
+}
+
+.input:disabled {
+    opacity: 0.6;
+}
+
+/* Reads as a value, not as a field waiting to be filled in. */
+.readonly {
+    display: flex;
+    align-items: center;
+    min-height: 3rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
+}
+
+.fieldHint {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
+}
+
+.roleChip {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(242, 101, 19, 0.15);
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.passwordField {
+    position: relative;
+    display: flex;
+}
+
+.passwordField .input {
+    padding-right: 3.25rem;
+}
+
+.reveal {
+    position: absolute;
+    top: 50%;
+    right: 0.15rem;
+    transform: translateY(-50%);
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.reveal:hover:not(:disabled) {
+    color: var(--foreground);
+}
+
+.reveal:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.note {
+    margin-top: 1.1rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1.1rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.messageIcon {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.messageError {
+    background: rgba(220, 38, 38, 0.12);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    color: #fca5a5;
+}
+
+.messageOk {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #86efac;
+}
+
+.formFoot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.footMeta {
+    margin-right: auto;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.saveBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.9rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: var(--radius);
+    background: var(--primary);
+    border: none;
+    color: var(--primary-foreground);
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.saveBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.saveBtn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chip {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.empty {
+    padding: 1rem 0;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+}

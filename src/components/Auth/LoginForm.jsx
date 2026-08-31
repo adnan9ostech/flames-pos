@@ -3,21 +3,35 @@
 import { useState } from 'react'
 import { login } from '@/app/login/actions'
 import CookingLoader from '@/components/Layout/CookingLoader'
-import { Utensils, Loader2, ShieldCheck, UserRound } from 'lucide-react'
+import { Utensils, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import styles from './login.module.css'
 
-const ROLES = [
-    { key: 'admin', label: 'Admin', Icon: ShieldCheck },
-    { key: 'staff', label: 'Staff', Icon: UserRound },
-]
-
+/*
+ * One field for who you are, one for your password.
+ *
+ * The identifier is deliberately not split into "email" and "username" tabs:
+ * an account carries both, people remember whichever they were told, and
+ * login() accepts either — so asking which kind it is only adds a wrong answer
+ * to give.
+ */
 export default function LoginForm() {
-    const [role, setRole] = useState('admin')
+    const [identifier, setIdentifier] = useState('')
+    const [password, setPassword] = useState('')
+    const [revealed, setRevealed] = useState(false)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
-    // `loading` deliberately stays true through a successful sign-in: the action
-    // resolves well before /pos finishes rendering, and dropping the pending
-    // state in that gap is what made the button look like it did nothing.
+    // Both fields are controlled so a rejected attempt keeps what was typed:
+    // React resets an uncontrolled form once its action settles, and re-typing
+    // an email after a mistyped password is the kind of friction that ends in
+    // the password being written on the till.
+    //
+    // `loading` deliberately stays true through a successful sign-in — login()
+    // navigates, and the action settles well before the destination screen has
+    // rendered. Dropping the pending state in that gap is what made the button
+    // look like it did nothing. No try/catch around the call either: a Next
+    // redirect travels as a thrown signal, and catching it here would swallow
+    // the navigation.
     const handleSubmit = async (formData) => {
         setLoading(true)
         setError('')
@@ -31,100 +45,105 @@ export default function LoginForm() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-800 via-gray-900 to-black p-4">
+        <div className={styles.page}>
             {/* Signing in crosses two waits — the auth round-trip, then the
-                render of /pos — and the form's own pending state only covers
-                the first. This stays up for both so the click never looks lost. */}
+                render of whichever screen this account lands on — and the
+                form's own pending state only covers the first. This stays up
+                for both so the tap never looks lost. */}
             {loading && (
-                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-950/85 backdrop-blur-sm">
-                    <CookingLoader
-                        size={112}
-                        label={`Signing in as ${role === 'admin' ? 'Admin' : 'Staff'}...`}
-                    />
+                <div className={styles.overlay}>
+                    <CookingLoader size={112} label="Signing you in…" />
                 </div>
             )}
 
-            <div className="max-w-md w-full space-y-8 p-8 bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50">
-                <div className="text-center">
-                    <div className="mx-auto h-16 w-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg transform mb-6">
-                        <Utensils className="h-8 w-8 text-white" />
+            <div className={styles.card}>
+                <div className={styles.brand}>
+                    <div className={styles.mark}>
+                        <Utensils size={30} aria-hidden="true" />
                     </div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">
-                        Flames by the Indus
-                    </h2>
-                    <p className="mt-2 text-sm text-gray-400">
-                        Staff Sign In
-                    </p>
+                    <h1 className={styles.title}>Flames by the Indus</h1>
+                    <p className={styles.subtitle}>Sign in to your account</p>
                 </div>
 
-                <form className="mt-8 space-y-6" action={handleSubmit}>
-                    <input type="hidden" name="role" value={role} />
-
-                    <div className="grid grid-cols-2 gap-3">
-                        {ROLES.map(({ key, label, Icon }) => (
-                            <button
-                                key={key}
-                                type="button"
-                                onClick={() => setRole(key)}
-                                disabled={loading}
-                                aria-pressed={role === key}
-                                className={`flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold border transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${role === key
-                                        ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-500/20'
-                                        : 'bg-gray-900/50 border-gray-600 text-gray-300 hover:border-gray-500'
-                                    }`}
-                            >
-                                <Icon className="h-4 w-4" />
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div>
-                        <label htmlFor="pin" className="block text-sm font-medium text-gray-300 mb-1">
-                            {role === 'admin' ? 'Admin PIN' : 'Staff PIN'}
+                <form className={styles.form} action={handleSubmit}>
+                    <div className={styles.field}>
+                        <label className={styles.label} htmlFor="identifier">
+                            Email or username
                         </label>
                         <input
-                            id="pin"
-                            name="pin"
-                            type="password"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={6}
-                            autoComplete="off"
-                            required
+                            id="identifier"
+                            name="identifier"
+                            type="text"
+                            className={styles.input}
+                            value={identifier}
+                            onChange={(e) => setIdentifier(e.target.value)}
+                            autoComplete="username"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
                             autoFocus
                             disabled={loading}
-                            className="appearance-none block w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-900/50 text-white placeholder-gray-500 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200 disabled:opacity-60"
-                            placeholder="••••••"
+                            placeholder="you@flames.pk or ahmed"
                         />
                     </div>
 
+                    <div className={styles.field}>
+                        <label className={styles.label} htmlFor="password">
+                            Password
+                        </label>
+                        <div className={styles.passwordField}>
+                            <input
+                                id="password"
+                                name="password"
+                                type={revealed ? 'text' : 'password'}
+                                className={styles.input}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete="current-password"
+                                disabled={loading}
+                                placeholder="••••••••"
+                            />
+                            {/* Typing a password blind on a touchscreen keyboard is
+                                how a correct password gets reported as wrong. */}
+                            <button
+                                type="button"
+                                className={styles.reveal}
+                                onClick={() => setRevealed((v) => !v)}
+                                disabled={loading}
+                                aria-pressed={revealed}
+                                aria-label={revealed ? 'Hide password' : 'Show password'}
+                            >
+                                {revealed
+                                    ? <EyeOff size={20} aria-hidden="true" />
+                                    : <Eye size={20} aria-hidden="true" />}
+                            </button>
+                        </div>
+                    </div>
+
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3">
-                            <p className="text-red-400 text-sm text-center font-medium">
-                                {error}
-                            </p>
+                        <div className={styles.error} role="alert">
+                            <AlertTriangle size={18} className={styles.errorIcon} aria-hidden="true" />
+                            {error}
                         </div>
                     )}
 
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-orange-500/20"
+                        className={styles.submit}
+                        disabled={loading || !identifier.trim() || !password}
                     >
-                        {loading ? (
-                            <span className="flex items-center">
-                                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                                Signing in...
-                            </span>
-                        ) : (
-                            'Sign In'
-                        )}
+                        {loading
+                            ? <Loader2 size={18} className={styles.spinner} aria-hidden="true" />
+                            : null}
+                        {loading ? 'Signing in…' : 'Sign In'}
                     </button>
-
-                    {/* Forgot-PIN lives with the admin now: Settings > reset
-                        either role's PIN at the counter. No emailed links. */}
                 </form>
+
+                {/* No emailed reset links: the person who can prove who you are
+                    is standing in the same building. */}
+                <p className={styles.hint}>
+                    Forgotten your password? An admin can set a new one for you at the counter.
+                </p>
             </div>
         </div>
     )

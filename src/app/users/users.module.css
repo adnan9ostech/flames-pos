@@ -1,0 +1,554 @@
+.container {
+    padding: 1.5rem 2rem;
+    max-width: 1180px;
+}
+
+.header {
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.subtitle {
+    margin-top: 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+    max-width: 62ch;
+}
+
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 4rem 0;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    background: rgba(220, 38, 38, 0.12);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    color: #fca5a5;
+    font-size: 0.9rem;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+}
+
+.cardHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.cardTitle {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.addBtn,
+.saveBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    background: var(--primary);
+    border: none;
+    color: var(--primary-foreground);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.addBtn:disabled,
+.saveBtn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.cancelBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: var(--radius);
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.ghostBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: var(--radius);
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.ghostBtn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* The add block is one unit: identity above, the credential below it. */
+.newBlock {
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+}
+
+.newBlock .form {
+    margin-bottom: 0;
+    border: none;
+    background: none;
+}
+
+.form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+}
+
+.input {
+    flex: 1 1 160px;
+    min-width: 110px;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius);
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+}
+
+.input:focus {
+    border-color: var(--primary);
+}
+
+.input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.passwordRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.85rem 0.85rem;
+}
+
+.passwordRow .input {
+    flex: 1 1 240px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.04em;
+}
+
+.passwordHint {
+    flex: 1 1 100%;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+}
+
+/* The handover: loud enough that nobody closes the tab without reading it. */
+.handover {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.9rem 1.1rem;
+    border-radius: var(--radius);
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.handoverLabel {
+    color: #4ade80;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.handoverValue {
+    margin: 0.25rem 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--foreground);
+    user-select: all;
+}
+
+.handoverActions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    text-align: left;
+    padding: 0.6rem 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+}
+
+.table td {
+    padding: 0.7rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--foreground);
+    vertical-align: top;
+}
+
+.name {
+    font-weight: 600;
+}
+
+/* A suspended account stays readable but recedes — it is history, not staff. */
+.suspended td {
+    color: var(--muted-foreground);
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.subtle {
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+}
+
+.roleChip,
+.activeChip,
+.retiredChip,
+.youChip,
+.customChip,
+.defaultChip {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.roleChip {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--foreground);
+}
+
+.activeChip {
+    align-self: flex-start;
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.retiredChip {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--muted-foreground);
+}
+
+.youChip {
+    margin-left: 0.5rem;
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+}
+
+.customChip {
+    background: rgba(234, 179, 8, 0.15);
+    color: #fde047;
+}
+
+.defaultChip {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--muted-foreground);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.linkBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.linkBtn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Quieter than the rest until hovered: a delete you can hit by accident is a
+   delete you will. */
+.dangerLink {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 0.15rem;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.dangerLink:hover:not(:disabled) {
+    color: #f87171;
+}
+
+.dangerLink:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.empty {
+    padding: 2rem 0;
+    text-align: center;
+    color: var(--muted-foreground);
+}
+
+.panel {
+    margin: 0.25rem 0 0.75rem;
+    padding: 1rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+}
+
+.panelHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.panelTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.panelHint {
+    margin-top: 0.6rem;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+    max-width: 70ch;
+}
+
+.panelActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.spacer {
+    flex: 1;
+}
+
+.permGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.6rem 1rem;
+}
+
+.permItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: var(--radius);
+    background: var(--background);
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--foreground);
+    cursor: pointer;
+}
+
+.checkbox {
+    margin-top: 0.15rem;
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+/* What the role says, beside what this person has: the difference is the
+   whole reason the panel exists. */
+.permDefault {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.dialog {
+    width: 100%;
+    max-width: 30rem;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.7);
+}
+
+.dialogTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fca5a5;
+}
+
+.dialogBody {
+    color: var(--foreground);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.dialogHint {
+    margin-top: 0.6rem;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+}
+
+.confirmField {
+    display: block;
+    margin-top: 1rem;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+}
+
+.confirmField .input {
+    margin-top: 0.4rem;
+    width: 100%;
+}
+
+.dialogActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.retireBtn {
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.deleteBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    background: #dc2626;
+    border: none;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.deleteBtn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}

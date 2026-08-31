@@ -1,0 +1,211 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    /* A warm wash off the top edge so the card sits in something rather than
+       floating on flat black. */
+    background:
+        radial-gradient(ellipse 80% 55% at 50% 0%, rgba(242, 101, 19, 0.13), transparent 70%),
+        var(--background);
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(4px);
+}
+
+.card {
+    width: 100%;
+    max-width: 27rem;
+    padding: 2.25rem 2rem;
+    border-radius: 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 70px -20px rgba(0, 0, 0, 0.9);
+}
+
+.brand {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.mark {
+    width: 4rem;
+    height: 4rem;
+    margin: 0 auto 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: var(--primary-foreground);
+    box-shadow: 0 12px 32px -12px rgba(242, 101, 19, 0.75);
+}
+
+.title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--card-foreground);
+}
+
+.subtitle {
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+/* 3.25rem clears the 44px minimum for a finger on the till's touchscreen. */
+.input {
+    width: 100%;
+    min-height: 3.25rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    background: var(--background);
+    border: 1px solid var(--input);
+    color: var(--foreground);
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.input::placeholder {
+    color: var(--muted);
+}
+
+.input:focus {
+    border-color: var(--primary);
+}
+
+.input:disabled {
+    opacity: 0.6;
+}
+
+.passwordField {
+    position: relative;
+    display: flex;
+}
+
+/* The eye sits inside the field, so the text has to stop short of it. */
+.passwordField .input {
+    padding-right: 3.5rem;
+}
+
+.reveal {
+    position: absolute;
+    top: 50%;
+    right: 0.25rem;
+    transform: translateY(-50%);
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.reveal:hover:not(:disabled) {
+    color: var(--foreground);
+}
+
+.reveal:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius);
+    background: rgba(220, 38, 38, 0.12);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    color: #fca5a5;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.errorIcon {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 3.25rem;
+    margin-top: 0.25rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    background: var(--primary);
+    border: none;
+    color: var(--primary-foreground);
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.submit:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.submit:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
+}
+
+.hint {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+}

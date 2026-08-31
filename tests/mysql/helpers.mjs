@@ -61,10 +61,21 @@ export const closeDb = async () => {
 const MENU_ITEM_ID = '00000000-0000-4000-8000-00000000fe37';
 
 /*
+ * The two people every suite gets: one who can do everything and one who can
+ * only ring orders up. Fixed usernames, because the seed is keyed on username
+ * (the row's UNIQUE identity now that a role no longer has one) and every
+ * suite reseeds into the same database.
+ */
+const TEST_USERS = [
+    { username: 'test_admin', role: 'admin', full_name: 'Test Admin' },
+    { username: 'test_cashier', role: 'cashier', full_name: 'Test Cashier' },
+];
+
+/*
  * Empty the transactional tables (FK-safe order: children before orders,
  * ledgers last) and reseed the fixtures the verbs read: one store_settings
  * row carrying the two tax rates, one menu item for FK-linked lines, and the
- * two shared role accounts.
+ * two test accounts.
  */
 export const resetDb = async () => {
     for (const table of [
@@ -93,16 +104,33 @@ export const resetDb = async () => {
         [MENU_ITEM_ID],
     );
 
-    // Shared role accounts, PIN '1234'. Cheap cost factor: these hashes gate
-    // nothing in this suite, they just satisfy the schema honestly.
-    const pinHash = bcrypt.hashSync('1234', 4);
-    await pool.query(
-        `INSERT INTO users (id, role, pin_hash) VALUES (?, 'admin', ?), (?, 'staff', ?)
-         AS new_row ON DUPLICATE KEY UPDATE pin_hash = new_row.pin_hash`,
-        [randomUUID(), pinHash, randomUUID(), pinHash],
+    // Password 'testpass1' at a cheap cost factor: these hashes gate nothing in
+    // this suite, they just satisfy the schema honestly. Keyed on username —
+    // role lost its unique index when one row per role stopped being the model.
+    const passwordHash = bcrypt.hashSync('testpass1', 4);
+    for (const u of TEST_USERS) {
+        await pool.query(
+            `INSERT INTO users (id, username, full_name, role, password_hash, token_version)
+             VALUES (?, ?, ?, ?, ?, 1) AS new_row
+             ON DUPLICATE KEY UPDATE
+               full_name = new_row.full_name, role = new_row.role,
+               password_hash = new_row.password_hash, token_version = 1,
+               permissions = NULL, must_change_password = 0, is_active = 1`,
+            [randomUUID(), u.username, u.full_name, u.role, passwordHash],
+        );
+    }
+
+    const seeded = await q(
+        'SELECT id, username FROM users WHERE username IN (?, ?)',
+        TEST_USERS.map((u) => u.username),
     );
+    const idFor = (username) => seeded.find((r) => r.username === username).id;
 
     return {
         menuItem: await one('SELECT * FROM menu_items WHERE id = ?', [MENU_ITEM_ID]),
+        users: {
+            admin: idFor('test_admin'),
+            cashier: idFor('test_cashier'),
+        },
     };
 };

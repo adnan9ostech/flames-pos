@@ -4,6 +4,7 @@ import AppLayout from "@/components/Layout/AppLayout";
 import ConnectionStatus from "@/components/Layout/ConnectionStatus";
 import ServiceWorkerRegistrar from "@/components/Layout/ServiceWorkerRegistrar";
 import { readSession } from "@/lib/db/auth.mjs";
+import { query } from "@/lib/db/pool.mjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,15 +28,37 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }) {
-  // Cookie-only read — the layout renders on every request, so it gets the
-  // role from the signed session without touching the DB.
+  // Cookie-only read — the layout renders on every request, and the signed
+  // session already carries the role and the granted rights, so deciding what
+  // the sidebar draws costs no database round trip.
   const session = await readSession();
-  const role = session?.role ?? null;
+
+  // The one thing the cookie does not carry is the person's name, and the
+  // sidebar names who is signed in. A primary-key lookup, skipped entirely
+  // when nobody is; a database blip costs the footer a name, not the shell.
+  let name = null;
+  if (session) {
+    try {
+      const rows = await query(
+        'SELECT full_name, username FROM users WHERE id = ?',
+        [session.sub],
+      );
+      name = rows[0]?.full_name || rows[0]?.username || null;
+    } catch {
+      name = null;
+    }
+  }
+
+  const viewer = {
+    role: session?.role ?? null,
+    perms: session?.perms ?? [],
+    name,
+  };
 
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppLayout role={role}>
+        <AppLayout session={viewer}>
           {children}
         </AppLayout>
         {/* Global, so a dropped connection is visible on every screen — the KDS

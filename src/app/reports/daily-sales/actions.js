@@ -33,7 +33,7 @@ const defaultBusinessDay = async () => {
  * through, shows the reason, and keeps them out of the footer sums.
  */
 export async function getDailyFoodSales(businessDate = null) {
-    // Admin-only: a day's takings order by order are not floor reading.
+    // Wants `reports`: a day's takings order by order are not floor reading.
     // Returned rather than thrown — production redacts thrown action errors.
     try {
         await requirePermission('reports')

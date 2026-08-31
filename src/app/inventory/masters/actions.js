@@ -43,7 +43,7 @@ const cleanName = (value, label, max = 191) => {
 
 /*
  * Everything the four tabs show, in one round trip. Staff can look; only the
- * write actions below carry the admin gate.
+ * write actions below want `inventory`.
  */
 export async function getMasters() {
     try {

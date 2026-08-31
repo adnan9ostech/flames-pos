@@ -43,7 +43,7 @@ const attachLines = (parents, lines, key) => {
 
 /*
  * Everything the receiving screen shows, one round trip. Staff can look;
- * the write actions below carry the admin gate.
+ * the write actions below want `inventory`.
  */
 export async function getReceivingData() {
     try {
@@ -108,7 +108,7 @@ export async function getReceivingData() {
 
 /*
  * Post a GRN. Validation, the ledger rows, the moving-average update and
- * the audit trail all live in the kernel verb — this is the admin gate and
+ * the audit trail all live in the kernel verb — this is the `inventory` gate and
  * the envelope.
  */
 export async function createReceiving({ supplierId, warehouseId, draftId, supplierInvoice, lines, notes } = {}) {

@@ -8,7 +8,7 @@
  * Env, all optional except the password:
  *   SEED_ADMIN_USERNAME   defaults to 'admin'
  *   SEED_ADMIN_EMAIL      optional second way to sign in
- *   SEED_ADMIN_FULL_NAME  defaults to 'Administrator'
+ *   SEED_ADMIN_FULL_NAME  prompted for when absent
  *   SEED_ADMIN_PASSWORD   prompted for when absent
  *
  * A password that arrived through the environment is treated as already
@@ -55,19 +55,32 @@ if (!DB_NAME) {
 
 const MIN_PASSWORD = 8;
 
+/*
+ * One readline interface for the whole run, opened on the first question. A
+ * second interface over the same stdin inherits none of what the first had
+ * already buffered, which turns piped answers into a hang.
+ */
+let rl = null;
+
+const closeInput = () => {
+    rl?.close();
+    rl = null;
+};
+
 const die = (message) => {
+    closeInput();
     console.error(message);
     process.exit(1);
 };
 
 const ask = (label, { hidden = false } = {}) => new Promise((resolve) => {
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    rl ??= createInterface({ input: process.stdin, output: process.stdout });
     process.stdout.write(label);
-    // The prompt is written directly above, so readline can be struck mute for
-    // the answer without losing the question.
+    // The question is written directly above, so readline can be struck mute
+    // for the answer without the prompt disappearing with it.
     if (hidden) rl._writeToOutput = () => {};
+    else delete rl._writeToOutput;
     rl.question('', (answer) => {
-        rl.close();
         if (hidden) process.stdout.write('\n');
         resolve(answer.trim());
     });
@@ -78,31 +91,17 @@ if (!/^[A-Za-z0-9._-]{2,64}$/.test(username)) {
     die('SEED_ADMIN_USERNAME must be 2–64 characters of letters, digits, dot, dash or underscore.');
 }
 
-const email = (process.env.SEED_ADMIN_EMAIL || '').trim() || null;
-if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    die(`SEED_ADMIN_EMAIL does not look like an address: ${email}`);
+const envEmail = (process.env.SEED_ADMIN_EMAIL || '').trim() || null;
+if (envEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(envEmail)) {
+    die(`SEED_ADMIN_EMAIL does not look like an address: ${envEmail}`);
 }
 
-const fullName = (process.env.SEED_ADMIN_FULL_NAME || '').trim() || 'Administrator';
+const envFullName = (process.env.SEED_ADMIN_FULL_NAME || '').trim() || null;
+const envPassword = process.env.SEED_ADMIN_PASSWORD;
+const fromEnv = envPassword !== undefined;
 
-const fromEnv = process.env.SEED_ADMIN_PASSWORD !== undefined;
-let password;
-if (fromEnv) {
-    password = process.env.SEED_ADMIN_PASSWORD;
-    if (password.length < MIN_PASSWORD) {
-        die(`SEED_ADMIN_PASSWORD must be at least ${MIN_PASSWORD} characters.`);
-    }
-} else {
-    password = await ask(`Password for ${username} (min ${MIN_PASSWORD} chars): `, { hidden: true });
-    if (password.length < MIN_PASSWORD) {
-        die(`Refused: the password must be at least ${MIN_PASSWORD} characters.`);
-    }
-    // Typed blind and, when interactive, not flagged for a change at first
-    // sign-in — a typo here would lock the only admin out of a fresh install.
-    const again = await ask('Type it again: ', { hidden: true });
-    if (again !== password) die('The two entries did not match. Nothing was changed.');
-}
-
+// Connect before prompting: a wrong DB_NAME should fail in a second, not after
+// somebody has carefully typed a password twice.
 const conn = await mysql.createConnection({
     ...(DB_SOCKET ? { socketPath: DB_SOCKET } : { host: DB_HOST, port: Number(DB_PORT) }),
     user: DB_USER,
@@ -112,24 +111,56 @@ const conn = await mysql.createConnection({
 });
 await conn.query("SET time_zone = '+00:00'");
 
+const bail = async (message) => {
+    await conn.end();
+    die(message);
+};
+
+const [[existing = null]] = await conn.query(
+    'SELECT id, email, full_name, role, is_active FROM users WHERE username = ?',
+    [username],
+);
+
+// Absent env values keep whatever the row already holds rather than blanking
+// it: re-seeding to rotate a password must not quietly erase the admin's name
+// or their address.
+const email = envEmail ?? existing?.email ?? null;
+const fullName = envFullName
+    ?? (fromEnv ? null : (await ask(`Full name [${existing?.full_name || 'Administrator'}]: `)) || null)
+    ?? existing?.full_name
+    ?? 'Administrator';
+
 // Both username and email are unique, so an ON DUPLICATE KEY insert would
-// happily rewrite a *different* person's row if the email were already theirs.
-// Caught here instead, where the message can say whose it is.
+// happily rewrite a *different* person's row when the address is already
+// theirs. Caught here, where the message can name who holds it.
 if (email) {
     const [clash] = await conn.query(
         'SELECT username FROM users WHERE email = ? AND (username IS NULL OR username <> ?)',
         [email, username],
     );
     if (clash.length > 0) {
-        await conn.end();
-        die(`${email} already belongs to '${clash[0].username ?? 'another account'}' — seed a different address.`);
+        await bail(`${email} already belongs to '${clash[0].username ?? 'another account'}' — seed a different address.`);
     }
 }
 
-const [[existing = null]] = await conn.query(
-    'SELECT id, role, is_active FROM users WHERE username = ?',
-    [username],
-);
+let password;
+if (fromEnv) {
+    password = envPassword;
+    if (password.length < MIN_PASSWORD) {
+        await bail(`SEED_ADMIN_PASSWORD must be at least ${MIN_PASSWORD} characters.`);
+    }
+} else {
+    password = await ask(`Password for ${username} (min ${MIN_PASSWORD} chars): `, { hidden: true });
+    if (password.length < MIN_PASSWORD) {
+        await bail(`Refused: the password must be at least ${MIN_PASSWORD} characters.`);
+    }
+    // Typed blind, and an interactively-typed password is not flagged for a
+    // change at first sign-in — a typo here would lock the only admin out.
+    if (await ask('Type it again: ', { hidden: true }) !== password) {
+        await bail('The two entries did not match. Nothing was changed.');
+    }
+}
+closeInput();
 
 const hash = await bcrypt.hash(password, 12);
 const mustChange = fromEnv ? 1 : 0;
@@ -145,8 +176,6 @@ await conn.query(
        password_hash = new_row.password_hash,
        must_change_password = new_row.must_change_password,
        is_active = 1,
-       -- Re-seeding is the fix-it path: clear any override that had taken a
-       -- right away from the account that is supposed to hold all of them.
        permissions = NULL,
        token_version = token_version + 1,
        updated_at = CURRENT_TIMESTAMP(3)`,
@@ -168,13 +197,14 @@ await conn.query(
 if (existing === null) {
     console.log(`created admin '${username}'${email ? ` <${email}>` : ''} on ${DB_NAME}`);
 } else {
-    console.log(`updated '${username}' on ${DB_NAME} — password reset, role set to admin, `
-        + 'token_version bumped (other devices sign out at their next action)');
-    if (existing.role !== 'admin') console.log(`  role was '${existing.role}'`);
-    if (!existing.is_active) console.log('  account was disabled and is now active again');
+    console.log(`updated '${username}' on ${DB_NAME} — password reset, token_version bumped `
+        + '(other devices sign out at their next action)');
+    if (existing.role !== 'admin') console.log(`  role was '${existing.role}', now admin`);
+    if (!existing.is_active) console.log('  account was disabled and is active again');
+    console.log('  any per-user permission override was cleared — the admin role grants everything');
 }
 console.log(mustChange
-    ? '  must change password at first sign-in (the password came from the environment)'
-    : '  password is ready to use');
+    ? '  must change the password at first sign-in (it came from the environment)'
+    : '  the password is ready to use');
 
 await conn.end();

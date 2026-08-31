@@ -118,6 +118,30 @@ Also done in the integration pass (was "in progress" above):
       write the full deleted row into audit_log first, and "Retire instead"
       is offered as the reversible option.
 
+## Users, roles & permissions (1 Sep)
+
+- Migration 005: `users` gains email + username (both UNIQUE, sign in with
+  either), full_name, permissions JSON, must_change_password, is_active,
+  last_login_at; pin_hash→password_hash, pin_version→token_version; the
+  one-row-per-role UNIQUE is gone. Roles: admin, manager, cashier,
+  frontdesk, kitchen, accountant (+ legacy staff, suspended).
+- `src/lib/auth/permissions.mjs` is the single source: PERMISSIONS,
+  ROLE_DEFAULTS, effectivePermissions(role, overrides), permissionForPath,
+  landingPath. Granted keys ride in the SIGNED cookie so the proxy gates
+  routes with zero DB calls; requireUser() re-reads live rights for actions.
+  Changing a role/permission/password bumps token_version → other devices
+  re-authenticate.
+- `/users` (admin): create with generated password, edit, per-user
+  permission overrides, reset password, suspend, hard delete — with
+  last-admin and self-action guards. Login is identifier + password;
+  handed-over passwords force a change at first login. Profile: own name,
+  email, password, and a read-only list of what you can access.
+- Sidebar draws only what the account can open, scrolls, and pins
+  Profile/Logout; Settings sits last. Tests: 34/34 (permissions suite added).
+- Dev accounts (password `flames1234`): adnan/manager/cashier/frontdesk/
+  kitchen/accountant. Old shared `staff` row suspended; `admin` still exists
+  with the old PIN as its password and must_change_password set.
+
 ## Pending (ordered)
 
 1. Local acceptance testing by Adnan of everything incl. F–J screens

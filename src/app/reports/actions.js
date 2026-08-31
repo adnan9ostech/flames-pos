@@ -160,7 +160,7 @@ function trendPct(current, previous) {
 }
 
 export async function getDashboardStats(range = 'today', endDateStr = null) {
-    // Admin-only: takings and per-waiter figures are not floor reading.
+    // Wants `reports`: takings and per-waiter figures are not floor reading.
     // Returned rather than thrown — production redacts thrown action errors.
     try {
         await requirePermission('reports')

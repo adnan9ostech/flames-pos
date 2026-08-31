@@ -5,41 +5,52 @@ import { usePathname } from 'next/navigation';
 import {
     Utensils, ClipboardList, BarChart3, ExternalLink, User, LogOut,
     MonitorPlay, PanelLeftClose, PanelLeftOpen, Settings,
-    Wallet, CalendarCheck, ReceiptText, Building2, Percent, BadgePercent, Package, BookText, Armchair
+    Wallet, CalendarCheck, ReceiptText, Building2, Percent, BadgePercent, Package, BookText, Armchair,
+    Users
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
+import { ROLES } from '@/lib/auth/permissions.mjs';
 import { logout } from '@/app/logout/actions';
 
+/*
+ * Each link names the right that opens it — the same key the proxy checks —
+ * so the rail draws exactly the app this person can actually reach, and a
+ * new role needs no change here. A link with no `perm` needs only a session.
+ */
 const NAV_LINKS = [
-    { href: '/pos', label: 'POS', Icon: Utensils },
-    { href: '/orders', label: 'Orders', Icon: ClipboardList },
-    { href: '/kds', label: 'Kitchen Display', Icon: MonitorPlay, newTab: true },
+    { href: '/pos', label: 'POS', Icon: Utensils, perm: 'pos' },
+    { href: '/orders', label: 'Orders', Icon: ClipboardList, perm: 'orders' },
+    { href: '/kds', label: 'Kitchen Display', Icon: MonitorPlay, newTab: true, perm: 'kds' },
     { href: '/customer', label: 'Customer View', Icon: ExternalLink, newTab: true },
-    { href: '/reports', label: 'Reports', Icon: BarChart3, adminOnly: true },
-    { href: '/settings', label: 'Settings', Icon: Settings, adminOnly: true }
+    { href: '/reports', label: 'Reports', Icon: BarChart3, perm: 'reports' },
 ];
 
-// The day-to-day paperwork of running the place. The drawer belongs to
-// whoever holds the cash, so it is the one staff-visible entry; the rest is
-// the admin's morning-after territory.
+// The day-to-day paperwork of running the place: the morning-after reads and
+// the master lists, kept out of the way of the till.
 const BACK_OFFICE_LINKS = [
-    { href: '/drawer', label: 'Cash Drawer', Icon: Wallet },
-    { href: '/dayclose', label: 'Day Close', Icon: CalendarCheck, adminOnly: true },
-    { href: '/floor', label: 'Waiters & Tables', Icon: Armchair, adminOnly: true },
-    { href: '/expenses', label: 'Expenses', Icon: ReceiptText, adminOnly: true },
-    { href: '/companies', label: 'Companies', Icon: Building2, adminOnly: true },
-    { href: '/cityledger', label: 'City Ledger', Icon: BookText, adminOnly: true },
-    { href: '/charges', label: 'Charges', Icon: Percent, adminOnly: true },
-    { href: '/discounts', label: 'Discounts', Icon: BadgePercent, adminOnly: true },
-    { href: '/inventory', label: 'Inventory', Icon: Package, adminOnly: true },
+    { href: '/drawer', label: 'Cash Drawer', Icon: Wallet, perm: 'drawer' },
+    { href: '/dayclose', label: 'Day Close', Icon: CalendarCheck, perm: 'dayclose' },
+    { href: '/floor', label: 'Waiters & Tables', Icon: Armchair, perm: 'menu' },
+    { href: '/expenses', label: 'Expenses', Icon: ReceiptText, perm: 'expenses' },
+    { href: '/companies', label: 'Companies', Icon: Building2, perm: 'cityledger' },
+    { href: '/cityledger', label: 'City Ledger', Icon: BookText, perm: 'cityledger' },
+    { href: '/charges', label: 'Charges', Icon: Percent, perm: 'menu' },
+    { href: '/discounts', label: 'Discounts', Icon: BadgePercent, perm: 'menu' },
+    { href: '/inventory', label: 'Inventory', Icon: Package, perm: 'inventory' },
+    { href: '/users', label: 'Users', Icon: Users, perm: 'users' },
+    // Last, because it is the least-visited screen in the building.
+    { href: '/settings', label: 'Settings', Icon: Settings, perm: 'settings' },
 ];
 
-const Sidebar = ({ collapsed = false, onToggle, role }) => {
+const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
     const pathname = usePathname();
     // Icons carry the whole nav once the labels are gone, so scale them up
-    const iconSize = collapsed ? 26 : 20;
-    const links = NAV_LINKS.filter(link => !link.adminOnly || role === 'admin');
-    const backOffice = BACK_OFFICE_LINKS.filter(link => !link.adminOnly || role === 'admin');
+    // there; expanded, they sit beside text and can afford to be smaller —
+    // eighteen rows have to fit a laptop viewport.
+    const iconSize = collapsed ? 24 : 17;
+    const can = (key) => !key || perms.includes(key);
+    const links = NAV_LINKS.filter(link => can(link.perm));
+    const backOffice = BACK_OFFICE_LINKS.filter(link => can(link.perm));
 
     const navLink = ({ href, label, Icon, newTab }) => (
         <Link
@@ -117,9 +128,11 @@ const Sidebar = ({ collapsed = false, onToggle, role }) => {
                         {backOffice.map(navLink)}
                     </>
                 )}
+            </nav>
 
-                <div className={styles.spacer}></div>
-
+            {/* Outside the scroller: however long the rail grows, the way out
+                of the app stays on screen. */}
+            <div className={styles.navPinned}>
                 {navLink({ href: '/profile', label: 'Profile', Icon: User })}
 
                 <form action={logout} className={styles.logoutForm}>
@@ -132,10 +145,15 @@ const Sidebar = ({ collapsed = false, onToggle, role }) => {
                         {!collapsed && <span className={styles.label}>Logout</span>}
                     </button>
                 </form>
-            </nav>
+            </div>
 
             <div className={styles.footer}>
-                {!collapsed && <p>User: {role === 'admin' ? 'Admin' : 'Staff'}</p>}
+                {!collapsed && (
+                    <>
+                        <p className={styles.userName}>{name || 'Signed in'}</p>
+                        {role && <p className={styles.userRole}>{ROLES[role] || role}</p>}
+                    </>
+                )}
                 <div className={styles.status} title={collapsed ? 'Online' : undefined}>
                     {!collapsed && 'Online'}
                 </div>

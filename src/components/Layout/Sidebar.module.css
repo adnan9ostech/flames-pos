@@ -88,12 +88,38 @@
     color: var(--foreground);
 }
 
+/*
+ * The link list scrolls; Profile and Logout do not. With eighteen entries the
+ * rail is taller than a laptop viewport, and the two a person reaches for
+ * when they are done are the ones that were falling off the bottom.
+ *
+ * min-height: 0 is load-bearing — a flex child defaults to min-height:auto
+ * and refuses to shrink below its content, so overflow-y alone would do
+ * nothing here.
+ */
 .nav {
-    padding: 1.5rem 1rem;
+    padding: 0.75rem 0.75rem 0.5rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.15rem;
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.navPinned {
+    padding: 0.4rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+}
+
+.collapsed .navPinned {
+    padding: 0.5rem;
+    align-items: center;
 }
 
 .collapsed .nav {
@@ -104,13 +130,13 @@
 .link {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    gap: 0.65rem;
+    padding: 0.5rem 0.75rem;
     border-radius: var(--radius);
     color: var(--muted-foreground);
     transition: all 0.2s;
     font-weight: 500;
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-family: inherit;
     width: 100%;
     border: none;
@@ -171,6 +197,22 @@
     justify-content: center;
 }
 
+/* A long full name must not widen the fixed rail */
+.userName {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.userRole {
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+    margin-top: 0.1rem;
+}
+
 .status {
     font-size: 0.75rem;
     color: var(--success);
@@ -200,7 +242,7 @@
 
 /* Back-office group separators */
 .sectionLabel {
-    margin: 14px 12px 4px;
+    margin: 10px 10px 3px;
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.08em;

@@ -11,7 +11,7 @@ const DOC_TYPES = ['transfer', 'adjustment', 'misc', 'count']
  * Everything the four tabs show, one round trip: the pick-lists, on-hand
  * per item per warehouse (the Count tab's "system" column and the variance
  * preview come straight from this), and the recent documents of each type.
- * Staff can look; the write actions below carry the admin gate.
+ * Any signed-in user can look; the write actions below want `inventory`.
  */
 export async function getDocsData() {
     try {
@@ -84,7 +84,7 @@ export async function getDocsData() {
 
 /*
  * Thin envelopes: validation, ledger rows and the audit trail live in the
- * kernel verbs — these hold the admin gate and translate throws for the
+ * kernel verbs — these hold the `inventory` gate and translate throws for the
  * screen.
  */
 

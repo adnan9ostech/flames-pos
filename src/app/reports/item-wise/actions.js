@@ -40,7 +40,7 @@ const bump = (node, qty, gross, discount) => {
  * 'Uncategorized' rather than vanishing from the day's food story.
  */
 export async function getItemWiseSales(from = null, to = null) {
-    // Admin-only. Returned rather than thrown — production redacts thrown
+    // Wants `reports`. Returned rather than thrown — production redacts thrown
     // action errors.
     try {
         await requirePermission('reports')

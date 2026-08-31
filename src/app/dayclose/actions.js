@@ -198,7 +198,7 @@ export async function closeBusinessDay({ force = false } = {}) {
         // to be inspected — a discarded return here would commit the close
         // and report success.
         const refusal = await withTransaction(async (conn) => {
-            // The lock: two admins pressing Close at once produce one close —
+            // The lock: two people pressing Close at once produce one close —
             // the loser waits here, then trips the duplicate-day INSERT below
             // instead of silently advancing the calendar twice.
             const [openRows] = await conn.query(
