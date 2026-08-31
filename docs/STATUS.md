@@ -142,6 +142,30 @@ Also done in the integration pass (was "in progress" above):
   kitchen/accountant. Old shared `staff` row suspended; `admin` still exists
   with the old PIN as its password and must_change_password set.
 
+## Reports rework (1 Sep)
+
+- `src/app/reports/layout.js` + `ReportsNav.jsx`: the library strip is a
+  NESTED LAYOUT, so it persists on every report screen and marks the current
+  one. It previously lived only on the index page — opening any report was a
+  one-way trip.
+- `/reports` is now a hub: the range controls, KPI tiles and revenue chart
+  stay on top; below them a card grid, one card per report, each with a
+  headline number and a preview sparkline. All six previews come from ONE
+  action (`getReportPreviews`), not six.
+- Every report page gained the chart its data calls for: hourly = 24-hour
+  columns with bills as a SEPARATE small multiple (never a dual axis);
+  item-wise and menu-analytics = sorted top-10 horizontal bars labelled
+  "top 10 of N"; gross-profit = the 10 WORST margins with recipe-less items
+  excluded and footnoted; handover = payment split + profit waterfall, both
+  print-safe.
+- **Chart palette is validated, not chosen**: #3987e5, #d95926, #199e70,
+  #c98500, #d55181, #9085e9 — passes all six dataviz checks (lightness,
+  chroma, CVD separation, normal-vision floor, contrast) against the app's
+  real #0d0b0a surface. A first candidate FAILED CVD separation (violet vs
+  blue, ΔE 5.2). Single-series charts use slot 2, never brand orange, so
+  data never reads as chrome. Re-validate with the dataviz skill's
+  scripts/validate_palette.js before changing any of them.
+
 ## Pending (ordered)
 
 1. Local acceptance testing by Adnan of everything incl. F–J screens

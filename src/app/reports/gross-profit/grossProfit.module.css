@@ -3,7 +3,10 @@
     flex-direction: column;
     height: 100vh;
     padding: 1.5rem;
-    overflow: hidden;
+    /* The summary and chart sit above a table that scrolls on its own. On a
+       short laptop the two together exceed the viewport, so the column has to
+       scroll as well — clipping it would hide the table completely. */
+    overflow-y: auto;
     color: var(--foreground);
 }
 
@@ -124,9 +127,135 @@
     font-size: 0.82rem;
 }
 
+/* ===== Summary: stat tiles + the worst-margin chart ===== */
+.summary {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-shrink: 0;
+}
+
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+.tileLabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+.tileValue {
+    font-size: 1.55rem;
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.tileSub {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.chartCard {
+    padding: 1rem 1.1rem 0.9rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+.chartTitle {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+.chartTitleNote {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+}
+
+/* A day the chart can't speak for still says what it would have shown,
+   rather than leaving an empty pair of axes on screen. */
+.chartEmpty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 8rem;
+    padding: 1rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.chartFootnote {
+    margin-top: 0.5rem;
+    font-size: 0.74rem;
+    color: var(--muted);
+}
+
+/* Hover card. recharts draws no surface of its own when given content. */
+.tooltip {
+    min-width: 12rem;
+    padding: 0.6rem 0.7rem;
+    background: var(--card-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.78rem;
+    color: var(--foreground);
+}
+
+.tooltipName {
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+}
+
+.tooltipRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 0.1rem 0;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.tooltipRow span:last-child {
+    color: var(--foreground);
+    font-weight: 600;
+}
+
 /* ===== Table ===== */
 .listWrap {
     flex: 1;
+    /* Never squeezed to a sliver by the summary above it */
+    min-height: 12rem;
     overflow: auto;
     border: 1px solid var(--border);
     border-radius: 16px;

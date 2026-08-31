@@ -69,102 +69,207 @@
     color-scheme: dark;
 }
 
-.resultCount {
-    margin-left: auto;
-    font-size: 0.78rem;
-    color: var(--muted-foreground);
-    font-variant-numeric: tabular-nums;
-}
-
-/* ===== Bar list ===== */
-.card {
+/* ===== Scroll region ===== */
+/* The page frame is fixed to the viewport; only this column scrolls, so the
+   title and the day picker stay put while the charts and table move. */
+.scroll {
     flex: 1;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+/* The scroll column must not squeeze a chart or a table to make its
+   contents fit; each block keeps the height it asks for and the column
+   scrolls instead. */
+.statRow,
+.chartCard,
+.tableCard {
+    flex-shrink: 0;
+}
+
+/* ===== Stat tiles ===== */
+.statRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+}
+
+.statTile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem 1.1rem;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 1.5rem;
 }
 
-.barList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-}
-
-.barRow {
-    display: grid;
-    grid-template-columns: 4rem 1fr 10rem;
-    align-items: center;
-    gap: 0.9rem;
-}
-
-/* An hour with no bills inside the trading window: kept, but visually quiet */
-.quietRow {
-    opacity: 0.45;
-}
-
-.barLabel {
-    font-size: 0.8rem;
-    font-weight: 600;
+.statLabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     color: var(--muted-foreground);
-    text-align: right;
-    white-space: nowrap;
+}
+
+/* Deliberately proportional figures: tabular-nums widens every digit to a
+   zero, which makes a display-size value look gappy. Columns get it, headline
+   numbers do not. */
+.statValue {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.statSub {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
     font-variant-numeric: tabular-nums;
 }
 
-.barTrack {
-    height: 1.35rem;
-    background: var(--background);
+/* ===== Charts ===== */
+.chartCard {
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
+    border-radius: 16px;
+    padding: 1.25rem 1.25rem 1rem;
 }
 
-.barFill {
-    height: 100%;
-    background: var(--primary);
-    border-radius: 5px 0 0 5px;
-    min-width: 2px;
-    transition: width 0.2s;
-}
-
-.barMeta {
+.chartHead {
     display: flex;
     align-items: baseline;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
 }
 
-.barRevenue {
-    font-size: 0.85rem;
+.chartTitle {
+    font-size: 1rem;
     font-weight: 700;
 }
 
-.barBills {
+.chartNote {
     font-size: 0.72rem;
     color: var(--muted-foreground);
 }
 
-.totalsRow {
+/* The second panel of the small multiple. Its heading sits tight above the
+   plot so the pair reads as one figure with a shared hour axis. */
+.smallChartTitle {
+    margin: 0.75rem 0 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+/* Stands in for a plot that has no rows: an axis frame with nothing inside it
+   looks like a bug, a sentence looks like an answer. */
+.chartEmpty {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-top: 1.25rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--muted-foreground);
     font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* ===== Tooltip ===== */
+/* Recharts renders this inside its own positioned wrapper, so the box only
+   has to supply its own surface. */
+.tooltip {
+    min-width: 11rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--card-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--foreground);
+    font-size: 0.78rem;
+}
+
+.tooltipHead {
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.tooltipRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.25rem;
+    color: var(--muted-foreground);
+}
+
+.tooltipValue {
+    color: var(--foreground);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Table ===== */
+.tableCard {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    overflow: hidden;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.table th {
+    background: var(--card);
+    text-align: left;
+    padding: 0.9rem 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.cellStrong {
     font-weight: 700;
 }
 
-.totalsMoney {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    font-size: 1.05rem;
-    font-variant-numeric: tabular-nums;
+.cellMuted {
+    color: var(--muted-foreground);
+}
+
+.alignRight {
+    text-align: right;
+}
+
+.tfootRow td {
+    background: var(--card-elevated);
+    border-top: 2px solid var(--border);
+    border-bottom: none;
+    font-weight: 700;
 }
 
 /* ===== Loading / empty / error ===== */
@@ -187,8 +292,4 @@
     to {
         transform: rotate(360deg);
     }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .barFill { transition: none; }
 }

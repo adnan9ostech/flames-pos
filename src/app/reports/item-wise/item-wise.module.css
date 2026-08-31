@@ -107,9 +107,135 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ===== Stat row ===== */
+.statRow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 720px) {
+    .statRow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.statTile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.65rem 0.9rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.statLabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+.statValue {
+    font-size: 1.15rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.statStrong {
+    font-weight: 700;
+}
+
+/* ===== Top-items chart ===== */
+.chartCard {
+    padding: 0.9rem 1rem 0.6rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 1rem;
+}
+
+.chartHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+}
+
+.chartTitle {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+/* Says "Top 10 of 34" so a truncated ranking never reads as the whole range */
+.chartMeta {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.chartEmpty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 96px;
+    padding: 1rem;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+/* ===== Chart tooltip ===== */
+.tip {
+    min-width: 11rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--card-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.76rem;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.tipName {
+    margin: 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.tipSub {
+    margin: 0 0 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+    overflow-wrap: anywhere;
+}
+
+.tipRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin: 0.1rem 0 0;
+}
+
+.tipRow span:first-child {
+    color: var(--muted-foreground);
+}
+
 /* ===== Table ===== */
 .listWrap {
     flex: 1;
+    /* Without this the flex item refuses to shrink past its content and the
+       chart above it pushes the table's own scroller off the screen. */
+    min-height: 0;
     overflow: auto;
     border: 1px solid var(--border);
     border-radius: 16px;

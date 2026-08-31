@@ -159,6 +159,28 @@ function trendPct(current, previous) {
     return ((current - previous) / previous) * 100
 }
 
+/*
+ * The range control's answer as inclusive business_date bounds: "today" is the
+ * trading day still in progress, and a date picked in the filter means that
+ * trading day — not the server's timezone rendering of it.
+ *
+ * Shared by both actions on this page. The tiles and the report previews are
+ * read as one screen, so they must never be answering two different windows.
+ */
+function resolveRange(range, endDateStr) {
+    const todayYmd = karachiDateStr(new Date())
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+    if (dateRegex.test(range)) {
+        return {
+            startYmd: range,
+            endYmd: endDateStr && dateRegex.test(endDateStr) ? endDateStr : range,
+        }
+    }
+    if (range === '7days') return { startYmd: shiftYmd(todayYmd, -7), endYmd: todayYmd }
+    if (range === '30days') return { startYmd: shiftYmd(todayYmd, -30), endYmd: todayYmd }
+    return { startYmd: todayYmd, endYmd: todayYmd }
+}
+
 export async function getDashboardStats(range = 'today', endDateStr = null) {
     // Wants `reports`: takings and per-waiter figures are not floor reading.
     // Returned rather than thrown — production redacts thrown action errors.
@@ -168,23 +190,7 @@ export async function getDashboardStats(range = 'today', endDateStr = null) {
         return { error: e.message }
     }
 
-    // Date range as inclusive business_date bounds: "today" is the trading day
-    // still in progress, and a date picked in the filter means that trading
-    // day — not the server's timezone rendering of it.
-    const todayYmd = karachiDateStr(new Date())
-    let startYmd = todayYmd
-    let endYmd = todayYmd
-
-    // Check if range is a specific date (YYYY-MM-DD) or date range
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (dateRegex.test(range)) {
-        startYmd = range;
-        endYmd = endDateStr && dateRegex.test(endDateStr) ? endDateStr : range;
-    } else if (range === '7days') {
-        startYmd = shiftYmd(todayYmd, -7)
-    } else if (range === '30days') {
-        startYmd = shiftYmd(todayYmd, -30)
-    }
+    const { startYmd, endYmd } = resolveRange(range, endDateStr)
 
     // The immediately preceding run of trading days, equal in length, used for
     // trend %s — e.g. "7 Days" compares against the 7 days before that.
@@ -271,5 +277,207 @@ export async function getDashboardStats(range = 'today', endDateStr = null) {
             orders: trendPct(current.totalOrders, previous.totalOrders),
             avgOrderValue: trendPct(current.avgOrderValue, previous.avgOrderValue)
         }
+    }
+}
+
+/* ------------------------------------------------------------------------ *
+ * Report previews — the hub's card grid.
+ * ------------------------------------------------------------------------ */
+
+// A DATE column arrives as a midnight-UTC Date (the pool pins the session to
+// UTC); the calendar day is the whole of the value.
+const ymdOf = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v))
+
+const num = (v) => Number(v) || 0
+
+/*
+ * One call, every card. Six cards each firing their own action would mean six
+ * round trips and six chances for the grid to disagree with itself while they
+ * landed, so the page asks once and the cards read from the answer.
+ *
+ * Each figure is computed the way the report it links to computes it — same
+ * business_date bounds, same exclusions — so a headline here is never a
+ * different number from the one the reader finds after clicking. That is why
+ * the definitions vary between cards rather than being unified: Handover and
+ * Daily Food Sales bill every non-cancelled order, while Menu Analytics and
+ * Gross Profit count settled money only.
+ *
+ * branch_id is pinned to 1 as the other report actions pin it — one branch
+ * trades, and the column is a forward-looking default rather than a live axis.
+ */
+export async function getReportPreviews(range = 'today', endDateStr = null) {
+    // Wants `reports`, like every other action on this screen. Returned rather
+    // than thrown — production redacts thrown action errors.
+    try {
+        await requirePermission('reports')
+    } catch (e) {
+        return { error: e.message }
+    }
+
+    const { startYmd, endYmd } = resolveRange(range, endDateStr)
+
+    try {
+        const [dayRows, hourRows, itemRows, categoryRows, [profitRow]] = await Promise.all([
+            // Handover + Daily Food Sales: both report every non-cancelled
+            // order of a trading day, paid or not — an open tab is still a bill
+            // the day has to account for. Grouped by day so the two cards can
+            // draw the shape of the range as well as name its total.
+            query(
+                `SELECT business_date AS day,
+                        COUNT(*) AS bills,
+                        COALESCE(SUM(total), 0) AS revenue
+                   FROM orders
+                  WHERE branch_id = 1
+                    AND business_date >= ? AND business_date <= ?
+                    AND status <> 'cancelled'
+                  GROUP BY business_date
+                  ORDER BY business_date`,
+                [startYmd, endYmd],
+            ),
+            // Hourly Sales buckets an order into the hour it was paid, falling
+            // back to when it was rung in for a tab still open. Karachi is a
+            // fixed UTC+5 with no DST and the DATETIMEs are stored UTC, so the
+            // shift is arithmetic — no CONVERT_TZ, which needs the tz tables
+            // loaded on the host.
+            query(
+                `SELECT HOUR(COALESCE(paid_at, created_at) + INTERVAL 5 HOUR) AS hour,
+                        COALESCE(SUM(total), 0) AS total
+                   FROM orders
+                  WHERE branch_id = 1
+                    AND business_date >= ? AND business_date <= ?
+                    AND status <> 'cancelled'
+                  GROUP BY hour
+                  ORDER BY hour`,
+                [startYmd, endYmd],
+            ),
+            // Item-wise reads order_items, the canonical lines, not the order's
+            // JSON snapshot. Ranked by units because the card's question is
+            // "what leaves the kitchen most", and the report itself opens on
+            // the same set of dishes.
+            query(
+                `SELECT oi.name, SUM(oi.qty) AS qty, SUM(oi.line_total) AS gross
+                   FROM order_items oi
+                   JOIN orders o ON o.id = oi.order_id
+                  WHERE o.branch_id = 1
+                    AND o.business_date >= ? AND o.business_date <= ?
+                    AND o.status <> 'cancelled'
+                  GROUP BY oi.name
+                  ORDER BY qty DESC, gross DESC
+                  LIMIT 5`,
+                [startYmd, endYmd],
+            ),
+            // Menu Analytics counts sold, i.e. settled: an open tab is food
+            // fired, not money taken, and a mix that counted it would shrink
+            // when the tab voids. A line whose dish was deleted keeps its money
+            // under 'Uncategorised' instead of vanishing.
+            query(
+                `SELECT COALESCE(c.name, 'Uncategorised') AS name,
+                        COALESCE(SUM(oi.line_total), 0) AS amount
+                   FROM order_items oi
+                   JOIN orders o ON o.id = oi.order_id
+                   LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+                   LEFT JOIN categories c ON c.id = mi.category_id
+                  WHERE o.branch_id = 1
+                    AND o.business_date >= ? AND o.business_date <= ?
+                    AND o.status <> 'cancelled'
+                    AND o.payment_status <> 'unpaid'
+                  GROUP BY name
+                  ORDER BY amount DESC`,
+                [startYmd, endYmd],
+            ),
+            /*
+             * Gross profit prices each dish at its recipe: Σ recipe_lines.qty ×
+             * inventory_items.avg_cost. The LEFT JOIN is the load-bearing part
+             * — a dish with no recipe yet contributes zero cost rather than
+             * dropping its sale from the report, so a margin taken over ALL
+             * revenue would be flattered by every uncosted plate. Hence the
+             * margin below is over costed revenue only, and uncostedCount
+             * comes back so the card can say so out loud.
+             */
+            query(
+                `SELECT COALESCE(SUM(oi.line_total), 0) AS revenue,
+                        COALESCE(SUM(CASE WHEN rc.unit_cost IS NOT NULL
+                                          THEN oi.line_total END), 0) AS costed_revenue,
+                        COALESCE(SUM(CASE WHEN rc.unit_cost IS NOT NULL
+                                          THEN oi.qty * rc.unit_cost END), 0) AS cogs,
+                        COUNT(DISTINCT CASE WHEN rc.unit_cost IS NULL
+                                            THEN COALESCE(mi.name, oi.name) END) AS uncosted
+                   FROM order_items oi
+                   JOIN orders o ON o.id = oi.order_id
+                   LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+                   LEFT JOIN (
+                       SELECT rl.menu_item_id, SUM(rl.qty * ii.avg_cost) AS unit_cost
+                         FROM recipe_lines rl
+                         JOIN inventory_items ii ON ii.id = rl.inventory_item_id
+                        GROUP BY rl.menu_item_id
+                   ) rc ON rc.menu_item_id = oi.menu_item_id
+                  WHERE o.branch_id = 1
+                    AND o.business_date >= ? AND o.business_date <= ?
+                    AND o.status <> 'cancelled'
+                    AND o.payment_status <> 'unpaid'`,
+                [startYmd, endYmd],
+            ),
+        ])
+
+        // One per-day series serves both cards: Handover plots the money, Daily
+        // Food Sales the bill count, and they are the same set of orders.
+        const days = dayRows.map((r) => ({
+            date: ymdOf(r.day), orders: num(r.bills), revenue: num(r.revenue),
+        }))
+        const bills = days.reduce((sum, d) => sum + d.orders, 0)
+        const dayRevenue = days.reduce((sum, d) => sum + d.revenue, 0)
+
+        // Every hour in the traded window, zero-filled, then trimmed to it: the
+        // sparkline should show the shape of a service, not 24 slots mostly
+        // empty, and a gap hour must read as a trough rather than close up.
+        const hours = Array.from({ length: 24 }, () => 0)
+        for (const r of hourRows) hours[Number(r.hour)] += num(r.total)
+        const traded = hours.map((total, hour) => ({ hour, total })).filter((h) => h.total !== 0)
+        const series = traded.length
+            ? hours
+                .map((total, hour) => ({ hour, total }))
+                .slice(traded[0].hour, traded[traded.length - 1].hour + 1)
+            : []
+        const peak = series.reduce(
+            (best, h) => (best === null || h.total > best.total ? h : best),
+            null,
+        )
+
+        const categories = categoryRows.map((r) => ({ name: r.name, amount: num(r.amount) }))
+
+        const costedRevenue = num(profitRow.costed_revenue)
+        const cogs = num(profitRow.cogs)
+
+        return {
+            data: {
+                range: { from: startYmd, to: endYmd },
+                handover: { revenue: dayRevenue, bills, days },
+                dailySales: { revenue: dayRevenue, orders: bills, days },
+                hourly: {
+                    peakHour: peak ? peak.hour : null,
+                    peakRevenue: peak ? peak.total : 0,
+                    series,
+                },
+                itemWise: {
+                    topItems: itemRows.map((r) => ({ name: r.name, qty: num(r.qty) })),
+                },
+                menuAnalytics: {
+                    topCategory: categories.length ? categories[0].name : null,
+                    categories,
+                },
+                grossProfit: {
+                    // Null, not zero: nothing sold has a costed recipe, so the
+                    // range has no margin to state and the card says as much.
+                    marginPct: costedRevenue > 0 ? ((costedRevenue - cogs) / costedRevenue) * 100 : null,
+                    cogs,
+                    revenue: num(profitRow.revenue),
+                    margin: costedRevenue - cogs,
+                    uncostedCount: num(profitRow.uncosted),
+                },
+            },
+        }
+    } catch (e) {
+        console.error('Report previews failed', e)
+        return { error: 'Could not load the report previews' }
     }
 }

@@ -1,0 +1,175 @@
+/*
+ * The report library as a grid of answers rather than a list of links: each
+ * card states the question its report settles, answers it for the range the
+ * dashboard above is showing, and sketches the shape behind that answer. The
+ * reader picks by what they need to know, not by remembering report names.
+ *
+ * Only this grid lives here. The dashboard above still carries its Tailwind
+ * utilities — rewriting markup that works would have been churn, not tidying.
+ */
+
+.section {
+    margin-top: 0.5rem;
+}
+
+.sectionHead {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.sectionTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.sectionHint {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+/*
+ * The whole card is the link: a title-only hit area makes a 300px card mostly
+ * dead space, and a nested link inside a link is not reachable by keyboard.
+ */
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 1.15rem 1.25rem 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.card:hover,
+.card:focus-visible {
+    border-color: var(--primary);
+    background: var(--card-elevated);
+    transform: translateY(-2px);
+}
+
+.card:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
+
+    .card:hover,
+    .card:focus-visible {
+        transform: none;
+    }
+}
+
+.cardHead {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.icon {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border-radius: 0.5rem;
+    /* Chrome orange, deliberately: the icon is furniture, not a data mark. */
+    background: rgba(242, 101, 19, 0.12);
+    color: var(--primary);
+}
+
+.title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.arrow {
+    margin-left: auto;
+    color: var(--muted-foreground);
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.card:hover .arrow,
+.card:focus-visible .arrow {
+    color: var(--primary);
+    transform: translateX(2px);
+}
+
+/* A fixed two-line well keeps the headlines of a row on one baseline even
+   when one blurb wraps and its neighbour does not. */
+.blurb {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
+    min-height: 2.9em;
+}
+
+.headline {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.unit {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+}
+
+.sub {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    /* Dish and category names come from the menu and can run long. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Pinned to the bottom so previews line up across a row of uneven text. */
+.preview {
+    margin-top: auto;
+    padding-top: 0.25rem;
+    height: 76px;
+}
+
+/* An empty axis frame says "broken"; a bordered note says what would be here. */
+.previewEmpty {
+    margin-top: auto;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+}

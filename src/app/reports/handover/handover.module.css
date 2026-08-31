@@ -178,6 +178,50 @@
     color: var(--muted);
 }
 
+/* ===== Charts =====
+   The width cap is a print guarantee, not a taste call: recharts writes out
+   the SVG width it measured on screen, and the print pass reuses it rather
+   than waiting for a re-measure. Printed on A4 the card grid falls to two
+   columns, leaving ~291px inside a card (~280px in landscape, ~302px on
+   Letter) — so a chart drawn no wider than 272px can never be cut off on
+   paper, whatever width the browser window happened to be. The height is set
+   inline in pixels for the same reason. */
+.chartBox {
+    width: 100%;
+    max-width: 272px;
+    margin-top: 0.7rem;
+}
+
+.chartEmpty {
+    margin-top: 0.7rem;
+    padding: 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    font-size: 0.76rem;
+    color: var(--muted);
+}
+
+.chartTip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--card-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.78rem;
+}
+
+.chartTipLabel {
+    color: var(--muted-foreground);
+}
+
+.chartTipValue {
+    color: var(--foreground);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ===== Tables (voids, drawer) ===== */
 .tableWrap {
     overflow-x: auto;

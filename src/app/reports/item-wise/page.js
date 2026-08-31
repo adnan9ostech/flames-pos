@@ -1,9 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import styles from './item-wise.module.css'
 import { getItemWiseSales } from './actions'
 import { formatDateTime } from '@/lib/timeFormat'
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, ResponsiveContainer,
+} from 'recharts'
 import {
     CalendarRange, FileDown, Printer, Loader2, UtensilsCrossed,
     AlertTriangle, ChevronRight, ChevronDown
@@ -11,6 +14,55 @@ import {
 
 // Money renders like the orders page: en-PK grouping, no decimals on screen.
 const rs = (x) => Math.round(Number(x) || 0).toLocaleString('en-PK')
+
+const TOP_N = 10
+
+/*
+ * Slot 2 of the app's validated categorical palette rather than the brand
+ * orange: --primary is chrome (buttons, active tabs), and data painted in it
+ * reads as another control.
+ */
+const SERIES = '#d95926'
+
+// Bar ends and the money axis are abbreviated so ten of them fit; the exact
+// rupee figure lives in the tooltip.
+const rsShort = (x) => {
+    const n = Math.round(Number(x) || 0)
+    const abs = Math.abs(n)
+    // 999_500 rather than a million: anything that would print as "Rs 1000k"
+    // belongs in the next unit up.
+    if (abs >= 999_500) return `Rs ${Number((n / 1_000_000).toFixed(2))}M`
+    if (abs < 1000) return `Rs ${n.toLocaleString('en-PK')}`
+    const k = n / 1000
+    return `Rs ${abs >= 100_000 ? Math.round(k) : Number(k.toFixed(1))}k`
+}
+
+// A dish name has to survive a 150px axis gutter; the tooltip carries it whole.
+const TICK_MAX = 22
+const shortName = (s) => (String(s).length > TICK_MAX ? `${String(s).slice(0, TICK_MAX - 1)}…` : String(s))
+
+/*
+ * A category axis is keyed by the label, so two rows sharing one — the same
+ * dish sold under two categories — would land on the same band and one bar
+ * would sit on top of the other. Clashes take their category as a suffix;
+ * anything still identical after that gets trailing space, which the axis
+ * doesn't show but the scale counts.
+ */
+const dedupeNames = (list, suffixOf) => {
+    const counts = new Map()
+    for (const r of list) counts.set(r.name, (counts.get(r.name) || 0) + 1)
+    const used = new Set()
+    return list.map((r) => {
+        let name = r.name
+        if (counts.get(name) > 1) {
+            const suffix = suffixOf(r)
+            if (suffix) name = `${name} · ${suffix}`
+        }
+        while (used.has(name)) name += ' '
+        used.add(name)
+        return name === r.name ? r : { ...r, name }
+    })
+}
 
 const csvCell = (v) => {
     const s = v === null || v === undefined ? '' : String(v)
@@ -65,6 +117,26 @@ const printThermal = () => {
     }
 }
 
+/*
+ * Recharts' default tooltip can only list the plotted series; this one names
+ * the item, says which category it came from, and shows the qty and both
+ * money figures — the context the single bar can't carry.
+ */
+function ItemTooltip({ active, payload }) {
+    if (!active || !payload || payload.length === 0) return null
+    const d = payload[0].payload
+    return (
+        <div className={styles.tip}>
+            <p className={styles.tipName}>{d.name}</p>
+            <p className={styles.tipSub}>{d.category}</p>
+            <p className={styles.tipRow}><span>Qty</span><span>{d.qty.toLocaleString('en-PK')}</span></p>
+            <p className={styles.tipRow}><span>Gross</span><span>Rs. {rs(d.gross)}</span></p>
+            <p className={styles.tipRow}><span>Discount</span><span>Rs. {rs(d.discount)}</span></p>
+            <p className={styles.tipRow}><span>Net</span><span>Rs. {rs(d.net)}</span></p>
+        </div>
+    )
+}
+
 export default function ItemWiseSalesPage() {
     // '' means "let the server default to the open business day"; the resolved
     // range is echoed back in the response and shown in the inputs.
@@ -101,11 +173,49 @@ export default function ItemWiseSalesPage() {
         })
     }
 
-    const categories = report?.categories || []
+    // Memoised only so the empty-state `[]` keeps its identity between
+    // renders; the chart's rollup below hangs off it.
+    const categories = useMemo(() => report?.categories || [], [report])
     const grand = report?.grand
     const rangeLabel = report
         ? (report.from === report.to ? report.from : `${report.from} to ${report.to}`)
         : ''
+
+    /*
+     * The table is a tree; the chart is the same money flattened. Ranked by
+     * net — what the range actually earned after the prorated discount — and
+     * the heading says so, because gross and net can order differently.
+     */
+    const allItems = useMemo(() => {
+        const flat = []
+        for (const cat of categories) {
+            for (const item of cat.items) {
+                flat.push({
+                    name: item.name,
+                    category: cat.name,
+                    qty: item.qty,
+                    gross: item.gross,
+                    discount: item.discount,
+                    net: item.net,
+                })
+            }
+        }
+        return flat.sort((a, b) => b.net - a.net)
+    }, [categories])
+
+    // Descending, so the longest bar sits at the top: recharts draws data[0]
+    // first on a vertical-layout category axis.
+    const chartRows = useMemo(
+        () => dedupeNames(allItems.slice(0, TOP_N), (r) => r.category),
+        [allItems],
+    )
+    const rankLabel = allItems.length > TOP_N
+        ? `Top ${TOP_N} of ${allItems.length}`
+        : `All ${allItems.length} ${allItems.length === 1 ? 'item' : 'items'}`
+    // Explicit height: ResponsiveContainer collapses to nothing inside an
+    // auto-height parent, and a row-count-driven height keeps three bars from
+    // ballooning into three slabs.
+    const chartHeight = Math.max(150, chartRows.length * 26 + 34)
 
     /*
      * The rollup and the orders table describe the same money from two sides;
@@ -201,6 +311,99 @@ export default function ItemWiseSalesPage() {
                     </div>
                 )}
             </div>
+
+            {!loading && !error && report && (
+                <>
+                    <div className={styles.statRow}>
+                        <div className={styles.statTile}>
+                            <span className={styles.statLabel}>Items sold</span>
+                            <span className={styles.statValue}>{grand.qty.toLocaleString('en-PK')}</span>
+                        </div>
+                        <div className={styles.statTile}>
+                            <span className={styles.statLabel}>Gross</span>
+                            <span className={styles.statValue}>Rs. {rs(grand.gross)}</span>
+                        </div>
+                        <div className={styles.statTile}>
+                            <span className={styles.statLabel}>Discount</span>
+                            <span className={styles.statValue}>Rs. {rs(grand.discount)}</span>
+                        </div>
+                        <div className={styles.statTile}>
+                            <span className={styles.statLabel}>Net</span>
+                            <span className={`${styles.statValue} ${styles.statStrong}`}>Rs. {rs(grand.net)}</span>
+                        </div>
+                    </div>
+
+                    <section className={styles.chartCard}>
+                        <div className={styles.chartHead}>
+                            <h2 className={styles.chartTitle}>Top items by net sales</h2>
+                            {allItems.length > 0 && (
+                                <span className={styles.chartMeta}>{rankLabel}</span>
+                            )}
+                        </div>
+
+                        {chartRows.length === 0 ? (
+                            /* A bordered placeholder rather than an empty axis frame:
+                               it says what would be here, not that the chart broke. */
+                            <div className={styles.chartEmpty}>
+                                The best-selling items of the range will be ranked here once it has sales.
+                            </div>
+                        ) : (
+                            <div style={{ height: chartHeight }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        layout="vertical"
+                                        data={chartRows}
+                                        margin={{ top: 0, right: 72, bottom: 0, left: 0 }}
+                                        barCategoryGap={4}
+                                    >
+                                        {/* Only the value axis gets rules; the category
+                                            side is already spelled out in words. */}
+                                        <CartesianGrid horizontal={false} stroke="#332c27" strokeDasharray="3 3" />
+                                        <XAxis
+                                            type="number"
+                                            domain={[0, 'dataMax']}
+                                            allowDecimals={false}
+                                            tickFormatter={rsShort}
+                                            tick={{ fill: '#a39a92', fontSize: 11 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="name"
+                                            width={150}
+                                            tickFormatter={shortName}
+                                            tick={{ fill: '#f8f4ee', fontSize: 11 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(248, 244, 238, 0.04)' }}
+                                            content={<ItemTooltip />}
+                                        />
+                                        <Bar
+                                            dataKey="net"
+                                            fill={SERIES}
+                                            radius={[0, 4, 4, 0]}
+                                            maxBarSize={22}
+                                            isAnimationActive={false}
+                                        >
+                                            <LabelList
+                                                dataKey="net"
+                                                position="right"
+                                                offset={8}
+                                                formatter={rsShort}
+                                                fill="#f8f4ee"
+                                                fontSize={11}
+                                            />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+                    </section>
+                </>
+            )}
 
             {loading ? (
                 <div className={styles.stateBlock}>

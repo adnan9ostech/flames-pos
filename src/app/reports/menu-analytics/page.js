@@ -3,6 +3,10 @@ import { useState, useEffect, useMemo } from 'react';
 import styles from './menuAnalytics.module.css';
 import { productMix } from './actions';
 import {
+    BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, LabelList,
+    ResponsiveContainer,
+} from 'recharts';
+import {
     UtensilsCrossed, CalendarRange, Download, Loader2, AlertTriangle,
 } from 'lucide-react';
 
@@ -42,7 +46,187 @@ const resolvePeriod = (period, customFrom, customTo) => {
 
 const money = (n) => `Rs. ${Number(n || 0).toLocaleString('en-PK')}`;
 const pct = (n) => `${Number(n || 0).toFixed(1)}%`;
+const num = (n) => Number(n || 0).toLocaleString('en-PK');
 const itemLabel = (r) => (r.variant ? `${r.name} (${r.variant})` : r.name);
+
+/* ===== Charts =====
+ *
+ * Every tab here is a ranking, so every tab gets the same picture of it: a
+ * horizontal bar chart of the ten biggest rows, longest bar first. Ten is a
+ * hard cap — the header states "Top 10 of N" so a trimmed ranking can never
+ * be misread as the whole range.
+ */
+const TOP_N = 10;
+
+// Slot 2 of the app's validated categorical palette. A one-series chart uses
+// it rather than the brand orange, which belongs to buttons and tabs.
+const SERIES = '#d95926';
+
+/*
+ * The palette in its fixed slot order. Six is the whole of it: a seventh
+ * category does not get a seventh hue, it folds into a neutral "Other".
+ */
+const PALETTE = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9'];
+const OTHER = '#6f655d';
+
+// Bar ends and the money axis are abbreviated so ten of them fit; the exact
+// figure is a hover away.
+const moneyShort = (x) => {
+    const n = Math.round(Number(x) || 0);
+    const abs = Math.abs(n);
+    // 999_500 rather than a million: anything that would print as "Rs 1000k"
+    // belongs in the next unit up.
+    if (abs >= 999_500) return `Rs ${Number((n / 1_000_000).toFixed(2))}M`;
+    if (abs < 1000) return `Rs ${n.toLocaleString('en-PK')}`;
+    const k = n / 1000;
+    return `Rs ${abs >= 100_000 ? Math.round(k) : Number(k.toFixed(1))}k`;
+};
+
+// A dish name has to survive the axis gutter; the tooltip carries it whole.
+const TICK_MAX = 20;
+const shortName = (s) => (String(s).length > TICK_MAX ? `${String(s).slice(0, TICK_MAX - 1)}…` : String(s));
+
+/*
+ * A category axis is keyed by the label, so two rows sharing one — the same
+ * dish grouped under two categories — would land on the same band and one bar
+ * would sit on top of the other. Clashes take their category as a suffix;
+ * anything still identical after that gets trailing space, which the axis
+ * doesn't show but the scale counts.
+ */
+const dedupeNames = (list, suffixOf) => {
+    const counts = new Map();
+    for (const r of list) counts.set(r.name, (counts.get(r.name) || 0) + 1);
+    const used = new Set();
+    return list.map((r) => {
+        let name = r.name;
+        if (counts.get(name) > 1) {
+            const suffix = suffixOf(r);
+            if (suffix) name = `${name} · ${suffix}`;
+        }
+        while (used.has(name)) name += ' ';
+        used.add(name);
+        return name === r.name ? r : { ...r, name };
+    });
+};
+
+/*
+ * One spec per tab, beside COLUMNS and for the same reason: the chart, its
+ * heading and its tooltip all read the row through the same accessors, so
+ * they cannot drift from each other or from the table.
+ *
+ * `value` is what the bar measures — and it is not always what the table is
+ * sorted by. Top Items arrives ordered by quantity; ranked by revenue it
+ * answers a different and more useful question, so the heading names the
+ * measure rather than leaving it to be inferred from the order.
+ */
+const CHARTS = {
+    mix: {
+        title: 'Top items by qty sold',
+        value: (r) => r.qty,
+        label: itemLabel,
+        format: num,
+        sub: (r) => r.category,
+        // What disambiguates two rows that share a name on the axis
+        clash: (r) => r.category,
+        rows: (r) => [
+            ['Qty', num(r.qty)],
+            ['% of qty', pct(r.qtyPct)],
+            ['Revenue', money(r.revenue)],
+        ],
+    },
+    items: {
+        title: 'Top items by revenue',
+        value: (r) => r.revenue,
+        label: itemLabel,
+        format: moneyShort,
+        sub: (r) => r.category,
+        clash: (r) => r.category,
+        rows: (r) => [
+            ['Revenue', money(r.revenue)],
+            ['Qty', num(r.qty)],
+        ],
+    },
+    modifiers: {
+        title: 'Top modifiers by times chosen',
+        value: (r) => r.count,
+        label: (r) => r.name,
+        format: num,
+        sub: () => null,
+        // Modifiers are grouped by name, so a clash can't happen
+        clash: () => null,
+        rows: (r) => [
+            ['Times chosen', num(r.count)],
+            ['Add-on revenue', money(r.revenue)],
+        ],
+    },
+    voided: {
+        title: 'Top voided items by qty',
+        value: (r) => r.qty,
+        label: itemLabel,
+        format: num,
+        sub: (r) => r.reasons || null,
+        // Void reasons are the subtitle, never an axis suffix
+        clash: () => null,
+        rows: (r) => [
+            ['Qty voided', num(r.qty)],
+            ['Value', money(r.value)],
+        ],
+    },
+};
+
+const EMPTY_CHART = {
+    mix: 'The range’s best sellers will be ranked here once something sells.',
+    items: 'The range’s best sellers will be ranked here once something sells.',
+    modifiers: 'Add-ons chosen in this range will be ranked here.',
+    voided: 'Voided items will be ranked here — an empty chart is the good outcome.',
+};
+
+// "Top 10 of 34", or "All 7 rows" when nothing was left out.
+const rankLabel = (shown, total) => (total > shown
+    ? `Top ${shown} of ${total}`
+    : `All ${total} ${total === 1 ? 'row' : 'rows'}`);
+
+// Ten bars at 24px plus room for the axis; ResponsiveContainer collapses to
+// nothing without a definite height on its parent.
+const chartHeight = (count) => Math.max(150, count * 24 + 34);
+
+/*
+ * The default tooltip can only describe the plotted series. This one names
+ * the row, keeps its category (or its void reasons) attached, and prints
+ * every figure already formatted — never a raw float.
+ */
+function RankTooltip({ active, payload }) {
+    if (!active || !payload || payload.length === 0) return null;
+    const d = payload[0].payload;
+    return (
+        <div className={styles.tip}>
+            <p className={styles.tipName}>{d.name}</p>
+            {d.sub && <p className={styles.tipSub}>{d.sub}</p>}
+            {d.tipRows.map(([label, value]) => (
+                <p key={label} className={styles.tipRow}>
+                    <span>{label}</span><span>{value}</span>
+                </p>
+            ))}
+        </div>
+    );
+}
+
+function ShareTooltip({ active, payload }) {
+    if (!active || !payload || payload.length === 0) return null;
+    const d = payload[0].payload;
+    return (
+        <div className={styles.tip}>
+            <p className={styles.tipName}>{d.name}</p>
+            {d.folded > 0 && (
+                <p className={styles.tipSub}>
+                    {d.folded} smaller {d.folded === 1 ? 'category' : 'categories'} folded in
+                </p>
+            )}
+            <p className={styles.tipRow}><span>Revenue</span><span>{money(d.revenue)}</span></p>
+            <p className={styles.tipRow}><span>Share</span><span>{pct(d.share)}</span></p>
+        </div>
+    );
+}
 
 /*
  * One column spec drives both the on-screen table and the CSV, so they can
@@ -143,6 +327,61 @@ export default function MenuAnalyticsPage() {
         [data, activeTab],
     );
 
+    /*
+     * The chart's own ordering, not the table's: a bar chart whose longest bar
+     * is third from the top is a broken chart. Mapped before sorting so the
+     * table's rows are never reordered underneath it.
+     */
+    const chartSpec = CHARTS[tab];
+    const chartRows = useMemo(() => dedupeNames(
+        rows
+            .map((r) => ({
+                name: chartSpec.label(r),
+                sub: chartSpec.sub(r),
+                clash: chartSpec.clash(r),
+                value: chartSpec.value(r),
+                tipRows: chartSpec.rows(r),
+            }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, TOP_N),
+        (r) => r.clash,
+    ), [rows, chartSpec]);
+
+    /*
+     * Revenue share by category — bars rather than a pie, because a kitchen
+     * runs to more than three categories and a pie stops being readable at
+     * four. Everything past the palette's six slots folds into one neutral
+     * "Other" rather than inventing hues nobody validated.
+     */
+    const categoryShare = useMemo(() => {
+        if (tab !== 'mix' || !data) return [];
+        const totals = new Map();
+        for (const r of data.mix) {
+            totals.set(r.category, (totals.get(r.category) || 0) + r.revenue);
+        }
+        const all = [...totals.entries()]
+            .map(([name, revenue]) => ({ name, revenue }))
+            .sort((a, b) => b.revenue - a.revenue);
+        const total = all.reduce((s, c) => s + c.revenue, 0);
+        const tail = all.slice(PALETTE.length);
+        const shown = tail.length > 0
+            ? [
+                ...all.slice(0, PALETTE.length),
+                {
+                    name: 'Other',
+                    revenue: tail.reduce((s, c) => s + c.revenue, 0),
+                    folded: tail.length,
+                },
+            ]
+            : all;
+        return shown.map((c, i) => ({
+            ...c,
+            folded: c.folded || 0,
+            share: total > 0 ? (c.revenue / total) * 100 : 0,
+            color: c.folded ? OTHER : PALETTE[i],
+        }));
+    }, [tab, data]);
+
     const exportCsv = () => {
         if (!data) return;
         downloadCsv(
@@ -235,6 +474,182 @@ export default function MenuAnalyticsPage() {
                     </button>
                 </div>
             </div>
+
+            {!error && !isLoading && data && (
+                <div
+                    className={[
+                        styles.chartRow,
+                        tab === 'mix' ? styles.chartRowSplit : '',
+                        isFetching ? styles.stale : '',
+                    ].join(' ').trim()}
+                >
+                    <section className={styles.chartCard}>
+                        <div className={styles.chartHead}>
+                            <h2 className={styles.chartTitle}>{chartSpec.title}</h2>
+                            {rows.length > 0 && (
+                                <span className={styles.chartMeta}>
+                                    {rankLabel(TOP_N, rows.length)}
+                                </span>
+                            )}
+                        </div>
+
+                        {chartRows.length === 0 ? (
+                            /* A bordered placeholder, not an empty axis frame: it
+                               says what would be here rather than looking broken. */
+                            <div className={styles.chartEmpty}>{EMPTY_CHART[tab]}</div>
+                        ) : (
+                            <div style={{ height: chartHeight(chartRows.length) }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        layout="vertical"
+                                        data={chartRows}
+                                        margin={{ top: 0, right: 68, bottom: 0, left: 0 }}
+                                        barCategoryGap={4}
+                                    >
+                                        {/* Rules only on the value axis; the category
+                                            side is already spelled out in words. */}
+                                        <CartesianGrid horizontal={false} stroke="#332c27" strokeDasharray="3 3" />
+                                        <XAxis
+                                            type="number"
+                                            domain={[0, 'dataMax']}
+                                            allowDecimals={false}
+                                            tickFormatter={chartSpec.format}
+                                            tick={{ fill: '#a39a92', fontSize: 11 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="name"
+                                            width={140}
+                                            tickFormatter={shortName}
+                                            tick={{ fill: '#f8f4ee', fontSize: 11 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(248, 244, 238, 0.04)' }}
+                                            content={<RankTooltip />}
+                                        />
+                                        <Bar
+                                            dataKey="value"
+                                            fill={SERIES}
+                                            radius={[0, 4, 4, 0]}
+                                            maxBarSize={20}
+                                            isAnimationActive={false}
+                                        >
+                                            <LabelList
+                                                dataKey="value"
+                                                position="right"
+                                                offset={8}
+                                                formatter={chartSpec.format}
+                                                fill="#f8f4ee"
+                                                fontSize={11}
+                                            />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+                    </section>
+
+                    {tab === 'mix' && (
+                        <section className={styles.chartCard}>
+                            <div className={styles.chartHead}>
+                                <h2 className={styles.chartTitle}>Revenue share by category</h2>
+                                {categoryShare.length > 0 && (
+                                    <span className={styles.chartMeta}>
+                                        {categoryShare.some((c) => c.folded > 0)
+                                            ? `Top ${PALETTE.length} + Other`
+                                            : `All ${categoryShare.length} ${categoryShare.length === 1 ? 'category' : 'categories'}`}
+                                    </span>
+                                )}
+                            </div>
+
+                            {categoryShare.length === 0 ? (
+                                <div className={styles.chartEmpty}>
+                                    Each category’s share of the range’s revenue will appear here.
+                                </div>
+                            ) : (
+                                <>
+                                    <div style={{ height: chartHeight(categoryShare.length) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                layout="vertical"
+                                                data={categoryShare}
+                                                margin={{ top: 0, right: 56, bottom: 0, left: 0 }}
+                                                barCategoryGap={4}
+                                            >
+                                                <CartesianGrid horizontal={false} stroke="#332c27" strokeDasharray="3 3" />
+                                                <XAxis
+                                                    type="number"
+                                                    domain={[0, 'dataMax']}
+                                                    allowDecimals={false}
+                                                    tickFormatter={(v) => `${Math.round(v)}%`}
+                                                    tick={{ fill: '#a39a92', fontSize: 11 }}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                />
+                                                <YAxis
+                                                    type="category"
+                                                    dataKey="name"
+                                                    width={140}
+                                                    tickFormatter={shortName}
+                                                    tick={{ fill: '#f8f4ee', fontSize: 11 }}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                />
+                                                <Tooltip
+                                                    cursor={{ fill: 'rgba(248, 244, 238, 0.04)' }}
+                                                    content={<ShareTooltip />}
+                                                />
+                                                <Bar
+                                                    dataKey="share"
+                                                    radius={[0, 4, 4, 0]}
+                                                    maxBarSize={20}
+                                                    isAnimationActive={false}
+                                                >
+                                                    {categoryShare.map((c) => (
+                                                        <Cell key={c.name} fill={c.color} />
+                                                    ))}
+                                                    <LabelList
+                                                        dataKey="share"
+                                                        position="right"
+                                                        offset={8}
+                                                        formatter={pct}
+                                                        fill="#f8f4ee"
+                                                        fontSize={11}
+                                                    />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    {/* Six or fewer series, so they get a legend and
+                                        their labels: the swatch ties the two together. */}
+                                    <ul className={styles.legend}>
+                                        {categoryShare.map((c) => (
+                                            <li key={c.name} className={styles.legendItem}>
+                                                <span
+                                                    className={styles.swatch}
+                                                    style={{ background: c.color }}
+                                                    aria-hidden="true"
+                                                />
+                                                {c.name}
+                                                {c.folded > 0 && (
+                                                    <span className={styles.legendNote}>
+                                                        {c.folded} more
+                                                    </span>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </>
+                            )}
+                        </section>
+                    )}
+                </div>
+            )}
 
             {error ? (
                 <div className={styles.stateBlock}>

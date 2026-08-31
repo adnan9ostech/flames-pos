@@ -102,6 +102,126 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ===== Stat tiles ===== */
+/* The day in seven numbers, above the order-by-order record. Fixed height in
+   a viewport-tall flex column, so the table below keeps the rest. */
+.statRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 0.6rem;
+    flex-shrink: 0;
+    margin-bottom: 0.75rem;
+}
+
+.statTile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.8rem 0.9rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.statLabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+/* Deliberately proportional figures: tabular-nums widens every digit to a
+   zero, which makes a display-size value look gappy. Table columns get it,
+   headline numbers do not. */
+.statValue {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.statSub {
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+}
+
+/* ===== Order-type chart ===== */
+.chartCard {
+    flex-shrink: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.chartHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.6rem;
+}
+
+.chartTitle {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.chartNote {
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+}
+
+/* Stands in for a plot that has no rows: an axis frame with nothing inside it
+   looks like a bug, a sentence looks like an answer. */
+.chartEmpty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* ===== Tooltip ===== */
+/* Recharts renders this inside its own positioned wrapper, so the box only
+   has to supply its own surface. */
+.tooltip {
+    min-width: 12rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--card-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--foreground);
+    font-size: 0.78rem;
+}
+
+.tooltipHead {
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.tooltipRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.25rem;
+    color: var(--muted-foreground);
+}
+
+.tooltipValue {
+    color: var(--foreground);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ===== Table ===== */
 .listWrap {
     flex: 1;

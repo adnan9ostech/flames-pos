@@ -55,7 +55,28 @@ export async function getDailyFoodSales(businessDate = null) {
             [day],
         ))
 
-        return { data: { businessDate: day, orders } }
+        /*
+         * Units sold, per order. Counted off order_items — the canonical lines
+         * — rather than the orders' JSON snapshot, and attached per order so
+         * the page can leave voided bills out of the day's item count the same
+         * way it leaves them out of the money.
+         */
+        const itemCounts = await query(
+            `SELECT oi.order_id, SUM(oi.qty) AS qty
+               FROM order_items oi
+               JOIN orders o ON o.id = oi.order_id
+              WHERE o.branch_id = 1 AND o.business_date = ?
+              GROUP BY oi.order_id`,
+            [day],
+        )
+        const qtyByOrder = new Map(itemCounts.map((r) => [r.order_id, Number(r.qty) || 0]))
+
+        return {
+            data: {
+                businessDate: day,
+                orders: orders.map((o) => ({ ...o, item_count: qtyByOrder.get(o.id) || 0 })),
+            },
+        }
     } catch (e) {
         console.error('daily-sales report failed', e)
         return { error: 'Could not load the daily sales report' }

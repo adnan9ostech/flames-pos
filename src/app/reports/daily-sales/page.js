@@ -5,10 +5,24 @@ import styles from './daily-sales.module.css'
 import { getDailyFoodSales } from './actions'
 import { formatClockTime } from '@/lib/timeFormat'
 import {
+    BarChart, Bar, XAxis, YAxis, Tooltip, LabelList, ResponsiveContainer
+} from 'recharts'
+import {
     CalendarRange, FileDown, Loader2, ClipboardList, AlertTriangle
 } from 'lucide-react'
 
 const TYPE_LABEL = { 'dine-in': 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery' }
+
+/*
+ * Chart ink. Literals rather than CSS custom properties because recharts
+ * writes them into SVG presentation attributes, where a var() is not reliably
+ * resolved; the values are --muted-foreground and --foreground, and #d95926 is
+ * the palette slot a single-series chart takes so the data does not read as
+ * brand chrome.
+ */
+const SERIES = '#d95926'
+const AXIS_TEXT = '#a39a92'
+const LABEL_TEXT = '#f8f4ee'
 
 const STATUS_LABEL = {
     new: 'New', preparing: 'Preparing', ready: 'Ready',
@@ -28,6 +42,38 @@ const rs = (x) => Math.round(Number(x) || 0).toLocaleString('en-PK')
 const csvCell = (v) => {
     const s = v === null || v === undefined ? '' : String(v)
     return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s
+}
+
+function StatTile({ label, value, sub }) {
+    return (
+        <div className={styles.statTile}>
+            <span className={styles.statLabel}>{label}</span>
+            <span className={styles.statValue}>{value}</span>
+            {sub && <span className={styles.statSub}>{sub}</span>}
+        </div>
+    )
+}
+
+function TypeTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null
+    const row = payload[0].payload
+    return (
+        <div className={styles.tooltip}>
+            <div className={styles.tooltipHead}>{row.label}</div>
+            <div className={styles.tooltipRow}>
+                <span>Revenue</span>
+                <span className={styles.tooltipValue}>Rs. {rs(row.revenue)}</span>
+            </div>
+            <div className={styles.tooltipRow}>
+                <span>Bills</span>
+                <span className={styles.tooltipValue}>{row.bills}</span>
+            </div>
+            <div className={styles.tooltipRow}>
+                <span>Share of day</span>
+                <span className={styles.tooltipValue}>{row.share}%</span>
+            </div>
+        </div>
+    )
 }
 
 export default function DailySalesPage() {
@@ -57,18 +103,47 @@ export default function DailySalesPage() {
 
     const orders = report?.orders || []
     const voidedCount = orders.filter((o) => o.status === 'cancelled').length
+    const sold = orders.filter((o) => o.status !== 'cancelled')
 
     // Footer sums exclude voided rows: a void is on the page to be seen, not
     // to count towards the day's sales.
-    const sums = orders
-        .filter((o) => o.status !== 'cancelled')
+    const sums = sold
         .reduce((acc, o) => ({
             subtotal: acc.subtotal + (Number(o.subtotal) || 0),
             discount: acc.discount + (Number(o.discount) || 0),
             charges: acc.charges + (Number(o.charges_total) || 0),
             tax: acc.tax + (Number(o.tax) || 0),
             total: acc.total + (Number(o.total) || 0),
-        }), { subtotal: 0, discount: 0, charges: 0, tax: 0, total: 0 })
+            items: acc.items + (Number(o.item_count) || 0),
+        }), { subtotal: 0, discount: 0, charges: 0, tax: 0, total: 0, items: 0 })
+
+    /*
+     * Revenue by order type, from the rows already on the page rather than a
+     * second trip to the server. Only the types that actually traded get a bar,
+     * so a house that never delivers is not told every day that it took nothing
+     * on delivery.
+     */
+    const typeTotals = new Map()
+    for (const o of sold) {
+        // A bill with no type is a data fault, not a fourth channel; it still
+        // gets a bar so its money is never quietly missing from the split.
+        const key = o.order_type || 'unspecified'
+        const label = TYPE_LABEL[key] || (o.order_type ? key : 'Unspecified')
+        const row = typeTotals.get(key) || { key, label, revenue: 0, bills: 0 }
+        row.revenue += Number(o.total) || 0
+        row.bills += 1
+        typeTotals.set(key, row)
+    }
+    const byType = [...typeTotals.values()]
+        .map((row) => ({
+            ...row,
+            share: sums.total > 0 ? Math.round((row.revenue / sums.total) * 100) : 0,
+            // Precomputed so the direct label is a plain string on the datum;
+            // no formatter has to run inside the SVG.
+            moneyLabel: `Rs. ${rs(row.revenue)}`,
+        }))
+        // Sorted by value so the bars read top-heavy, biggest first.
+        .sort((a, b) => b.revenue - a.revenue)
 
     const exportCsv = () => {
         if (!report) return
@@ -157,77 +232,164 @@ export default function DailySalesPage() {
                     <p>No orders on this business day.</p>
                 </div>
             ) : (
-                <div className={styles.listWrap}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Order #</th>
-                                <th>Time</th>
-                                <th>Invoice #</th>
-                                <th>FBR Inv #</th>
-                                <th>Type</th>
-                                <th>Table</th>
-                                <th>Waiter</th>
-                                <th className={styles.alignRight}>Subtotal</th>
-                                <th className={styles.alignRight}>Discount</th>
-                                <th className={styles.alignRight}>Charges</th>
-                                <th className={styles.alignRight}>Tax</th>
-                                <th className={styles.alignRight}>Total</th>
-                                <th>Payment</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.map((o) => {
-                                const voided = o.status === 'cancelled'
-                                // Struck per cell rather than on the row, so the
-                                // void reason in the status cell stays readable.
-                                const struck = voided ? styles.struck : ''
-                                return (
-                                    <tr key={o.id} className={voided ? styles.voidedRow : ''}>
-                                        <td className={`${styles.cellStrong} ${struck}`}>#{o.order_number}</td>
-                                        <td className={`${styles.cellMuted} ${struck}`}>
-                                            {formatClockTime(new Date(o.paid_at || o.created_at))}
-                                        </td>
-                                        <td className={struck}>{o.invoice_number || '—'}</td>
-                                        <td className={`${styles.cellMuted} ${struck}`}>{o.fbr_invoice_number || '—'}</td>
-                                        <td className={struck}>{TYPE_LABEL[o.order_type] || o.order_type}</td>
-                                        <td className={`${styles.cellMuted} ${struck}`}>{o.table_number || '—'}</td>
-                                        <td className={`${styles.cellMuted} ${struck}`}>{o.waiter_name || '—'}</td>
-                                        <td className={`${styles.alignRight} ${struck}`}>{rs(o.subtotal)}</td>
-                                        <td className={`${styles.alignRight} ${struck}`}>{rs(o.discount)}</td>
-                                        <td className={`${styles.alignRight} ${struck}`}>{rs(o.charges_total)}</td>
-                                        <td className={`${styles.alignRight} ${struck}`}>{rs(o.tax)}</td>
-                                        <td className={`${styles.alignRight} ${styles.cellStrong} ${struck}`}>{rs(o.total)}</td>
-                                        <td className={struck}>{paymentLabel(o)}</td>
-                                        <td>
-                                            <span className={`${styles.statusBadge} ${styles[`status_${o.status}`] || ''}`}>
-                                                {STATUS_LABEL[o.status] || o.status}
-                                            </span>
-                                            {voided && o.cancel_reason && (
-                                                <div className={styles.voidReason}>{o.cancel_reason}</div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                        <tfoot>
-                            <tr className={styles.tfootRow}>
-                                <td colSpan={7}>
-                                    Totals — {orders.length - voidedCount} orders
-                                    {voidedCount > 0 && `, ${voidedCount} voided excluded`}
-                                </td>
-                                <td className={styles.alignRight}>{rs(sums.subtotal)}</td>
-                                <td className={styles.alignRight}>{rs(sums.discount)}</td>
-                                <td className={styles.alignRight}>{rs(sums.charges)}</td>
-                                <td className={styles.alignRight}>{rs(sums.tax)}</td>
-                                <td className={styles.alignRight}>{rs(sums.total)}</td>
-                                <td colSpan={2}></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                <>
+                    <div className={styles.statRow}>
+                        <StatTile
+                            label="Bills"
+                            value={sold.length}
+                            sub={voidedCount > 0
+                                ? `${voidedCount} voided, excluded`
+                                : 'No voids'}
+                        />
+                        <StatTile label="Items" value={sums.items} sub="Units sold" />
+                        <StatTile label="Gross" value={`Rs. ${rs(sums.subtotal)}`} sub="Before discount" />
+                        <StatTile label="Discounts" value={`Rs. ${rs(sums.discount)}`} sub="Given away" />
+                        <StatTile
+                            label="Net"
+                            value={`Rs. ${rs(sums.subtotal - sums.discount)}`}
+                            sub="Gross less discount"
+                        />
+                        <StatTile label="Tax" value={`Rs. ${rs(sums.tax)}`} sub="Collected for FBR" />
+                        <StatTile
+                            label="Revenue"
+                            value={`Rs. ${rs(sums.total)}`}
+                            /* Charges are the gap between net + tax and what was
+                               billed, so the tile names them rather than leaving
+                               the reader to find a sum that does not add up. */
+                            sub={sums.charges > 0
+                                ? `Includes Rs. ${rs(sums.charges)} of charges`
+                                : 'What the day billed'}
+                        />
+                    </div>
+
+                    <div className={styles.chartCard}>
+                        <div className={styles.chartHead}>
+                            <h2 className={styles.chartTitle}>Revenue by order type</h2>
+                            <span className={styles.chartNote}>Voids excluded</span>
+                        </div>
+
+                        {byType.length === 0 ? (
+                            <div className={styles.chartEmpty}>
+                                Every bill on this day was voided, so there is no revenue to
+                                split across dine-in, takeaway and delivery.
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={byType.length * 40 + 24}>
+                                <BarChart
+                                    layout="vertical"
+                                    data={byType}
+                                    margin={{ top: 0, right: 108, left: 0, bottom: 0 }}
+                                    barCategoryGap={2}
+                                >
+                                    {/* No value axis and no gridlines: every bar
+                                        carries its own money label, which is the
+                                        more direct reading of the same numbers. */}
+                                    <XAxis type="number" hide />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="label"
+                                        width={84}
+                                        tick={{ fill: AXIS_TEXT, fontSize: 12 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: 'rgba(248, 244, 238, 0.06)' }}
+                                        content={<TypeTooltip />}
+                                    />
+                                    <Bar
+                                        dataKey="revenue"
+                                        fill={SERIES}
+                                        radius={[0, 4, 4, 0]}
+                                        maxBarSize={22}
+                                    >
+                                        {/* Two to four bars, so every one is
+                                            directly labelled and no legend is
+                                            needed — the title names the measure. */}
+                                        <LabelList
+                                            dataKey="moneyLabel"
+                                            position="right"
+                                            fill={LABEL_TEXT}
+                                            fontSize={12}
+                                        />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+
+                    <div className={styles.listWrap}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Time</th>
+                                    <th>Invoice #</th>
+                                    <th>FBR Inv #</th>
+                                    <th>Type</th>
+                                    <th>Table</th>
+                                    <th>Waiter</th>
+                                    <th className={styles.alignRight}>Subtotal</th>
+                                    <th className={styles.alignRight}>Discount</th>
+                                    <th className={styles.alignRight}>Charges</th>
+                                    <th className={styles.alignRight}>Tax</th>
+                                    <th className={styles.alignRight}>Total</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {orders.map((o) => {
+                                    const voided = o.status === 'cancelled'
+                                    // Struck per cell rather than on the row, so the
+                                    // void reason in the status cell stays readable.
+                                    const struck = voided ? styles.struck : ''
+                                    return (
+                                        <tr key={o.id} className={voided ? styles.voidedRow : ''}>
+                                            <td className={`${styles.cellStrong} ${struck}`}>#{o.order_number}</td>
+                                            <td className={`${styles.cellMuted} ${struck}`}>
+                                                {formatClockTime(new Date(o.paid_at || o.created_at))}
+                                            </td>
+                                            <td className={struck}>{o.invoice_number || '—'}</td>
+                                            <td className={`${styles.cellMuted} ${struck}`}>{o.fbr_invoice_number || '—'}</td>
+                                            <td className={struck}>{TYPE_LABEL[o.order_type] || o.order_type}</td>
+                                            <td className={`${styles.cellMuted} ${struck}`}>{o.table_number || '—'}</td>
+                                            <td className={`${styles.cellMuted} ${struck}`}>{o.waiter_name || '—'}</td>
+                                            <td className={`${styles.alignRight} ${struck}`}>{rs(o.subtotal)}</td>
+                                            <td className={`${styles.alignRight} ${struck}`}>{rs(o.discount)}</td>
+                                            <td className={`${styles.alignRight} ${struck}`}>{rs(o.charges_total)}</td>
+                                            <td className={`${styles.alignRight} ${struck}`}>{rs(o.tax)}</td>
+                                            <td className={`${styles.alignRight} ${styles.cellStrong} ${struck}`}>{rs(o.total)}</td>
+                                            <td className={struck}>{paymentLabel(o)}</td>
+                                            <td>
+                                                <span className={`${styles.statusBadge} ${styles[`status_${o.status}`] || ''}`}>
+                                                    {STATUS_LABEL[o.status] || o.status}
+                                                </span>
+                                                {voided && o.cancel_reason && (
+                                                    <div className={styles.voidReason}>{o.cancel_reason}</div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                            <tfoot>
+                                <tr className={styles.tfootRow}>
+                                    <td colSpan={7}>
+                                        Totals — {orders.length - voidedCount} orders
+                                        {voidedCount > 0 && `, ${voidedCount} voided excluded`}
+                                    </td>
+                                    <td className={styles.alignRight}>{rs(sums.subtotal)}</td>
+                                    <td className={styles.alignRight}>{rs(sums.discount)}</td>
+                                    <td className={styles.alignRight}>{rs(sums.charges)}</td>
+                                    <td className={styles.alignRight}>{rs(sums.tax)}</td>
+                                    <td className={styles.alignRight}>{rs(sums.total)}</td>
+                                    <td colSpan={2}></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </>
             )}
         </div>
     )

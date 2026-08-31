@@ -165,9 +165,136 @@
     cursor: not-allowed;
 }
 
+/* ===== Charts ===== */
+.chartRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+/* Product mix carries two charts; below this they stack rather than squeeze */
+@media (min-width: 1100px) {
+    .chartRowSplit {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.chartCard {
+    padding: 0.9rem 1rem 0.6rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    min-width: 0;
+}
+
+.chartHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+}
+
+.chartTitle {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+/* Says "Top 10 of 34" so a trimmed ranking never reads as the whole range */
+.chartMeta {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.chartEmpty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 96px;
+    padding: 1rem;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.legendItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    color: var(--muted-foreground);
+}
+
+.swatch {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.legendNote {
+    color: var(--muted);
+    font-size: 0.7rem;
+}
+
+/* ===== Chart tooltip ===== */
+.tip {
+    min-width: 11rem;
+    max-width: 18rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--card-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.76rem;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.tipName {
+    margin: 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.tipSub {
+    margin: 0 0 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+    overflow-wrap: anywhere;
+}
+
+.tipRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin: 0.1rem 0 0;
+}
+
+.tipRow span:first-child {
+    color: var(--muted-foreground);
+}
+
 /* ===== Table ===== */
 .listWrap {
     flex: 1;
+    /* Without this the flex item refuses to shrink past its content and the
+       charts above it push the table's own scroller off the screen. */
+    min-height: 0;
     overflow: auto;
     border: 1px solid var(--border);
     border-radius: 16px;

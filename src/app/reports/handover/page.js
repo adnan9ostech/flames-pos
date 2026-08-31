@@ -3,12 +3,97 @@ import { useState, useEffect, useRef } from 'react';
 import styles from './handover.module.css';
 import { getHandoverReport } from './actions';
 import { formatDateTime, formatClockTime } from '@/lib/timeFormat';
+import {
+    BarChart, Bar, Cell, LabelList, XAxis, YAxis, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { AlertTriangle, Flame, Loader2, Printer, FileDown } from 'lucide-react';
 
 const TYPE_LABEL = { 'dine-in': 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery' };
 const METHOD_LABEL = { cash: 'Cash', card: 'Card', city_ledger: 'City Ledger' };
 
 const money = (x) => `Rs. ${Number(x || 0).toLocaleString('en-PK')}`;
+// A minus sign rather than a hyphen, and never "Rs. -1,200" mid-string.
+const signedMoney = (x) => (Number(x) < 0 ? `− ${money(Math.abs(x))}` : money(x));
+
+/* The categorical palette in its fixed slot order — never re-ordered, never
+   cycled. Green/magenta below are slots 3 and 5, kept for the bottom line. */
+const SLOT = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9'];
+const GAIN = '#199e70';
+const LOSS = '#d55181';
+const AXIS_TEXT = '#a39a92';
+const LABEL_TEXT = '#f8f4ee';
+
+/* Explicit pixel heights: the charts are sized in JS from these, and print
+   inherits the same numbers. Both stay under the 160px the one-pager can
+   spare. */
+const PAY_CHART_H = 108;
+const PROFIT_CHART_H = 132;
+
+// Bar labels are abbreviated; the exact rupees are in the rows above them.
+const compactMoney = (n) => {
+    // Whole rupees first, so 999.60 doesn't print "Rs 1000" next to "Rs 1k".
+    const v = Math.round(Math.abs(Number(n) || 0));
+    const trim = (x) => x.toFixed(1).replace(/\.0$/, '');
+    if (v >= 1_000_000) return `Rs ${trim(v / 1_000_000)}m`;
+    if (v >= 1_000) return `Rs ${trim(v / 1_000)}k`;
+    return `Rs ${Math.round(v)}`;
+};
+const signedCompact = (n) => (Number(n) < 0 ? `− ${compactMoney(n)}` : compactMoney(n));
+
+function ChartTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+        <div className={styles.chartTip}>
+            <span className={styles.chartTipLabel}>{d.label}</span>
+            <span className={styles.chartTipValue}>{signedMoney(d.value)}</span>
+        </div>
+    );
+}
+
+/*
+ * One compact horizontal bar per row, each labelled with its own amount, so
+ * the chart reads the same in colour on screen and in black ink on paper.
+ *
+ * Bar length is the SIZE of the amount and the label carries the sign: a
+ * four-step profit walk with one negative step would otherwise spend half its
+ * width on an axis nobody reads at this size. There is no value axis for the
+ * same reason — the labels are the axis.
+ */
+function MiniBars({ rows, height, yWidth = 74 }) {
+    return (
+        // Inline px, not a percentage: a ResponsiveContainer in a box of
+        // unknown height renders nothing at all, on screen or on paper.
+        <div className={`${styles.chartBox} handover-chart`} style={{ height }}>
+            <ResponsiveContainer width="100%" height={height}>
+                <BarChart data={rows} layout="vertical" margin={{ top: 2, right: 66, bottom: 2, left: 0 }}>
+                    <XAxis type="number" hide />
+                    <YAxis
+                        type="category"
+                        dataKey="label"
+                        width={yWidth}
+                        tick={{ fill: AXIS_TEXT, fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                    />
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={<ChartTooltip />} />
+                    {/* No entry animation: the bars must be fully drawn the
+                        moment someone hits Print. */}
+                    <Bar dataKey="magnitude" barSize={14} radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                        {rows.map((row) => <Cell key={row.label} fill={row.fill} />)}
+                        <LabelList
+                            dataKey="value"
+                            position="right"
+                            formatter={signedCompact}
+                            fill={LABEL_TEXT}
+                            fontSize={10}
+                        />
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
 
 // "Sunday, 31 August 2026" — the report is ABOUT this date, so it reads in full
 const formatBusinessDay = (ymd) =>
@@ -141,6 +226,32 @@ export default function HandoverReportPage() {
     const r = report;
     const paymentsNet = r.payments.reduce((sum, p) => sum + p.amount + p.refunds, 0);
 
+    /*
+     * Takings by method, biggest first, palette slots handed out in that
+     * order. Reversals are not netted off here — the card lists them as their
+     * own rows, and a bar that quietly shrank would disagree with it.
+     * `method` is a three-value enum, so the slots can never run out.
+     */
+    const paymentBars = r.payments
+        .filter((p) => p.amount > 0)
+        .map((p) => ({
+            label: METHOD_LABEL[p.method] || p.method,
+            value: p.amount,
+            magnitude: p.amount,
+        }))
+        .sort((a, b) => b.value - a.value)
+        .map((row, i) => ({ ...row, fill: SLOT[Math.min(i, SLOT.length - 1)] }));
+
+    // Net sales, minus what the food cost, minus what the day cost to run.
+    const profitSteps = [
+        { label: 'Net sales', value: r.sales.net, fill: SLOT[0] },
+        { label: 'COGS', value: -r.profit.cogs, fill: SLOT[1] },
+        { label: 'Expenses', value: -r.expenses.total, fill: SLOT[1] },
+        // Colour is the second cue only; the label is signed either way.
+        { label: 'Net profit', value: r.profit.netProfit, fill: r.profit.netProfit < 0 ? LOSS : GAIN },
+    ].map((s) => ({ ...s, magnitude: Math.abs(s.value) }));
+    const dayTraded = profitSteps.some((s) => s.magnitude > 0);
+
     return (
         <div className={styles.container} id="handover-root">
             <div className={`${styles.toolbar} no-print`}>
@@ -240,6 +351,13 @@ export default function HandoverReportPage() {
                                     />
                                 ))}
                                 <StatRow label="Net collected" value={money(paymentsNet)} big />
+                                {paymentBars.length === 0 ? (
+                                    <p className={styles.chartEmpty}>
+                                        The split by method appears here once money is taken.
+                                    </p>
+                                ) : (
+                                    <MiniBars rows={paymentBars} height={PAY_CHART_H} />
+                                )}
                             </>
                         )}
                     </div>
@@ -354,6 +472,13 @@ export default function HandoverReportPage() {
                             big
                             tone={r.profit.netProfit < 0 ? 'negative' : 'positive'}
                         />
+                        {dayTraded ? (
+                            <MiniBars rows={profitSteps} height={PROFIT_CHART_H} />
+                        ) : (
+                            <p className={styles.chartEmpty}>
+                                Sales, cost and expenses appear here once the day trades.
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -381,6 +506,28 @@ export default function HandoverReportPage() {
                         box-shadow: none !important;
                         break-inside: avoid;
                     }
+                    /* recharts measures its box on screen and writes the SVG's
+                       width and height as attributes; the print pass does not
+                       wait for a re-measure. So the printed box must never be
+                       given a percentage height (it would collapse to nothing)
+                       and must never clip — the height comes in as an inline
+                       pixel value and the box stays overflow: visible, which
+                       lets the drawn SVG print exactly as it stands. */
+                    .handover-chart,
+                    .handover-chart .recharts-wrapper,
+                    .handover-chart svg {
+                        overflow: visible !important;
+                    }
+                    .handover-chart {
+                        break-inside: avoid;
+                        /* Bars are ink, not decoration; don't let the driver
+                           drop them as "background graphics". */
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    /* The page forces black type, but SVG text takes fill,
+                       not color — without this the labels print white. */
+                    #handover-root svg text { fill: #111 !important; }
                     @page { size: A4; margin: 12mm; }
                 }
             `}</style>

@@ -2,18 +2,73 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { formatDateTime } from '@/lib/timeFormat'
-import { getDashboardStats } from './actions'
+import Link from 'next/link'
+import { formatDateTime, formatDayMonth } from '@/lib/timeFormat'
+import { getDashboardStats, getReportPreviews } from './actions'
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import LiveClock from '@/components/Layout/LiveClock'
 import {
     DollarSign, ShoppingBag, TrendingUp, TrendingDown, Minus, Calendar,
-    Loader2, FileDown, Flame, Receipt
+    Loader2, FileDown, Flame, Receipt, ArrowRight, ClipboardList, CalendarDays,
+    Clock, ListOrdered, Utensils, Percent
 } from 'lucide-react'
+import styles from './reports.module.css'
 
 const RANGE_LABEL = { today: 'Today', '7days': 'the last 7 days', '30days': 'the last 30 days' }
+
+/*
+ * Chart tokens. SERIES is slot 2 of the validated categorical palette: every
+ * chart on this page is single-series, and a single series must not be drawn
+ * in --primary or it reads as chrome — the same orange is on the active tab
+ * and the buttons three inches above it.
+ */
+const SERIES = '#d95926'
+const GRID = '#332c27'
+const AXIS = '#a39a92'
+const SURFACE = '#0d0b0a'
+
+const TOOLTIP_STYLE = {
+    background: '#15120f',
+    border: `1px solid ${GRID}`,
+    borderRadius: 8,
+    color: '#f8f4ee',
+    fontSize: 12,
+    padding: '6px 10px',
+}
+const TOOLTIP_LABEL = { color: AXIS, marginBottom: 2 }
+const TOOLTIP_ITEM = { color: '#f8f4ee' }
+
+// Money on screen: en-PK grouping, no decimals — rupees are counted in whole
+// notes here and the .00 is noise on every screen in the app.
+const rs = (x) => Math.round(Number(x) || 0).toLocaleString('en-PK')
+
+// Money on an axis is abbreviated. Five repetitions of "12500" is five times
+// the ink for one fact the reader already has from the tooltip.
+const rsAxis = (v) => {
+    const n = Number(v) || 0
+    const trim = (s) => s.replace(/\.0$/, '')
+    if (Math.abs(n) >= 1_000_000) return `Rs ${trim((n / 1_000_000).toFixed(1))}m`
+    if (Math.abs(n) >= 1_000) return `Rs ${trim((n / 1_000).toFixed(1))}k`
+    return `Rs ${Math.round(n)}`
+}
+
+// 12-hour labels, matching how times read everywhere else in the app
+const hourLabel = (hour) => {
+    const period = hour < 12 ? 'AM' : 'PM'
+    const twelve = hour % 12 === 0 ? 12 : hour % 12
+    return `${twelve} ${period}`
+}
+
+/*
+ * '2026-08-27' → '27 Aug'. Parsed at UTC noon rather than UTC midnight: the
+ * browser renders it on its own clock, and a midnight instant would slide back
+ * a day for any reader west of Greenwich.
+ */
+const dayMonth = (ymd) => formatDayMonth(new Date(`${ymd}T12:00:00Z`))
+
+const plural = (n, one, many) => `${Number(n).toLocaleString('en-PK')} ${n === 1 ? one : many}`
 
 // Small up/down/flat indicator comparing this period to the one before it
 function TrendBadge({ value }) {
@@ -34,11 +89,215 @@ function TrendBadge({ value }) {
     )
 }
 
+/*
+ * Card previews: a glance at the shape behind the headline, not a chart to
+ * read values off. No axes and no legend at this size — the tooltip carries
+ * the numbers, and the card's own text says what the series is.
+ */
+function MiniBars({ data, labelKey, valueKey, name, format }) {
+    return (
+        <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }} barCategoryGap={4}>
+                <XAxis dataKey={labelKey} hide />
+                <YAxis hide domain={[0, 'dataMax']} />
+                <Tooltip
+                    cursor={{ fill: 'rgba(248, 244, 238, 0.05)' }}
+                    contentStyle={TOOLTIP_STYLE}
+                    labelStyle={TOOLTIP_LABEL}
+                    itemStyle={TOOLTIP_ITEM}
+                    formatter={(value) => [format(value), name]}
+                />
+                {/* Rounded on the data end only — a bar's baseline is square. */}
+                <Bar dataKey={valueKey} fill={SERIES} radius={[4, 4, 0, 0]} />
+            </BarChart>
+        </ResponsiveContainer>
+    )
+}
+
+function MiniArea({ data, labelKey, valueKey, name, format }) {
+    return (
+        <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 4, right: 2, left: 2, bottom: 0 }}>
+                <defs>
+                    <linearGradient id="previewFade" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={SERIES} stopOpacity={0.35} />
+                        <stop offset="100%" stopColor={SERIES} stopOpacity={0} />
+                    </linearGradient>
+                </defs>
+                <XAxis dataKey={labelKey} hide />
+                <YAxis hide />
+                <Tooltip
+                    cursor={{ stroke: GRID }}
+                    contentStyle={TOOLTIP_STYLE}
+                    labelStyle={TOOLTIP_LABEL}
+                    itemStyle={TOOLTIP_ITEM}
+                    formatter={(value) => [format(value), name]}
+                />
+                <Area
+                    type="monotone"
+                    dataKey={valueKey}
+                    stroke={SERIES}
+                    strokeWidth={2}
+                    fill="url(#previewFade)"
+                    dot={false}
+                    activeDot={{ r: 4, fill: SERIES, stroke: SURFACE, strokeWidth: 2 }}
+                />
+            </AreaChart>
+        </ResponsiveContainer>
+    )
+}
+
+/*
+ * One card per report. Each answers a question in plain English, states this
+ * range's answer as a headline, and links to the report that shows the working.
+ * Built from a single previews payload — six cards fetching for themselves
+ * would be six round trips and six chances to disagree with each other.
+ */
+function buildCards(previews) {
+    const handover = previews?.handover || { revenue: 0, bills: 0, days: [] }
+    const dailySales = previews?.dailySales || { revenue: 0, orders: 0, days: [] }
+    const hourly = previews?.hourly || { peakHour: null, peakRevenue: 0, series: [] }
+    const itemWise = previews?.itemWise || { topItems: [] }
+    const menu = previews?.menuAnalytics || { topCategory: null, categories: [] }
+    const profit = previews?.grossProfit || { marginPct: null, cogs: 0, revenue: 0, margin: 0, uncostedCount: 0 }
+
+    // A month of slivers is not a preview: the last week of trading is the
+    // shape a reader can actually take in at 76px.
+    const recentDays = handover.days.slice(-7).map((d) => ({ ...d, label: dayMonth(d.date) }))
+    const hourSeries = hourly.series.map((h) => ({ ...h, label: hourLabel(h.hour) }))
+    const topItems = itemWise.topItems.map((i) => ({ ...i, label: i.name }))
+    const topCategories = menu.categories.slice(0, 5)
+    const categoryTotal = menu.categories.reduce((sum, c) => sum + c.amount, 0)
+    const topShare = categoryTotal > 0 && menu.categories.length
+        ? Math.round((menu.categories[0].amount / categoryTotal) * 100)
+        : null
+    // Cost against what the costed dishes kept: two slices of one whole, so
+    // bars rather than a pie, and one series so one colour.
+    const profitSplit = [
+        { label: 'Recipe cost', amount: profit.cogs },
+        { label: 'Gross margin', amount: Math.max(profit.margin, 0) },
+    ]
+
+    return [
+        {
+            key: 'handover',
+            href: '/reports/handover',
+            Icon: ClipboardList,
+            title: 'Handover',
+            blurb: 'What the closing manager hands the owner: takings, payment split, voids, expenses and the drawer count.',
+            value: `Rs ${rs(handover.revenue)}`,
+            unit: 'billed',
+            // "Billed", not "taken": the handover counts an open tab, which the
+            // revenue tile above deliberately leaves out. Saying so here stops
+            // the two figures reading as a contradiction.
+            sub: `${plural(handover.bills, 'bill', 'bills')} incl. open tabs, over ${plural(handover.days.length, 'day', 'days')}`,
+            preview: recentDays.length > 0 && (
+                <MiniBars data={recentDays} labelKey="label" valueKey="revenue"
+                    name="Billed" format={(v) => `Rs ${rs(v)}`} />
+            ),
+            empty: 'No bills in this range. A day’s takings appear here once orders are rung up.',
+        },
+        {
+            key: 'daily-sales',
+            href: '/reports/daily-sales',
+            Icon: CalendarDays,
+            title: 'Daily Food Sales',
+            blurb: 'Every order of a trading day, line by line — voids struck through with their reason, not hidden.',
+            value: `${dailySales.orders.toLocaleString('en-PK')}`,
+            unit: dailySales.orders === 1 ? 'order' : 'orders',
+            sub: `Rs ${rs(dailySales.revenue)} across the range`,
+            preview: recentDays.length > 0 && (
+                <MiniBars data={recentDays} labelKey="label" valueKey="orders"
+                    name="Orders" format={(v) => `${v}`} />
+            ),
+            empty: 'No orders in this range yet.',
+        },
+        {
+            key: 'hourly',
+            href: '/reports/hourly',
+            Icon: Clock,
+            title: 'Hourly Sales',
+            blurb: 'When the money actually comes in, hour by hour — the shape a rota gets written against.',
+            value: `Rs ${rs(hourly.peakRevenue)}`,
+            unit: 'in the busiest hour',
+            sub: hourly.peakHour === null
+                ? 'No hour has taken money yet'
+                : `Peak at ${hourLabel(hourly.peakHour)}`,
+            preview: hourSeries.length > 0 && (
+                <MiniArea data={hourSeries} labelKey="label" valueKey="total"
+                    name="Taken" format={(v) => `Rs ${rs(v)}`} />
+            ),
+            empty: 'No takings yet. The shape of a service appears here hour by hour.',
+        },
+        {
+            key: 'item-wise',
+            href: '/reports/item-wise',
+            Icon: ListOrdered,
+            title: 'Item-wise Sale',
+            blurb: 'Which dishes left the kitchen, rolled up category → item → portion, against the orders they came from.',
+            value: topItems.length ? topItems[0].qty.toLocaleString('en-PK') : '—',
+            unit: 'sold',
+            sub: topItems.length
+                ? `${topItems[0].name} leads the range`
+                : 'Nothing sold in this range',
+            preview: topItems.length > 0 && (
+                <MiniBars data={topItems} labelKey="label" valueKey="qty"
+                    name="Sold" format={(v) => `${v}`} />
+            ),
+            empty: 'No item lines in this range.',
+        },
+        {
+            key: 'menu-analytics',
+            href: '/reports/menu-analytics',
+            Icon: Utensils,
+            title: 'Menu Analytics',
+            blurb: 'The product mix: which categories carry the menu, which modifiers get chosen, what gets voided.',
+            value: topShare === null ? '—' : `${topShare}%`,
+            unit: 'of settled sales',
+            sub: menu.topCategory
+                ? `${menu.topCategory} is the biggest category`
+                : 'No settled sales to break down',
+            preview: topCategories.length > 0 && (
+                <MiniBars data={topCategories} labelKey="name" valueKey="amount"
+                    name="Sold" format={(v) => `Rs ${rs(v)}`} />
+            ),
+            empty: 'Nothing settled in this range, so there is no mix to break down.',
+        },
+        {
+            key: 'gross-profit',
+            href: '/reports/gross-profit',
+            Icon: Percent,
+            title: 'Gross Profit',
+            blurb: 'What each dish earns after its recipe costs — priced at today’s moving-average ingredient cost.',
+            value: profit.marginPct === null ? '—' : `${profit.marginPct.toFixed(1)}%`,
+            unit: 'margin',
+            /*
+             * A dish with no recipe costs nothing to make as far as the join is
+             * concerned, so the margin is taken over costed revenue only and
+             * the card says so. Folding the uncosted plates in would report a
+             * fatter margin than the kitchen is earning.
+             */
+            sub: profit.marginPct === null
+                ? 'No dish sold here has a costed recipe yet'
+                : profit.uncostedCount > 0
+                    ? `Rs ${rs(profit.cogs)} COGS — excl. ${plural(profit.uncostedCount, 'item', 'items')} without recipes`
+                    : `Rs ${rs(profit.cogs)} COGS on Rs ${rs(profit.revenue)} sold`,
+            preview: profit.marginPct !== null && (
+                <MiniBars data={profitSplit} labelKey="label" valueKey="amount"
+                    name="Amount" format={(v) => `Rs ${rs(v)}`} />
+            ),
+            empty: 'Cost against margin appears here once a sold dish has a recipe.',
+        },
+    ]
+}
+
 export default function ReportsPage() {
     const [range, setRange] = useState('7days')
     const [fromDate, setFromDate] = useState('')
     const [toDate, setToDate] = useState('')
     const [stats, setStats] = useState(null)
+    const [previews, setPreviews] = useState(null)
+    const [previewError, setPreviewError] = useState('')
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -48,18 +307,27 @@ export default function ReportsPage() {
         // the answer to the range just picked.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true)
-        // If custom date range is set, use it
-        if (fromDate) {
-            getDashboardStats(fromDate, toDate || fromDate).then(data => {
-                setStats(data)
+        let cancelled = false
+        // Both halves of the screen describe one window, so they are asked for
+        // together and land together — no half-updated dashboard in between.
+        const args = fromDate ? [fromDate, toDate || fromDate] : [range]
+        Promise.all([getDashboardStats(...args), getReportPreviews(...args)])
+            .then(([statsRes, previewRes]) => {
+                if (cancelled) return
+                setStats(statsRes)
+                setPreviews(previewRes?.data || null)
+                // The grid survives a failed preview: the cards still link out,
+                // they just say they have no figures rather than showing zeros
+                // that would read as a quiet day.
+                setPreviewError(previewRes?.error || '')
                 setLoading(false)
             })
-        } else {
-            getDashboardStats(range).then(data => {
-                setStats(data)
+            .catch(() => {
+                if (cancelled) return
+                setStats({ error: 'Could not reach the server' })
                 setLoading(false)
             })
-        }
+        return () => { cancelled = true }
     }, [range, fromDate, toDate])
 
     const handlePresetClick = (preset) => {
@@ -92,6 +360,15 @@ export default function ReportsPage() {
         return <div className="p-8 text-red-500 bg-gray-950 min-h-screen">Error loading stats: {stats.error}</div>
     }
 
+    const cards = buildCards(previews).map((card) => (previews ? card : {
+        ...card,
+        value: '—',
+        unit: '',
+        sub: 'Figures unavailable for this range',
+        preview: null,
+        empty: 'This preview could not be loaded.',
+    }))
+
     return (
         <div className="w-full px-4 sm:px-6 lg:px-10 py-6 sm:py-8 space-y-8 bg-gray-950 min-h-screen text-gray-100" id="report-root">
 
@@ -104,27 +381,6 @@ export default function ReportsPage() {
                 <p className="text-sm text-gray-500 mt-1">
                     Period: {periodLabel} · Generated {formatDateTime(new Date())}
                 </p>
-            </div>
-
-            {/* The report library — each page owns one question the business
-                asks; this dashboard stays the at-a-glance overview. */}
-            <div className="flex flex-wrap gap-2 no-print">
-                {[
-                    ['/reports/handover', 'Handover'],
-                    ['/reports/daily-sales', 'Daily Food Sales'],
-                    ['/reports/hourly', 'Hourly Sales'],
-                    ['/reports/item-wise', 'Item-wise Sale'],
-                    ['/reports/menu-analytics', 'Menu Analytics'],
-                    ['/reports/gross-profit', 'Gross Profit'],
-                ].map(([href, label]) => (
-                    <a
-                        key={href}
-                        href={href}
-                        className="px-3.5 py-2 rounded-lg bg-gray-900/80 border border-gray-800/60 text-sm text-gray-300 hover:text-white hover:border-orange-600/50 transition-colors"
-                    >
-                        {label}
-                    </a>
-                ))}
             </div>
 
             {/* Header */}
@@ -151,8 +407,8 @@ export default function ReportsPage() {
                                 key={preset.key}
                                 onClick={() => handlePresetClick(preset.key)}
                                 className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${!isCustomRange && range === preset.key
-                                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25'
-                                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25'
+                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
                                     }`}
                             >
                                 {preset.label}
@@ -211,7 +467,7 @@ export default function ReportsPage() {
                 <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between report-card">
                     <div>
                         <p className="text-sm font-medium text-gray-400 mb-1">Total Revenue</p>
-                        <h3 className="text-2xl font-bold text-white">Rs. {stats.totalRevenue.toLocaleString()}</h3>
+                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.totalRevenue)}</h3>
                         <div className="mt-2"><TrendBadge value={stats.trends?.revenue} /></div>
                     </div>
                     <div className="h-12 w-12 bg-green-900/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -233,7 +489,7 @@ export default function ReportsPage() {
                 <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between report-card">
                     <div>
                         <p className="text-sm font-medium text-gray-400 mb-1">Average Order Value</p>
-                        <h3 className="text-2xl font-bold text-white">Rs. {Math.round(stats.avgOrderValue).toLocaleString()}</h3>
+                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.avgOrderValue)}</h3>
                         <div className="mt-2"><TrendBadge value={stats.trends?.avgOrderValue} /></div>
                     </div>
                     <div className="h-12 w-12 bg-purple-900/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -248,7 +504,7 @@ export default function ReportsPage() {
                 <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between report-card">
                     <div>
                         <p className="text-sm font-medium text-gray-400 mb-1">Open Tabs</p>
-                        <h3 className="text-2xl font-bold text-white">Rs. {Math.round(stats.openTabs?.amount || 0).toLocaleString()}</h3>
+                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.openTabs?.amount)}</h3>
                         <p className="mt-2 text-xs text-gray-500">
                             {stats.openTabs?.count || 0} unpaid {(stats.openTabs?.count || 0) === 1 ? 'tab' : 'tabs'} — not in revenue
                         </p>
@@ -258,6 +514,89 @@ export default function ReportsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Hero chart: the money over time, one series, on the range above. */}
+            <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
+                <h3 className="text-lg font-semibold text-white">Revenue by trading day</h3>
+                <p className="text-sm text-gray-400 mt-1 mb-6">Settled bills only — open tabs are counted in their own tile above.</p>
+                <div className="h-[300px] w-full">
+                    {stats.chartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={stats.chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="heroFade" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={SERIES} stopOpacity={0.32} />
+                                        <stop offset="100%" stopColor={SERIES} stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                {/* Recessive, horizontal only: a time axis needs no vertical rules. */}
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
+                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: AXIS, fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS, fontSize: 12 }} tickFormatter={rsAxis} width={64} />
+                                <Tooltip
+                                    cursor={{ stroke: GRID }}
+                                    contentStyle={TOOLTIP_STYLE}
+                                    labelStyle={TOOLTIP_LABEL}
+                                    itemStyle={TOOLTIP_ITEM}
+                                    formatter={(value, key) => key === 'sales'
+                                        ? [`Rs ${rs(value)}`, 'Revenue']
+                                        : [value, 'Orders']}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="sales"
+                                    stroke={SERIES}
+                                    strokeWidth={2}
+                                    fill="url(#heroFade)"
+                                    // Marked points only while they are countable;
+                                    // a month of dots is a dotted line.
+                                    dot={stats.chartData.length <= 10 ? { r: 4, fill: SERIES, strokeWidth: 0 } : false}
+                                    activeDot={{ r: 5, fill: SERIES, stroke: SURFACE, strokeWidth: 2 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-center px-6 rounded-lg border border-dashed border-gray-800 text-gray-500 text-sm">
+                            No settled sales in this range. Revenue per trading day will plot here once a bill is paid.
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* The report library. Navigation, so it stays off the printed PDF. */}
+            <section className={`${styles.section} no-print`} aria-labelledby="reports-heading">
+                <div className={styles.sectionHead}>
+                    <h2 id="reports-heading" className={styles.sectionTitle}>Reports</h2>
+                    <p className={styles.sectionHint}>
+                        {previewError
+                            ? `Previews unavailable — ${previewError}`
+                            : `Each one answers a different question about ${periodLabel}. The figures below match the report they open.`}
+                    </p>
+                </div>
+
+                <div className={styles.grid}>
+                    {cards.map(({ key, href, Icon, title, blurb, value, unit, sub, preview, empty }) => (
+                        <Link key={key} href={href} className={styles.card}>
+                            <div className={styles.cardHead}>
+                                <span className={styles.icon}><Icon className="h-4 w-4" /></span>
+                                <span className={styles.title}>{title}</span>
+                                <ArrowRight className={`${styles.arrow} h-4 w-4`} aria-hidden="true" />
+                            </div>
+                            <p className={styles.blurb}>{blurb}</p>
+                            <div>
+                                <div className={styles.headline}>
+                                    <span className={styles.value}>{value}</span>
+                                    <span className={styles.unit}>{unit}</span>
+                                </div>
+                                <p className={styles.sub} title={sub}>{sub}</p>
+                            </div>
+                            {preview
+                                ? <div className={styles.preview}>{preview}</div>
+                                : <div className={styles.previewEmpty}>{empty}</div>}
+                        </Link>
+                    ))}
+                </div>
+            </section>
 
             {/* Money breakdown. All of this comes from columns the till was
                 already writing and nothing reported on. */}
@@ -274,43 +613,41 @@ export default function ReportsPage() {
                             { key: 'unrecorded', label: 'Not recorded', color: 'bg-gray-500' },
                         ].filter(({ key }) => key !== 'unrecorded' || (stats.paymentMix?.unrecorded?.count || 0) > 0)
                             .map(({ key, label, color }) => {
-                            const row = stats.paymentMix?.[key] || { amount: 0, count: 0 }
-                            // Share of all money in the mix (settled + open tabs);
-                            // totalRevenue no longer contains the unpaid bucket.
-                            const mixTotal = Object.values(stats.paymentMix || {})
-                                .reduce((sum, r) => sum + (r?.amount || 0), 0)
-                            const share = mixTotal > 0
-                                ? Math.round((row.amount / mixTotal) * 100)
-                                : 0
-                            return (
-                                <div key={key}>
-                                    <div className="flex items-baseline justify-between text-sm">
-                                        <span className="text-gray-300">{label}</span>
-                                        <span className="text-white font-semibold tabular-nums">
-                                            Rs. {Math.round(row.amount).toLocaleString()}
-                                            <span className="ml-2 text-xs font-normal text-gray-500">
-                                                {row.count} {row.count === 1 ? 'order' : 'orders'}
+                                const row = stats.paymentMix?.[key] || { amount: 0, count: 0 }
+                                // Share of all money in the mix (settled + open tabs);
+                                // totalRevenue no longer contains the unpaid bucket.
+                                const mixTotal = Object.values(stats.paymentMix || {})
+                                    .reduce((sum, r) => sum + (r?.amount || 0), 0)
+                                const share = mixTotal > 0
+                                    ? Math.round((row.amount / mixTotal) * 100)
+                                    : 0
+                                return (
+                                    <div key={key}>
+                                        <div className="flex items-baseline justify-between text-sm">
+                                            <span className="text-gray-300">{label}</span>
+                                            <span className="text-white font-semibold tabular-nums">
+                                                Rs. {rs(row.amount)}
+                                                <span className="ml-2 text-xs font-normal text-gray-500">
+                                                    {row.count} {row.count === 1 ? 'order' : 'orders'}
+                                                </span>
                                             </span>
-                                        </span>
+                                        </div>
+                                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-800 overflow-hidden">
+                                            <div className={`h-full ${color}`} style={{ width: `${share}%` }} />
+                                        </div>
                                     </div>
-                                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-800 overflow-hidden">
-                                        <div className={`h-full ${color}`} style={{ width: `${share}%` }} />
-                                    </div>
-                                </div>
-                            )
-                        })}
+                                )
+                            })}
                     </div>
                 </div>
 
                 <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-gray-400 mb-1">Tax collected</p>
-                        <h3 className="text-2xl font-bold text-white">
-                            Rs. {Math.round(stats.totalTax || 0).toLocaleString()}
-                        </h3>
+                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.totalTax)}</h3>
                         <p className="mt-2 text-xs text-gray-500">
                             {Math.round(stats.totalDiscount || 0) > 0
-                                ? `After Rs. ${Math.round(stats.totalDiscount).toLocaleString()} of discounts given`
+                                ? `After Rs. ${rs(stats.totalDiscount)} of discounts given`
                                 : 'No discounts given this period'}
                         </p>
                     </div>
@@ -327,7 +664,7 @@ export default function ReportsPage() {
                                 <div key={w.name} className="flex items-baseline justify-between text-sm">
                                     <span className="text-gray-300 truncate mr-3">{w.name}</span>
                                     <span className="text-white font-semibold tabular-nums whitespace-nowrap">
-                                        Rs. {Math.round(w.revenue).toLocaleString()}
+                                        Rs. {rs(w.revenue)}
                                         <span className="ml-2 text-xs font-normal text-gray-500">{w.orders}</span>
                                     </span>
                                 </div>
@@ -344,53 +681,26 @@ export default function ReportsPage() {
                 <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
                     <h3 className="text-lg font-semibold text-white mb-6">Busiest hours</h3>
                     <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={stats.hourly}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#332c27" vertical={false} />
-                            <XAxis dataKey="label" stroke="#a39a92" fontSize={11} tickLine={false} />
-                            <YAxis stroke="#a39a92" fontSize={11} tickLine={false} axisLine={false} />
+                        <BarChart data={stats.hourly} barCategoryGap={4}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+                            <XAxis dataKey="label" stroke={AXIS} fontSize={11} tickLine={false} />
+                            <YAxis stroke={AXIS} fontSize={11} tickLine={false} axisLine={false} tickFormatter={rsAxis} width={64} />
                             <Tooltip
-                                contentStyle={{ background: '#15120f', border: '1px solid #332c27', borderRadius: 8 }}
-                                labelStyle={{ color: '#f8f4ee' }}
-                                formatter={(value, name) => name === 'revenue'
-                                    ? [`Rs. ${Math.round(value).toLocaleString()}`, 'Sales']
+                                cursor={{ fill: 'rgba(248, 244, 238, 0.05)' }}
+                                contentStyle={TOOLTIP_STYLE}
+                                labelStyle={TOOLTIP_LABEL}
+                                itemStyle={TOOLTIP_ITEM}
+                                formatter={(value, key) => key === 'revenue'
+                                    ? [`Rs ${rs(value)}`, 'Sales']
                                     : [value, 'Orders']}
                             />
-                            <Bar dataKey="revenue" fill="#F26513" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="revenue" fill={SERIES} radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             )}
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                {/* Sales Chart */}
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 lg:col-span-2 report-card">
-                    <h3 className="text-lg font-semibold text-white mb-6">Sales Trend</h3>
-                    <div className="h-[300px] w-full">
-                        {stats.chartData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={stats.chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#332c27" />
-                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#a39a92', fontSize: 12 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a39a92', fontSize: 12 }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#332c27' }}
-                                        contentStyle={{ backgroundColor: '#15120f', borderRadius: '8px', border: '1px solid #332c27', color: '#f8f4ee' }}
-                                        itemStyle={{ color: '#f8f4ee' }}
-                                        labelStyle={{ color: '#a39a92' }}
-                                    />
-                                    <Bar dataKey="sales" fill="#F26513" radius={[4, 4, 0, 0]} barSize={40} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="h-full flex items-center justify-center text-gray-500">
-                                No sales data for this period
-                            </div>
-                        )}
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Items */}
                 <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
                     <h3 className="text-lg font-semibold text-white mb-6">Top Selling Items</h3>
@@ -407,7 +717,7 @@ export default function ReportsPage() {
                                             <p className="text-xs text-gray-400">{item.count} orders</p>
                                         </div>
                                     </div>
-                                    <span className="font-semibold text-gray-300 text-sm">Rs. {item.revenue.toLocaleString()}</span>
+                                    <span className="font-semibold text-gray-300 text-sm">Rs. {rs(item.revenue)}</span>
                                 </div>
                             ))
                         ) : (
@@ -418,33 +728,32 @@ export default function ReportsPage() {
                     </div>
                 </div>
 
-            </div>
-
-            {/* Trending Items — biggest movers vs. the prior period, not just top volume */}
-            <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
-                <div className="flex items-center gap-2 mb-6">
-                    <TrendingUp className="h-5 w-5 text-orange-500" />
-                    <h3 className="text-lg font-semibold text-white">Trending Now</h3>
-                    <span className="text-xs text-gray-500 font-normal">— fastest-growing items vs. the previous period</span>
-                </div>
-                {stats.trendingItems && stats.trendingItems.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                        {stats.trendingItems.map((item, idx) => (
-                            <div key={idx} className="bg-gray-800/50 border border-gray-800 rounded-lg p-4">
-                                <p className="font-medium text-gray-200 text-sm truncate" title={item.name}>{item.name}</p>
-                                <div className="flex items-center gap-1.5 mt-2 text-green-400 text-sm font-semibold">
-                                    <TrendingUp className="h-3.5 w-3.5" />
-                                    +{item.growth} sold
+                {/* Trending Items — biggest movers vs. the prior period, not just top volume */}
+                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
+                    <div className="flex items-center gap-2 mb-6">
+                        <TrendingUp className="h-5 w-5 text-orange-500" />
+                        <h3 className="text-lg font-semibold text-white">Trending Now</h3>
+                        <span className="text-xs text-gray-500 font-normal">— fastest-growing items vs. the previous period</span>
+                    </div>
+                    {stats.trendingItems && stats.trendingItems.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {stats.trendingItems.map((item, idx) => (
+                                <div key={idx} className="bg-gray-800/50 border border-gray-800 rounded-lg p-4">
+                                    <p className="font-medium text-gray-200 text-sm truncate" title={item.name}>{item.name}</p>
+                                    <div className="flex items-center gap-1.5 mt-2 text-green-400 text-sm font-semibold">
+                                        <TrendingUp className="h-3.5 w-3.5" />
+                                        +{item.growth} sold
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">{item.prevCount} → {item.count} units</p>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">{item.prevCount} → {item.count} units</p>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center text-gray-500 py-6">
-                        Not enough history yet to detect trends for this period
-                    </div>
-                )}
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-500 py-6">
+                            Not enough history yet to detect trends for this period
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Print-only styling: hides interactive chrome, forces a light,

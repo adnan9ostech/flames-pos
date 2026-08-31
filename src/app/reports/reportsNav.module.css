@@ -1,0 +1,29 @@
+.strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 1rem 1.5rem 0;
+}
+
+.tab {
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+    color: var(--foreground);
+    border-color: var(--primary);
+}
+
+.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+}
