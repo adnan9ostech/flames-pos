@@ -113,11 +113,3 @@ export async function changePassword(formData) {
         return { error: e.message }
     }
 }
-
-/* Whether to nudge on arrival — the login redirects here after a handover. */
-export async function mustChangePassword() {
-    const session = await readSession()
-    if (!session) return false
-    const rows = await query('SELECT must_change_password FROM users WHERE id = ?', [session.sub])
-    return Boolean(rows[0]?.must_change_password)
-}

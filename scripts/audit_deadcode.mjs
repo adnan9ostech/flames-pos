@@ -101,11 +101,13 @@ const importedBy = new Map(); // file -> Set(files importing it)
 const packagesUsed = new Set();
 
 /*
- * Standalone scripts import from src/ too. Counting them as consumers matters:
- * without it the audit reports PLACEHOLDER_GUID as dead while
- * scripts/test_qr.mjs imports it, and a tidy-up deletes a working test.
+ * Standalone scripts and the test suite import from src/ too. Counting them
+ * as consumers matters: without scripts/, the audit reports PLACEHOLDER_GUID
+ * as dead while scripts/test_qr.mjs imports it; without tests/, it reported
+ * ROUTE_PERMISSIONS as dead and un-exporting it broke the permissions suite.
+ * A test IS a consumer — an export it covers is not unused.
  */
-const extraConsumerDirs = ['scripts', join('supabase', 'scripts')]
+const extraConsumerDirs = ['scripts', 'tests', join('supabase', 'scripts')]
     .map(d => join(ROOT, d))
     .filter(existsSync);
 const extraConsumers = extraConsumerDirs

@@ -48,11 +48,39 @@ if (!DB_NAME) {
 const MIN_PASSWORD = 8;
 
 /*
- * One readline interface for the whole run, opened on the first question. A
- * second interface over the same stdin inherits none of what the first had
- * already buffered, which turns piped answers into a hang.
+ * One readline interface for the whole run, with answers queued as they land.
+ * Two different ways to hang are being avoided here. A second interface over
+ * the same stdin inherits none of what the first had already buffered. And a
+ * pipe hands over both answers in a single chunk, long before the second
+ * question is asked — read them straight off `question()` and the line nobody
+ * has asked for yet is emitted into the void, leaving the confirmation prompt
+ * waiting on an input that ended a millisecond ago. This is the script an
+ * admin reaches for while locked out; it must not be the one that hangs.
  */
 let rl = null;
+const answers = [];   // lines that arrived before anything asked for them
+let pending = null;   // the question in flight, waiting for its line
+let atEnd = false;
+
+const openInput = () => {
+    if (rl) return;
+    rl = createInterface({ input: process.stdin, output: process.stdout });
+    rl.on('line', (line) => {
+        if (!pending) return answers.push(line);
+        const deliver = pending;
+        pending = null;
+        deliver(line);
+    });
+    // Nothing more is coming. Unblock whatever is waiting instead of hanging
+    // on a closed stdin; an empty answer fails the length check below.
+    rl.on('close', () => {
+        atEnd = true;
+        if (!pending) return;
+        const deliver = pending;
+        pending = null;
+        deliver('');
+    });
+};
 
 const closeInput = () => {
     rl?.close();
@@ -69,15 +97,19 @@ const identifier = (process.argv[2] || '').trim();
 if (!identifier) die('Usage: node scripts/db/set-password.mjs <username-or-email>');
 
 const ask = (label) => new Promise((resolve) => {
-    rl ??= createInterface({ input: process.stdin, output: process.stdout });
+    openInput();
     process.stdout.write(label);
-    // The question is written directly above, so readline can be struck mute
-    // for the answer without the prompt disappearing with it.
+    // Muting only bites on a terminal — a pipe echoes nothing either way. The
+    // question is written directly above, so readline can be struck mute for
+    // the answer without the prompt disappearing with it.
     rl._writeToOutput = () => {};
-    rl.question('', (answer) => {
+    const deliver = (line) => {
         process.stdout.write('\n');
-        resolve(answer.trim());
-    });
+        resolve(String(line ?? '').trim());
+    };
+    if (answers.length > 0) deliver(answers.shift());
+    else if (atEnd) deliver('');
+    else pending = deliver;
 });
 
 const conn = await mysql.createConnection({

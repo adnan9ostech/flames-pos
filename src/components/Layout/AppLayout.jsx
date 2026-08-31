@@ -22,6 +22,10 @@ const NO_RIGHTS = { perms: [], can: () => false };
 
 export const usePermissions = () => useContext(RoleContext)?.rights ?? NO_RIGHTS;
 
+// Who is signed in, for the places that record WHO did something — a void
+// reason reads better as a name than as a role now that accounts are people.
+export const useUserName = () => useContext(RoleContext)?.name ?? null;
+
 const COLLAPSE_KEY = 'fbi.sidebarCollapsed';
 
 /*

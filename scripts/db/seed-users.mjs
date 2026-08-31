@@ -56,11 +56,38 @@ if (!DB_NAME) {
 const MIN_PASSWORD = 8;
 
 /*
- * One readline interface for the whole run, opened on the first question. A
- * second interface over the same stdin inherits none of what the first had
- * already buffered, which turns piped answers into a hang.
+ * One readline interface for the whole run, with answers queued as they land.
+ * Two different ways to hang are being avoided here. A second interface over
+ * the same stdin inherits none of what the first had already buffered. And a
+ * pipe hands over every answer in a single chunk, long before the second
+ * question is asked — read them straight off `question()` and the lines
+ * nobody has asked for yet are emitted into the void, leaving the next prompt
+ * waiting on an input that ended a millisecond ago.
  */
 let rl = null;
+const answers = [];   // lines that arrived before anything asked for them
+let pending = null;   // the question in flight, waiting for its line
+let atEnd = false;
+
+const openInput = () => {
+    if (rl) return;
+    rl = createInterface({ input: process.stdin, output: process.stdout });
+    rl.on('line', (line) => {
+        if (!pending) return answers.push(line);
+        const deliver = pending;
+        pending = null;
+        deliver(line);
+    });
+    // Nothing more is coming. Unblock whatever is waiting instead of hanging
+    // on a closed stdin; an empty answer fails the checks below honestly.
+    rl.on('close', () => {
+        atEnd = true;
+        if (!pending) return;
+        const deliver = pending;
+        pending = null;
+        deliver('');
+    });
+};
 
 const closeInput = () => {
     rl?.close();
@@ -74,16 +101,20 @@ const die = (message) => {
 };
 
 const ask = (label, { hidden = false } = {}) => new Promise((resolve) => {
-    rl ??= createInterface({ input: process.stdin, output: process.stdout });
+    openInput();
     process.stdout.write(label);
-    // The question is written directly above, so readline can be struck mute
-    // for the answer without the prompt disappearing with it.
+    // Muting only bites on a terminal — a pipe echoes nothing either way. The
+    // question is written directly above, so readline can be struck mute for
+    // the answer without the prompt disappearing with it.
     if (hidden) rl._writeToOutput = () => {};
     else delete rl._writeToOutput;
-    rl.question('', (answer) => {
+    const deliver = (line) => {
         if (hidden) process.stdout.write('\n');
-        resolve(answer.trim());
-    });
+        resolve(String(line ?? '').trim());
+    };
+    if (answers.length > 0) deliver(answers.shift());
+    else if (atEnd) deliver('');
+    else pending = deliver;
 });
 
 const username = (process.env.SEED_ADMIN_USERNAME || 'admin').trim();
@@ -164,6 +195,9 @@ closeInput();
 
 const hash = await bcrypt.hash(password, 12);
 const mustChange = fromEnv ? 1 : 0;
+// An update keeps the id it already had; only a genuine insert takes the new
+// one. Knowing which lets the audit row name the account it touched.
+const id = existing?.id ?? randomUUID();
 
 await conn.query(
     `INSERT INTO users (id, email, username, full_name, role, password_hash,
@@ -179,13 +213,13 @@ await conn.query(
        permissions = NULL,
        token_version = token_version + 1,
        updated_at = CURRENT_TIMESTAMP(3)`,
-    [randomUUID(), email, username, fullName, hash, mustChange],
+    [id, email, username, fullName, hash, mustChange],
 );
 
 await conn.query(
-    `INSERT INTO audit_log (branch_id, business_date, action, details)
-     VALUES (1, CURRENT_DATE, 'seed_admin', ?)`,
-    [JSON.stringify({
+    `INSERT INTO audit_log (branch_id, business_date, action, staff_id, details)
+     VALUES (1, CURRENT_DATE, 'seed_admin', ?, ?)`,
+    [id, JSON.stringify({
         username,
         email,
         created: existing === null,

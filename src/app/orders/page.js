@@ -11,7 +11,7 @@ import {
 } from '@/lib/dataClient';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
 import { printReceipt } from '@/lib/printReceipt';
-import { useRole } from '@/components/Layout/AppLayout';
+import { useRole, usePermissions, useUserName } from '@/components/Layout/AppLayout';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import {
     getOrderNumber, formatOrderDate, buildImageMap, resolveItemImage, formatModifiers
@@ -116,6 +116,8 @@ const resolvePeriod = (period, customFrom, customTo) => {
 
 export default function OrdersPage() {
     const role = useRole();
+    const { can } = usePermissions();
+    const userName = useUserName();
     const [orders, setOrders] = useState([]);
     const [total, setTotal] = useState(0);
     const [unpaidCount, setUnpaidCount] = useState(0);
@@ -252,17 +254,19 @@ export default function OrdersPage() {
 
     /*
      * Voiding is admin-only. Staff can advance a ticket but not make a sale
-     * disappear — with shared logins there's no way to tell who did it, so the
-     * capability sits with the person who has the admin PIN.
+     * disappear. Accounts are people now, so the void records who did it and
+     * the capability follows the 'void' right rather than a shared login.
      */
-    const canVoid = role === 'admin';
+    // The right, not the role: a manager holds 'void' without being an
+    // admin, and the server gates the action on exactly this key.
+    const canVoid = can('void');
 
     const submitVoid = async () => {
         if (!voidTarget) return;
         setVoiding(true);
         setVoidError('');
         try {
-            await cancelOrder(voidTarget.id, { reason: voidReason, by: role || 'staff' });
+            await cancelOrder(voidTarget.id, { reason: voidReason, by: userName || role || 'staff' });
             setVoidTarget(null);
             setVoidReason('');
             await load();
