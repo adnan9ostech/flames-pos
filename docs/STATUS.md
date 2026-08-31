@@ -166,6 +166,30 @@ Also done in the integration pass (was "in progress" above):
   data never reads as chrome. Re-validate with the dataviz skill's
   scripts/validate_palette.js before changing any of them.
 
+## POS bill panel redesign (1 Sep)
+
+- The reported bug: only ONE cart line was visible at a time. The panel's
+  fixed chrome (header 72px + order details ~190px + bill ~420px) was eating
+  ~660px of a 900px screen, and each cart row was ~110px because the 44px
+  qty stepper sat UNDER the dish name.
+- Fixes, in order of how much height each returned to the list:
+  - Cart row is one line: stepper BESIDE the name, so its 44px height sets
+    the row's (~52px) instead of stacking on it. **The 44px touch target is
+    unchanged** — it is why the row is 52px and not 36px.
+  - Fields wear their icon inside the control; the stacked uppercase caption
+    above every input is gone (aria-label carries the name instead).
+  - The discount editor folds behind "Add a discount", and re-opens itself
+    whenever a discount is actually applied.
+  - The FBR tax checkbox moved onto the tax row it governs.
+  - Payment chips moved DOWN to sit directly above Send & Pay — one decision
+    in one place, and switching cash/card repoints the tax row above it.
+  - `.cartItems` gained `min-height: 0` (a column flex child will not shrink
+    below its content without it), `.cartSummary` a `max-height: 60vh`.
+  - Panel 400px → 420px so every 44px target survives the tighter row.
+- Result at 1440×900: 8 lines visible, was 1. At 1280×720: 4–5, was 1.
+- Dead CSS removed with the markup it served: `.field`, `.fieldLabel`,
+  `.fieldInput`, `.detailsRow`, `.phoneRow`, `.taxToggle`, `.cartItemRight`.
+
 ## Pending (ordered)
 
 1. Local acceptance testing by Adnan of everything incl. F–J screens

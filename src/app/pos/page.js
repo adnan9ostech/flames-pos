@@ -30,7 +30,8 @@ import { useRole } from '@/components/Layout/AppLayout';
 import {
     Soup, Flame, Utensils, Cookie, GlassWater, Plus, CirclePlus,
     Search, Banknote, CreditCard, X, Minus, UserRound, Armchair, Phone, MapPin,
-    UtensilsCrossed, ShoppingBag, Bike, Loader2, Layers, Receipt, Send, EyeOff, Eye
+    UtensilsCrossed, ShoppingBag, Bike, Loader2, Layers, Receipt, Send, EyeOff, Eye,
+    BadgePercent
 } from 'lucide-react';
 
 const ORDER_TYPES = [
@@ -144,6 +145,14 @@ export default function POSPage() {
     const [discountMode, setDiscountMode] = useState('amount'); // 'amount' | 'percent'
     const [discountValue, setDiscountValue] = useState('');
     const [discountReason, setDiscountReason] = useState('');
+    /*
+     * The discount editor is folded away until asked for. Most bills carry no
+     * discount, and its three controls were costing the item list ~100px of
+     * height on every order that would never use them. It opens on request and
+     * stays open while a discount is on the bill, so an applied discount is
+     * never edited blind.
+     */
+    const [showDiscount, setShowDiscount] = useState(false);
 
     // Who the order is for. Needed for delivery, useful for takeaway callbacks.
     const [customerName, setCustomerName] = useState('');
@@ -996,12 +1005,20 @@ export default function POSPage() {
             {showCartPanel && (
             <div className={styles.cartSection}>
                 <div className={styles.cartHeader}>
-                    <div>
+                    <div className={styles.cartHeaderLeft}>
                         <h2>{tab ? 'Open Tab' : 'Current Order'}</h2>
+                        {/* Line count, because the list now scrolls: the
+                            cashier must be able to tell at a glance that
+                            there is more bill than screen. */}
+                        {cart.length > 0 && (
+                            <span className={styles.lineCount}>
+                                {cart.length} {cart.length === 1 ? 'line' : 'lines'}
+                            </span>
+                        )}
                         {tab && (
-                            <div className={styles.cartSubtitle}>
-                                Opened {formatOrderDate(tab.created_at)} · unpaid
-                            </div>
+                            <span className={styles.cartSubtitle}>
+                                {formatOrderDate(tab.created_at)} · unpaid
+                            </span>
                         )}
                     </div>
                     <div className={styles.cartHeaderRight}>
@@ -1046,14 +1063,20 @@ export default function POSPage() {
                         </div>
                     )}
 
+                    {/*
+                        Each field wears its icon inside the control instead of
+                        a stacked uppercase label above it. The label row was
+                        costing ~22px per field and said nothing the icon and
+                        placeholder don't — that height belongs to the item
+                        list. The name still reaches a screen reader by
+                        aria-label.
+                    */}
                     <div className={styles.detailFields}>
-                        <label className={styles.field}>
-                            <span className={styles.fieldLabel}>
-                                <UserRound size={14} aria-hidden="true" />
-                                Waiter
-                            </span>
+                        <div className={styles.compactField}>
+                            <UserRound size={14} aria-hidden="true" />
                             <select
-                                className={styles.fieldInput}
+                                className={styles.bareInput}
+                                aria-label="Waiter"
                                 value={waiterId}
                                 onChange={(e) => setWaiterId(e.target.value)}
                             >
@@ -1064,22 +1087,20 @@ export default function POSPage() {
                                     </option>
                                 ))}
                             </select>
-                        </label>
+                        </div>
 
                         {orderType === 'dine-in' && (
-                            <label className={styles.field}>
-                                <span className={styles.fieldLabel}>
-                                    <Armchair size={14} aria-hidden="true" />
-                                    Table
-                                </span>
+                            <div className={styles.compactField}>
+                                <Armchair size={14} aria-hidden="true" />
                                 {/* Suggests the floor's real tables while
                                     still accepting a typed one — a table
                                     added mid-service must not block a sale. */}
                                 <input
                                     type="text"
                                     list="floor-tables"
-                                    className={styles.fieldInput}
-                                    placeholder={floorTables.length ? 'Pick or type' : 'e.g. T4'}
+                                    className={styles.bareInput}
+                                    aria-label="Table"
+                                    placeholder="Table"
                                     value={tableNumber}
                                     onChange={(e) => setTableNumber(e.target.value)}
                                 />
@@ -1090,63 +1111,55 @@ export default function POSPage() {
                                         </option>
                                     ))}
                                 </datalist>
-                            </label>
+                            </div>
                         )}
                     </div>
 
                     {/* Customer details. Optional for dine-in, but delivery has
                         nowhere to send the food without them. */}
                     {orderType !== 'dine-in' && (
-                        <div className={styles.detailsRow}>
-                            <label className={styles.field}>
-                                <span className={styles.fieldLabel}>
-                                    <Phone size={14} aria-hidden="true" />
-                                    Phone
-                                    {customerFound && <span className={styles.returningTag}>returning</span>}
-                                </span>
-                                <div className={styles.phoneRow}>
-                                    <input
-                                        type="tel"
-                                        inputMode="tel"
-                                        className={styles.fieldInput}
-                                        placeholder="03xx xxxxxxx"
-                                        value={customerPhone}
-                                        onChange={(e) => { setCustomerPhone(e.target.value); setCustomerFound(false); }}
-                                        onBlur={lookupCustomer}
-                                    />
-                                </div>
-                            </label>
+                        <div className={styles.detailFields}>
+                            <div className={styles.compactField}>
+                                <Phone size={14} aria-hidden="true" />
+                                <input
+                                    type="tel"
+                                    inputMode="tel"
+                                    className={styles.bareInput}
+                                    aria-label="Customer phone"
+                                    placeholder="03xx xxxxxxx"
+                                    value={customerPhone}
+                                    onChange={(e) => { setCustomerPhone(e.target.value); setCustomerFound(false); }}
+                                    onBlur={lookupCustomer}
+                                />
+                                {customerFound && <span className={styles.returningTag}>returning</span>}
+                            </div>
 
-                            <label className={styles.field}>
-                                <span className={styles.fieldLabel}>
-                                    <UserRound size={14} aria-hidden="true" />
-                                    Name
-                                </span>
+                            <div className={styles.compactField}>
+                                <UserRound size={14} aria-hidden="true" />
                                 <input
                                     type="text"
-                                    className={styles.fieldInput}
+                                    className={styles.bareInput}
+                                    aria-label="Customer name"
                                     placeholder="Customer name"
                                     value={customerName}
                                     onChange={(e) => setCustomerName(e.target.value)}
                                 />
-                            </label>
+                            </div>
                         </div>
                     )}
 
                     {orderType === 'delivery' && (
-                        <label className={`${styles.field} ${styles.fieldWide}`}>
-                            <span className={styles.fieldLabel}>
-                                <MapPin size={14} aria-hidden="true" />
-                                Delivery address
-                            </span>
+                        <div className={`${styles.compactField} ${styles.fieldWide}`}>
+                            <MapPin size={14} aria-hidden="true" />
                             <textarea
-                                className={styles.fieldInput}
+                                className={styles.bareInput}
+                                aria-label="Delivery address"
                                 rows={2}
                                 placeholder="House / street / area"
                                 value={customerAddress}
                                 onChange={(e) => setCustomerAddress(e.target.value)}
                             />
-                        </label>
+                        </div>
                     )}
                 </div>
 
@@ -1182,39 +1195,46 @@ export default function POSPage() {
                         </div>
                     )}
 
+                    {/*
+                        One line per line. The stepper moved from under the
+                        dish name to beside it, which halves the row: its 44px
+                        height now sets the row's height instead of stacking on
+                        top of it, so roughly twice as many lines of the bill
+                        are on screen at once. The 44px touch target itself is
+                        untouched — it is the reason the row is 52px and not
+                        36px, and these buttons decide what a customer pays.
+                    */}
                     {cart.map((item, idx) => (
                         <div key={idx} className={styles.cartItemRow}>
+                            <div className={styles.qtyControls}>
+                                <button onClick={() => updateQty(idx, -1)} aria-label={`One fewer ${item.name}`}>
+                                    <Minus size={14} />
+                                </button>
+                                <span>{item.qty}</span>
+                                <button onClick={() => updateQty(idx, 1)} aria-label={`One more ${item.name}`}>
+                                    <Plus size={14} />
+                                </button>
+                            </div>
                             <div className={styles.cartItemInfo}>
                                 <h4>{item.name}</h4>
                                 {item.selectedModifiers && (
-                                    <div className={styles.modifiersList} style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
+                                    <div className={styles.modifiersList}>
                                         {Object.values(item.selectedModifiers).flat().map((m, i) => (
                                             <span key={i}>{m.name}{i < Object.values(item.selectedModifiers).flat().length - 1 ? ', ' : ''}</span>
                                         ))}
                                     </div>
                                 )}
-                                <div className={styles.qtyControls}>
-                                    <button onClick={() => updateQty(idx, -1)} aria-label="Decrease quantity">
-                                        <Minus size={14} />
-                                    </button>
-                                    <span>{item.qty}</span>
-                                    <button onClick={() => updateQty(idx, 1)} aria-label="Increase quantity">
-                                        <Plus size={14} />
-                                    </button>
-                                </div>
                             </div>
-                            <div className={styles.cartItemRight}>
-                                <div className={styles.cartItemTotal}>
-                                    Rs. {item.price * item.qty}
-                                </div>
-                                <button
-                                    className={styles.removeBtn}
-                                    onClick={() => removeItem(idx)}
-                                    aria-label={`Remove ${item.name}`}
-                                >
-                                    <X size={16} />
-                                </button>
+                            <div className={styles.cartItemTotal}>
+                                Rs. {(item.price * item.qty).toLocaleString()}
                             </div>
+                            <button
+                                className={styles.removeBtn}
+                                onClick={() => removeItem(idx)}
+                                aria-label={`Remove ${item.name}`}
+                            >
+                                <X size={15} />
+                            </button>
                         </div>
                     ))}
 
@@ -1226,111 +1246,91 @@ export default function POSPage() {
                 </div>
 
                 <div className={styles.cartSummary}>
-                    {/* Payment Mode */}
-                    <div className={styles.paymentMode}>
-                        <button
-                            className={`${styles.modeBtn} ${paymentMode === 'cash' ? styles.activeMode : ''}`}
-                            onClick={() => setPaymentMode('cash')}
-                        >
-                            <Banknote size={18} aria-hidden="true" />
-                            Cash
-                        </button>
-                        <button
-                            className={`${styles.modeBtn} ${paymentMode === 'card' ? styles.activeMode : ''}`}
-                            onClick={() => setPaymentMode('card')}
-                        >
-                            <CreditCard size={18} aria-hidden="true" />
-                            Card
-                        </button>
-                        <button
-                            className={`${styles.modeBtn} ${paymentMode === 'city_ledger' ? styles.activeMode : ''}`}
-                            onClick={() => {
-                                setPaymentMode('city_ledger');
-                                if (!company) setShowCompanyPicker(true);
-                            }}
-                            title="Charge to a company account — settled later by receipt"
-                        >
-                            <Layers size={18} aria-hidden="true" />
-                            Company
-                        </button>
-                    </div>
-
-                    {paymentMode === 'city_ledger' && (
-                        <button
-                            type="button"
-                            className={styles.secondaryBtn}
-                            onClick={() => setShowCompanyPicker(true)}
-                        >
-                            {company ? `Charging: ${company.name} — change` : 'Choose the company…'}
-                        </button>
-                    )}
-
-                    {/* FBR Tax Toggle */}
-                    <label className={styles.taxToggle}>
-                        <input
-                            type="checkbox"
-                            checked={includeTax}
-                            onChange={(e) => setIncludeTax(e.target.checked)}
-                        />
-                        <span>Include FBR Tax ({taxPercentLabel})</span>
-                    </label>
+                    {/* One-tap scheduled promos — a chip fills the rupee
+                        amount and the reason, nothing more magical. Renders
+                        nothing at all when no plan is on offer, so it costs
+                        the bill no height on an ordinary night. */}
+                    <DiscountPlans
+                        plans={discountPlans}
+                        billItems={billItems}
+                        subtotal={billTotals.subtotal}
+                        onApply={(planName, rupees) => {
+                            setDiscountMode('amount');
+                            setDiscountValue(String(rupees));
+                            setDiscountReason(planName);
+                            setShowDiscount(true);
+                        }}
+                    />
 
                     {/* Discount. Amount or percent, with a reason, because a
                         discount nobody can account for later is how a till
-                        quietly leaks money. */}
-                    <div className={styles.discountBlock}>
-                        {/* One-tap scheduled promos — a chip fills the rupee
-                            amount and the reason, nothing more magical. */}
-                        <DiscountPlans
-                            plans={discountPlans}
-                            billItems={billItems}
-                            subtotal={billTotals.subtotal}
-                            onApply={(planName, rupees) => {
-                                setDiscountMode('amount');
-                                setDiscountValue(String(rupees));
-                                setDiscountReason(planName);
-                            }}
-                        />
-                        <div className={styles.discountRow}>
-                            <div className={styles.discountModes}>
+                        quietly leaks money. Folded away until wanted — but
+                        never while one is applied, so money already off the
+                        bill is always editable in place. */}
+                    {(showDiscount || discountAmount > 0) ? (
+                        <div className={styles.discountBlock}>
+                            <div className={styles.discountRow}>
+                                <div className={styles.discountModes}>
+                                    <button
+                                        type="button"
+                                        className={`${styles.discountMode} ${discountMode === 'amount' ? styles.activeMode : ''}`}
+                                        onClick={() => setDiscountMode('amount')}
+                                    >
+                                        Rs.
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${styles.discountMode} ${discountMode === 'percent' ? styles.activeMode : ''}`}
+                                        onClick={() => setDiscountMode('percent')}
+                                    >
+                                        %
+                                    </button>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max={discountMode === 'percent' ? 100 : undefined}
+                                    step="1"
+                                    inputMode="numeric"
+                                    className={styles.discountInput}
+                                    placeholder="Discount"
+                                    value={discountValue}
+                                    onChange={(e) => setDiscountValue(e.target.value)}
+                                />
                                 <button
                                     type="button"
-                                    className={`${styles.discountMode} ${discountMode === 'amount' ? styles.activeMode : ''}`}
-                                    onClick={() => setDiscountMode('amount')}
+                                    className={styles.discountClose}
+                                    onClick={() => {
+                                        setDiscountValue('');
+                                        setDiscountReason('');
+                                        setShowDiscount(false);
+                                    }}
+                                    aria-label="Clear the discount"
                                 >
-                                    Rs.
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`${styles.discountMode} ${discountMode === 'percent' ? styles.activeMode : ''}`}
-                                    onClick={() => setDiscountMode('percent')}
-                                >
-                                    %
+                                    <X size={15} />
                                 </button>
                             </div>
-                            <input
-                                type="number"
-                                min="0"
-                                max={discountMode === 'percent' ? 100 : undefined}
-                                step="1"
-                                inputMode="numeric"
-                                className={styles.discountInput}
-                                placeholder="Discount"
-                                value={discountValue}
-                                onChange={(e) => setDiscountValue(e.target.value)}
-                            />
+                            {discountAmount > 0 && (
+                                <input
+                                    type="text"
+                                    className={styles.discountReason}
+                                    placeholder="Reason (staff meal, comp, manager)"
+                                    value={discountReason}
+                                    onChange={(e) => setDiscountReason(e.target.value)}
+                                    maxLength={60}
+                                />
+                            )}
                         </div>
-                        {discountAmount > 0 && (
-                            <input
-                                type="text"
-                                className={styles.discountReason}
-                                placeholder="Reason (staff meal, comp, manager)"
-                                value={discountReason}
-                                onChange={(e) => setDiscountReason(e.target.value)}
-                                maxLength={60}
-                            />
-                        )}
-                    </div>
+                    ) : (
+                        <button
+                            type="button"
+                            className={styles.discountToggle}
+                            onClick={() => setShowDiscount(true)}
+                        >
+                            <BadgePercent size={13} aria-hidden="true" />
+                            Add a discount
+                        </button>
+                    )}
 
                     {tab && (
                         <>
@@ -1363,14 +1363,67 @@ export default function POSPage() {
                             <span>Rs. {c.amount.toLocaleString()}</span>
                         </div>
                     ))}
-                    <div className={styles.summaryRow}>
-                        <span>Tax ({taxPercentLabel})</span>
+                    {/* The FBR tax switch lives on the row it governs. It used
+                        to be a separate labelled checkbox above the bill, which
+                        cost a row of its own and put the control a long way
+                        from the number it changes. */}
+                    <label className={`${styles.summaryRow} ${styles.taxRow}`}>
+                        <span className={styles.taxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={includeTax}
+                                onChange={(e) => setIncludeTax(e.target.checked)}
+                            />
+                            FBR Tax ({taxPercentLabel})
+                        </span>
                         <span>Rs. {receiptTotals.tax.toLocaleString()}</span>
-                    </div>
+                    </label>
                     <div className={`${styles.summaryRow} ${styles.totalRow}`}>
                         <span>{tab ? 'Bill total' : 'Total'}</span>
                         <span>Rs. {receiptTotals.total.toLocaleString()}</span>
                     </div>
+
+                    {/* How they are paying sits directly above the button that
+                        takes the money — one decision, one place. Cash and card
+                        carry different tax rates, so switching a chip repoints
+                        the tax row above it. */}
+                    <div className={styles.paymentMode}>
+                        <button
+                            className={`${styles.modeBtn} ${paymentMode === 'cash' ? styles.activeMode : ''}`}
+                            onClick={() => setPaymentMode('cash')}
+                        >
+                            <Banknote size={16} aria-hidden="true" />
+                            Cash
+                        </button>
+                        <button
+                            className={`${styles.modeBtn} ${paymentMode === 'card' ? styles.activeMode : ''}`}
+                            onClick={() => setPaymentMode('card')}
+                        >
+                            <CreditCard size={16} aria-hidden="true" />
+                            Card
+                        </button>
+                        <button
+                            className={`${styles.modeBtn} ${paymentMode === 'city_ledger' ? styles.activeMode : ''}`}
+                            onClick={() => {
+                                setPaymentMode('city_ledger');
+                                if (!company) setShowCompanyPicker(true);
+                            }}
+                            title="Charge to a company account — settled later by receipt"
+                        >
+                            <Layers size={16} aria-hidden="true" />
+                            Company
+                        </button>
+                    </div>
+
+                    {paymentMode === 'city_ledger' && (
+                        <button
+                            type="button"
+                            className={styles.companyBtn}
+                            onClick={() => setShowCompanyPicker(true)}
+                        >
+                            {company ? `Charging: ${company.name} — change` : 'Choose the company…'}
+                        </button>
+                    )}
 
                     {tab ? (
                         <>
