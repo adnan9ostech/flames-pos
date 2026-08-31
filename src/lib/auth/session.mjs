@@ -74,7 +74,12 @@ export const shouldResign = (payload) =>
 
 export const cookieOptions = () => ({
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    // ALLOW_HTTP_COOKIES exists for one situation: a production build tested
+    // over plain http on the LAN (till on the laptop, KDS on a tablet at
+    // http://<lan-ip>) where a Secure cookie would silently never store and
+    // every login would bounce. Never set it on the real server — that side
+    // is https end to end.
+    secure: process.env.NODE_ENV === 'production' && process.env.ALLOW_HTTP_COOKIES !== 'true',
     sameSite: 'lax',
     path: '/',
     maxAge: MAX_AGE_S,
