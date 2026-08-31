@@ -80,6 +80,48 @@ export async function toggleWaiter(id) {
     }
 }
 
+/*
+ * What deleting would actually cost, counted rather than guessed — the
+ * dialog quotes these numbers back, and "12 orders" is a different decision
+ * from "none".
+ */
+export async function waiterDeleteImpact(id) {
+    try {
+        await requireAdmin()
+        const [w] = await query('SELECT name FROM waiters WHERE id = ?', [id])
+        if (!w) return { error: 'That waiter is already gone' }
+        const [{ n }] = await query('SELECT COUNT(*) AS n FROM orders WHERE waiter_id = ?', [id])
+        return { data: { name: w.name, orders: Number(n) } }
+    } catch (e) {
+        return { error: e.message }
+    }
+}
+
+/*
+ * Hard delete. The bills keep the waiter's NAME (orders.waiter_name is
+ * denormalised precisely so a departed waiter's receipts still read right);
+ * what is lost is the link reports group by, so those orders stop counting
+ * toward anyone. The whole row goes into the audit log first, which is what
+ * makes this recoverable by hand.
+ */
+export async function deleteWaiter(id) {
+    try {
+        await requireAdmin()
+        const [row] = await query('SELECT * FROM waiters WHERE id = ?', [id])
+        if (!row) return { error: 'That waiter is already gone' }
+        const [{ n }] = await query('SELECT COUNT(*) AS n FROM orders WHERE waiter_id = ?', [id])
+
+        await audit('waiter_delete', { deleted: row, orders_unlinked: Number(n) })
+        // orders.waiter_id is ON DELETE SET NULL, so the bills survive.
+        await query('DELETE FROM waiters WHERE id = ?', [id])
+
+        revalidatePath('/floor')
+        return { data: { orders: Number(n) } }
+    } catch (e) {
+        return { error: e.message }
+    }
+}
+
 // ==================== TABLES ====================
 
 export async function listTables() {
@@ -134,6 +176,41 @@ export async function saveTable({ id = null, name, seats, area, sort_order }) {
         return { data: true }
     } catch (e) {
         if (e.errno === 1062) return { error: `Table "${(name || '').trim()}" already exists` }
+        return { error: e.message }
+    }
+}
+
+export async function tableDeleteImpact(id) {
+    try {
+        await requireAdmin()
+        const [t] = await query('SELECT name FROM dining_tables WHERE id = ?', [id])
+        if (!t) return { error: 'That table is already gone' }
+        // Matched by name, because that is what an order stores.
+        const [{ n }] = await query('SELECT COUNT(*) AS n FROM orders WHERE table_number = ?', [t.name])
+        return { data: { name: t.name, orders: Number(n) } }
+    } catch (e) {
+        return { error: e.message }
+    }
+}
+
+/*
+ * Hard delete. Gentler than the waiter case: an order stores the table as
+ * plain text with no foreign key, so past bills and reports are untouched —
+ * the table simply stops being offered at the till.
+ */
+export async function deleteTable(id) {
+    try {
+        await requireAdmin()
+        const [row] = await query('SELECT * FROM dining_tables WHERE id = ?', [id])
+        if (!row) return { error: 'That table is already gone' }
+        const [{ n }] = await query('SELECT COUNT(*) AS n FROM orders WHERE table_number = ?', [row.name])
+
+        await audit('table_delete', { deleted: row, past_orders: Number(n) })
+        await query('DELETE FROM dining_tables WHERE id = ?', [id])
+
+        revalidatePath('/floor')
+        return { data: { orders: Number(n) } }
+    } catch (e) {
         return { error: e.message }
     }
 }

@@ -110,6 +110,14 @@ Also done in the integration pass (was "in progress" above):
       readable. The till's table field is now a picker over active tables
       that still accepts a typed name.
 
+- [x] Hard **delete** for waiters and tables, behind a risk dialog that
+      quotes the real impact for that row: a waiter's bills keep the printed
+      name (orders.waiter_name is denormalised) but lose the link reports
+      group by — that dialog demands the name be typed; a table's past
+      orders store text with no FK, so nothing historical changes. Both
+      write the full deleted row into audit_log first, and "Retire instead"
+      is offered as the reversible option.
+
 ## Pending (ordered)
 
 1. Local acceptance testing by Adnan of everything incl. F–J screens

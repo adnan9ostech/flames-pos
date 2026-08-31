@@ -238,3 +238,120 @@
     text-align: center;
     color: var(--muted-foreground);
 }
+
+/* Destructive action: present, but visually quieter than Edit/Retire until
+   it is hovered — a delete you can hit by accident is a delete you will. */
+.dangerLink {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 0.15rem;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.dangerLink:hover:not(:disabled) {
+    color: #f87171;
+}
+
+.dangerLink:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.dialog {
+    width: 100%;
+    max-width: 30rem;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.7);
+}
+
+.dialogTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fca5a5;
+}
+
+.dialogBody {
+    color: var(--foreground);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.dialogHint {
+    margin-top: 0.6rem;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+}
+
+.confirmField {
+    display: block;
+    margin-top: 1rem;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+}
+
+.confirmField .input {
+    margin-top: 0.4rem;
+    width: 100%;
+}
+
+.dialogActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.retireBtn {
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.deleteBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    background: #dc2626;
+    border: none;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.deleteBtn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}

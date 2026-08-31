@@ -2,10 +2,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from './floor.module.css';
 import {
-    listWaiters, saveWaiter, toggleWaiter,
-    listTables, saveTable, toggleTable,
+    listWaiters, saveWaiter, toggleWaiter, waiterDeleteImpact, deleteWaiter,
+    listTables, saveTable, toggleTable, tableDeleteImpact, deleteTable,
 } from './actions';
-import { UserRound, Armchair, Plus, Check, X, Loader2, AlertTriangle } from 'lucide-react';
+import { UserRound, Armchair, Plus, Check, X, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 
 /*
  * Waiters and tables — the two lists the till picks from. Neither is ever
@@ -45,6 +45,26 @@ export default function FloorPage() {
         const res = tab === 'waiters' ? await saveWaiter(payload) : await saveTable(payload);
         if (res.error) setError(res.error);
         else { await load(); cancel(); }
+        setBusy(false);
+    };
+
+    // { row, impact } while the delete dialog is up; null when it is not.
+    const [deleting, setDeleting] = useState(null);
+    const [typed, setTyped] = useState('');
+
+    const askDelete = async (row) => {
+        setError('');
+        setTyped('');
+        const res = tab === 'waiters' ? await waiterDeleteImpact(row.id) : await tableDeleteImpact(row.id);
+        if (res.error) { setError(res.error); return; }
+        setDeleting({ row, impact: res.data });
+    };
+
+    const confirmDelete = async () => {
+        setBusy(true);
+        const res = tab === 'waiters' ? await deleteWaiter(deleting.row.id) : await deleteTable(deleting.row.id);
+        if (res.error) setError(res.error);
+        else { await load(); setDeleting(null); setTyped(''); }
         setBusy(false);
     };
 
@@ -172,12 +192,116 @@ export default function FloorPage() {
                                         <button type="button" className={styles.linkBtn} onClick={() => flip(row)} disabled={busy}>
                                             {row.is_active ? 'Retire' : 'Restore'}
                                         </button>
+                                        <button
+                                            type="button"
+                                            className={styles.dangerLink}
+                                            onClick={() => askDelete(row)}
+                                            disabled={busy}
+                                            aria-label={`Delete ${row.name}`}
+                                        >
+                                            <Trash2 size={14} aria-hidden="true" />
+                                        </button>
                                     </td>
                                 </tr>
                             )
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            {deleting && (
+                <DeleteDialog
+                    kind={tab === 'waiters' ? 'waiter' : 'table'}
+                    row={deleting.row}
+                    impact={deleting.impact}
+                    typed={typed}
+                    setTyped={setTyped}
+                    busy={busy}
+                    onCancel={() => { setDeleting(null); setTyped(''); }}
+                    onRetire={async () => { await flip(deleting.row); setDeleting(null); }}
+                    onConfirm={confirmDelete}
+                />
+            )}
+        </div>
+    );
+}
+
+/*
+ * Deleting is offered, but never casually: the dialog states the real
+ * consequence for THIS row (which differs between waiters and tables), puts
+ * retiring in front as the reversible option, and asks for the name to be
+ * typed once history is actually at stake.
+ */
+function DeleteDialog({ kind, row, impact, typed, setTyped, busy, onCancel, onRetire, onConfirm }) {
+    const hasHistory = impact.orders > 0;
+    const needsTyping = hasHistory;
+    const canDelete = !busy && (!needsTyping || typed.trim() === row.name);
+
+    return (
+        <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="del-title">
+            <div className={styles.dialog}>
+                <h2 id="del-title" className={styles.dialogTitle}>
+                    <AlertTriangle size={18} aria-hidden="true" />
+                    Delete {kind} “{row.name}”?
+                </h2>
+
+                {kind === 'waiter' ? (
+                    hasHistory ? (
+                        <p className={styles.dialogBody}>
+                            This waiter is linked to <strong>{impact.orders} order{impact.orders === 1 ? '' : 's'}</strong>.
+                            Those bills keep printing the name, but they stop counting toward
+                            any waiter in reports — sales by waiter for past days will change.
+                            The deletion is written to the audit log.
+                        </p>
+                    ) : (
+                        <p className={styles.dialogBody}>
+                            No orders are linked to this waiter, so nothing in the books changes.
+                        </p>
+                    )
+                ) : (
+                    hasHistory ? (
+                        <p className={styles.dialogBody}>
+                            <strong>{impact.orders} past order{impact.orders === 1 ? '' : 's'}</strong> used this table.
+                            Orders store the table as text, so those bills and reports are
+                            unaffected — the table just stops being offered at the till.
+                        </p>
+                    ) : (
+                        <p className={styles.dialogBody}>
+                            No orders have used this table. Nothing else is affected.
+                        </p>
+                    )
+                )}
+
+                <p className={styles.dialogHint}>
+                    Retiring does the same job and can be undone.
+                </p>
+
+                {needsTyping && (
+                    <label className={styles.confirmField}>
+                        <span>Type <strong>{row.name}</strong> to confirm</span>
+                        <input
+                            className={styles.input}
+                            value={typed}
+                            onChange={(e) => setTyped(e.target.value)}
+                            autoFocus
+                        />
+                    </label>
+                )}
+
+                <div className={styles.dialogActions}>
+                    <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={busy}>
+                        Cancel
+                    </button>
+                    {row.is_active && (
+                        <button type="button" className={styles.retireBtn} onClick={onRetire} disabled={busy}>
+                            Retire instead
+                        </button>
+                    )}
+                    <button type="button" className={styles.deleteBtn} onClick={onConfirm} disabled={!canDelete}>
+                        {busy ? <Loader2 size={16} className={styles.spinner} aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
+                        Delete permanently
+                    </button>
+                </div>
             </div>
         </div>
     );
