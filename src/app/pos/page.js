@@ -10,6 +10,7 @@ import {
 import { groupRoundByCategory, printKotSlip, runPrintQueue } from '@/lib/kotPrint';
 import { listActiveCharges } from '@/app/charges/actions';
 import { applicablePlans } from '@/app/discounts/actions';
+import { listActiveTables } from '@/app/floor/actions';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import { calcTotals, itemRound, DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 import { getOrderNumber, formatOrderDate } from '@/lib/orderDisplay';
@@ -83,6 +84,7 @@ export default function POSPage() {
     // what the server will compute at settle.
     const [activeCharges, setActiveCharges] = useState([]);
     const [discountPlans, setDiscountPlans] = useState([]);
+    const [floorTables, setFloorTables] = useState([]);
 
     // City-ledger settles charge a company account instead of taking money.
     const [company, setCompany] = useState(null);
@@ -202,6 +204,7 @@ export default function POSPage() {
         // both fall back to the default if they can't be read.
         getTaxRates().then(r => r && setTaxRates(r));
         listActiveCharges().then(r => r?.data && setActiveCharges(r.data)).catch(() => {});
+        listActiveTables().then(r => r?.data && setFloorTables(r.data)).catch(() => {});
         getSettings().then(s => setAutoPrint(s?.auto_print !== false));
     }, []);
 
@@ -1069,13 +1072,24 @@ export default function POSPage() {
                                     <Armchair size={14} aria-hidden="true" />
                                     Table
                                 </span>
+                                {/* Suggests the floor's real tables while
+                                    still accepting a typed one — a table
+                                    added mid-service must not block a sale. */}
                                 <input
                                     type="text"
+                                    list="floor-tables"
                                     className={styles.fieldInput}
-                                    placeholder="e.g. T4"
+                                    placeholder={floorTables.length ? 'Pick or type' : 'e.g. T4'}
                                     value={tableNumber}
                                     onChange={(e) => setTableNumber(e.target.value)}
                                 />
+                                <datalist id="floor-tables">
+                                    {floorTables.map((t) => (
+                                        <option key={t.name} value={t.name}>
+                                            {t.area || ''}
+                                        </option>
+                                    ))}
+                                </datalist>
                             </label>
                         )}
                     </div>

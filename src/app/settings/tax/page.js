@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Percent, Landmark, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { getSettings } from '../actions'
+import { listActiveCharges } from '@/app/charges/actions'
 import { updateTaxSettings, getFbrStatus } from './actions'
 
 /*
@@ -21,20 +22,21 @@ export default function TaxSettingsPage() {
     const [taxCash, setTaxCash] = useState('16')
     const [taxCard, setTaxCard] = useState('5')
     const [taxLabel, setTaxLabel] = useState('GST')
-    const [serviceCharge, setServiceCharge] = useState('5')
+    const [charges, setCharges] = useState([])
     const [fbr, setFbr] = useState(null)
 
     useEffect(() => {
-        Promise.all([getSettings(), getFbrStatus()]).then(([settings, fbrRes]) => {
-            if (settings) {
-                setTaxCash(String(Number(((settings.tax_rate_cash ?? 0.16) * 100).toFixed(2))))
-                setTaxCard(String(Number(((settings.tax_rate_card ?? 0.05) * 100).toFixed(2))))
-                setTaxLabel(settings.tax_label || 'GST')
-                setServiceCharge(String(Number(settings.service_charge_percent ?? 0)))
-            }
-            if (fbrRes?.data) setFbr(fbrRes.data)
-            setLoading(false)
-        })
+        Promise.all([getSettings(), getFbrStatus(), listActiveCharges()])
+            .then(([settings, fbrRes, chargesRes]) => {
+                if (settings) {
+                    setTaxCash(String(Number(((settings.tax_rate_cash ?? 0.16) * 100).toFixed(2))))
+                    setTaxCard(String(Number(((settings.tax_rate_card ?? 0.05) * 100).toFixed(2))))
+                    setTaxLabel(settings.tax_label || 'GST')
+                }
+                if (fbrRes?.data) setFbr(fbrRes.data)
+                if (chargesRes?.data) setCharges(chargesRes.data)
+                setLoading(false)
+            })
     }, [])
 
     useEffect(() => {
@@ -140,24 +142,6 @@ export default function TaxSettingsPage() {
                     </div>
 
                     <div>
-                        <label htmlFor="service_charge_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
-                            Service charge
-                        </label>
-                        <input
-                            id="service_charge_percent"
-                            type="number" name="service_charge_percent"
-                            min="0" max="100" step="0.5" inputMode="decimal"
-                            value={serviceCharge}
-                            onChange={(e) => setServiceCharge(e.target.value)}
-                            className={fieldClass}
-                            placeholder="5"
-                        />
-                        <p className="mt-1.5 text-xs text-gray-500">
-                            Percent added automatically to dine-in bills, taxed like the food. 0 switches it off; scope and more charges live under Charges.
-                        </p>
-                    </div>
-
-                    <div>
                         <label htmlFor="tax_label" className="block text-sm font-medium text-gray-300 mb-1.5">
                             Tax name
                         </label>
@@ -182,6 +166,42 @@ export default function TaxSettingsPage() {
                     Save tax settings
                 </button>
             </form>
+
+            {/* Charges are shown, not edited, here: the Charges screen owns
+                them, and one row with two editors is how the two screens
+                start disagreeing. */}
+            <div className="rounded-2xl bg-gray-900/60 border border-gray-800/70 p-6 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-white font-semibold">
+                        <Percent className="h-5 w-5 text-orange-500" aria-hidden="true" />
+                        Charges on a bill
+                    </div>
+                    <Link href="/charges" className="text-sm text-orange-400 hover:text-orange-300">
+                        Manage charges →
+                    </Link>
+                </div>
+
+                {charges.length > 0 ? (
+                    <ul className="divide-y divide-gray-800/70">
+                        {charges.map((c) => (
+                            <li key={c.name} className="py-2.5 flex items-center justify-between gap-4 text-sm">
+                                <span className="text-gray-200">{c.name}</span>
+                                <span className="text-gray-400">
+                                    {c.value_type === 'percent' ? `${Number(c.value)}%` : `Rs. ${Number(c.value).toLocaleString('en-PK')}`}
+                                    {' · '}
+                                    {(Array.isArray(c.order_types) && c.order_types.length > 0)
+                                        ? c.order_types.join(', ')
+                                        : 'all order types'}
+                                    {' · '}
+                                    {c.before_tax ? 'taxed' : 'after tax'}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-sm text-gray-400">No charges are applied automatically.</p>
+                )}
+            </div>
 
             {/* FBR Digital Invoicing — status only. The token can file
                 invoices with the tax authority, so it lives in the server

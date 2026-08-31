@@ -47,13 +47,17 @@ const loadState = async () => {
     // No open row means day-close has never run: the Karachi calendar day is
     // acting as the business day, and the payload says so rather than
     // pretending a row exists.
+    const today = karachiDay()
     const openDay = openRows.length > 0
         ? {
             state: 'open',
             business_date: ymd(openRows[0].business_date),
             opened_at: openRows[0].opened_at.toISOString(),
+            // Shut for a day or two: the day the last close opened is behind
+            // today, so tonight's orders would land on it unless it is moved.
+            stale: ymd(openRows[0].business_date) < today,
         }
-        : { state: 'implicit', business_date: karachiDay(), opened_at: null }
+        : { state: 'implicit', business_date: today, opened_at: null, stale: false }
 
     const history = (await query(
         `SELECT bd.business_date, bd.opened_at, bd.closed_at, u.role AS closed_by_role
@@ -81,6 +85,100 @@ export async function getDayCloseState() {
     }
 }
 
+/*
+ * Start a trading day.
+ *
+ * Normally the close opens the next day, so this is needed twice: on the
+ * very first day (before any close there is no row at all — orders fall back
+ * to the Karachi calendar day), and after the restaurant is shut for a day
+ * or two, when the day the last close opened has gone stale. In that second
+ * case the stale row is re-dated rather than left behind, because closing
+ * empty days one at a time to catch up is not a thing anyone should have to
+ * do at 6pm.
+ *
+ * A stale day that already carries orders is never moved — those orders
+ * belong to it — so the operator is told to close it instead.
+ */
+export async function startBusinessDay({ date = null } = {}) {
+    try {
+        const user = await requireAdmin()
+        const target = date || karachiDay()
+
+        return await withTransaction(async (conn) => {
+            const [openRows] = await conn.query(
+                `SELECT business_date, opened_at FROM business_days
+                 WHERE branch_id = ? AND closed_at IS NULL
+                 ORDER BY business_date DESC LIMIT 1 FOR UPDATE`,
+                [BRANCH_ID],
+            )
+
+            if (openRows.length > 0) {
+                const openDate = ymd(openRows[0].business_date)
+                if (openDate === target) {
+                    return { data: await loadState() }   // already trading; nothing to do
+                }
+                if (openDate > target) {
+                    return { error: `The open day is ${openDate}, which is already ahead of ${target}.` };
+                }
+
+                const [[{ n }]] = await conn.query(
+                    'SELECT COUNT(*) AS n FROM orders WHERE branch_id = ? AND business_date = ?',
+                    [BRANCH_ID, openDate],
+                );
+                if (n > 0) {
+                    return {
+                        error: `${openDate} is still open with ${n} order${n === 1 ? '' : 's'} on it — close that day first.`,
+                    };
+                }
+
+                const [existing] = await conn.query(
+                    'SELECT 1 FROM business_days WHERE branch_id = ? AND business_date = ?',
+                    [BRANCH_ID, target],
+                );
+                if (existing.length > 0) {
+                    return { error: `${target} has already been closed.` };
+                }
+
+                // An empty day nobody traded on: move it forward to today.
+                await conn.query(
+                    `UPDATE business_days
+                     SET business_date = ?, opened_at = UTC_TIMESTAMP(3)
+                     WHERE branch_id = ? AND business_date = ?`,
+                    [target, BRANCH_ID, openDate],
+                );
+                await conn.query(
+                    `INSERT INTO audit_log (branch_id, business_date, action, details)
+                     VALUES (?, ?, 'day_start', ?)`,
+                    [BRANCH_ID, target, JSON.stringify({ opened: target, moved_from: openDate, by: user.role })],
+                );
+                return { data: await loadState() };
+            }
+
+            const [existing] = await conn.query(
+                'SELECT closed_at FROM business_days WHERE branch_id = ? AND business_date = ?',
+                [BRANCH_ID, target],
+            );
+            if (existing.length > 0) {
+                return { error: `${target} has already been closed.` };
+            }
+
+            await conn.query(
+                `INSERT INTO business_days (branch_id, business_date, opened_at)
+                 VALUES (?, ?, UTC_TIMESTAMP(3))`,
+                [BRANCH_ID, target],
+            );
+            await conn.query(
+                `INSERT INTO audit_log (branch_id, business_date, action, details)
+                 VALUES (?, ?, 'day_start', ?)`,
+                [BRANCH_ID, target, JSON.stringify({ opened: target, first: true, by: user.role })],
+            );
+            return { data: await loadState() };
+        })
+    } catch (e) {
+        return { error: e.message }
+    }
+}
+
 export async function closeBusinessDay({ force = false } = {}) {
     try {
         const user = await requireAdmin()
@@ -96,7 +194,10 @@ export async function closeBusinessDay({ force = false } = {}) {
             }
         }
 
-        await withTransaction(async (conn) => {
+        // The callback's refusals are returned, not thrown, so its result has
+        // to be inspected — a discarded return here would commit the close
+        // and report success.
+        const refusal = await withTransaction(async (conn) => {
             // The lock: two admins pressing Close at once produce one close —
             // the loser waits here, then trips the duplicate-day INSERT below
             // instead of silently advancing the calendar twice.
@@ -110,6 +211,24 @@ export async function closeBusinessDay({ force = false } = {}) {
             let closedDate
             if (openRows.length > 0) {
                 closedDate = ymd(openRows[0].business_date)
+
+                /*
+                 * Closing a day that has not happened yet walks the calendar
+                 * forward one press at a time — three stray clicks and the
+                 * till is stamping orders a week out. A day ahead of today
+                 * with nothing on it has not been traded, so there is
+                 * nothing to close. (Tomorrow's row after tonight's close is
+                 * normal; it just cannot be closed until it has run.)
+                 */
+                if (closedDate > karachiDay()) {
+                    const [[{ n }]] = await conn.query(
+                        'SELECT COUNT(*) AS n FROM orders WHERE branch_id = ? AND business_date = ?',
+                        [BRANCH_ID, closedDate],
+                    )
+                    if (n === 0) {
+                        return { error: `${closedDate} has not started yet — there is nothing to close.` }
+                    }
+                }
                 await conn.query(
                     `UPDATE business_days
                      SET closed_at = UTC_TIMESTAMP(3), closed_by = ?
@@ -153,8 +272,10 @@ export async function closeBusinessDay({ force = false } = {}) {
                         : {}),
                 })],
             )
+            return null
         })
 
+        if (refusal?.error) return refusal
         return { data: await loadState() }
     } catch (e) {
         return { error: e.message }

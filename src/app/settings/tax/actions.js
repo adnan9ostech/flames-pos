@@ -32,19 +32,10 @@ export async function updateTaxSettings(formData) {
             [tax_rate_cash, tax_rate_card, tax_label],
         )
 
-        // The service charge rides the charges engine, keyed by name; this
-        // quick field edits the percentage and 0 switches it off. Scope and
-        // additional charges live on the Charges screen.
-        const scRaw = Number(formData.get('service_charge_percent'))
-        if (Number.isFinite(scRaw)) {
-            const pct = Math.min(Math.max(scRaw, 0), 100)
-            await query(
-                `UPDATE charges SET value = ?, is_active = ?, updated_at = UTC_TIMESTAMP(3)
-                 WHERE name = 'Service Charge'`,
-                [pct, pct > 0 ? 1 : 0],
-            )
-        }
-
+        // Charges are NOT written here. The Charges screen is their one
+        // editor — it owns name, scope, and tax placement, and a second
+        // form that could only reach `value` (matched by a name the other
+        // screen lets you change) is how two screens start disagreeing.
         revalidatePath('/settings/tax')
         return { success: 'Tax settings updated' }
     } catch (e) {

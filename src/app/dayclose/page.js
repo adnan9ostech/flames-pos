@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import styles from './dayclose.module.css';
-import { getDayCloseState, closeBusinessDay } from './actions';
+import { getDayCloseState, closeBusinessDay, startBusinessDay } from './actions';
 import { formatDateTime } from '@/lib/timeFormat';
 import {
     AlertTriangle, Bike, CalendarDays, CheckCircle2, History, Loader2,
@@ -59,10 +59,25 @@ export default function DayClosePage() {
     const pending = state?.pendingBills ?? [];
     const openDay = state?.openDay;
 
+    const [starting, setStarting] = useState(false);
+
     const openConfirm = () => {
         setCloseError('');
         setForceAck(false);
         setConfirming(true);
+    };
+
+    const submitStart = async () => {
+        setStarting(true);
+        setCloseError('');
+        const res = await startBusinessDay({});
+        if (res.error) {
+            setCloseError(res.error);
+        } else {
+            setState(res.data);
+            setNote(`${formatBusinessDay(res.data.openDay.business_date)} is open — tonight's orders land on it.`);
+        }
+        setStarting(false);
     };
 
     const submitClose = async () => {
@@ -138,13 +153,29 @@ export default function DayClosePage() {
                     <div className={styles.dayMeta}>
                         {openDay.state === 'open'
                             ? `Opened ${formatDateTime(new Date(openDay.opened_at))}`
-                            : 'No day has been closed yet — orders follow the Karachi calendar day until the first close.'}
+                            : 'No day has been started yet — orders follow the Karachi calendar day until you start one.'}
                     </div>
+                    {openDay.stale && (
+                        <div className={styles.staleNote}>
+                            <AlertTriangle size={14} aria-hidden="true" />
+                            This day is behind today — start today&apos;s day so tonight&apos;s orders land on the right date.
+                        </div>
+                    )}
                 </div>
-                <button type="button" className={styles.closeBtn} onClick={openConfirm} disabled={closing}>
-                    <Lock size={18} aria-hidden="true" />
-                    Close Day
-                </button>
+                <div className={styles.dayActions}>
+                    {/* Starting is offered when no day is open (the first ever)
+                        and when the open one has gone stale after a closure. */}
+                    {(openDay.state === 'implicit' || openDay.stale) && (
+                        <button type="button" className={styles.startBtn} onClick={submitStart} disabled={starting}>
+                            {starting ? <Loader2 size={18} className={styles.spinner} aria-hidden="true" /> : <CalendarDays size={18} aria-hidden="true" />}
+                            Start Day
+                        </button>
+                    )}
+                    <button type="button" className={styles.closeBtn} onClick={openConfirm} disabled={closing}>
+                        <Lock size={18} aria-hidden="true" />
+                        Close Day
+                    </button>
+                </div>
             </div>
 
             <div className={styles.grid2}>

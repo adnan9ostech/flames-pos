@@ -12,12 +12,12 @@ const protectedPaths = [
     // Back office (phases F–J). /drawer is deliberately staff-reachable —
     // the cashier owns their drawer; everything else below is admin-only.
     '/drawer', '/dayclose', '/expenses', '/companies', '/cityledger',
-    '/charges', '/discounts', '/inventory',
+    '/charges', '/discounts', '/inventory', '/floor',
 ]
 const adminOnlyPaths = [
     '/reports', '/settings',
     '/dayclose', '/expenses', '/companies', '/cityledger',
-    '/charges', '/discounts', '/inventory',
+    '/charges', '/discounts', '/inventory', '/floor',
 ]
 
 export async function proxy(request) {

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
     Utensils, ClipboardList, BarChart3, ExternalLink, User, LogOut,
     MonitorPlay, PanelLeftClose, PanelLeftOpen, Settings,
-    Wallet, CalendarCheck, ReceiptText, Building2, Percent, BadgePercent, Package, BookText
+    Wallet, CalendarCheck, ReceiptText, Building2, Percent, BadgePercent, Package, BookText, Armchair
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { logout } from '@/app/logout/actions';
@@ -25,6 +25,7 @@ const NAV_LINKS = [
 const BACK_OFFICE_LINKS = [
     { href: '/drawer', label: 'Cash Drawer', Icon: Wallet },
     { href: '/dayclose', label: 'Day Close', Icon: CalendarCheck, adminOnly: true },
+    { href: '/floor', label: 'Waiters & Tables', Icon: Armchair, adminOnly: true },
     { href: '/expenses', label: 'Expenses', Icon: ReceiptText, adminOnly: true },
     { href: '/companies', label: 'Companies', Icon: Building2, adminOnly: true },
     { href: '/cityledger', label: 'City Ledger', Icon: BookText, adminOnly: true },

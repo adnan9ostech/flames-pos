@@ -13,17 +13,7 @@ export async function getSettings() {
     // redacted into something unreadable.
     try {
         await requireUser()
-        const settings = await getStoreSettings()
-        if (!settings) return null
-        // The standing service charge lives in the charges engine (one row,
-        // by name); Settings offers its percentage as a quick edit beside
-        // the tax rates. 0 means switched off.
-        const rows = await query(
-            "SELECT value, is_active FROM charges WHERE name = 'Service Charge' LIMIT 1",
-        )
-        settings.service_charge_percent = rows.length && rows[0].is_active
-            ? Number(rows[0].value) : 0
-        return settings
+        return await getStoreSettings()
     } catch (e) {
         console.error('Error fetching settings:', e.message)
         return null

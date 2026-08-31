@@ -362,3 +362,48 @@
     opacity: 0.55;
     cursor: not-allowed;
 }
+
+.dayActions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* Opening a day is the benign twin of closing one, so it reads as a
+   secondary action next to the lock. */
+.startBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.4rem;
+    border-radius: var(--radius);
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.startBtn:hover:not(:disabled) {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.startBtn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.staleNote {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+    color: #fbbf24;
+    font-size: 0.85rem;
+}

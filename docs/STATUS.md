@@ -90,6 +90,26 @@ Also done in the integration pass (was "in progress" above):
       UI-verified: Back-office nav, Day Close (implicit-day + clear-to-close
       gate), Handover report rendering live numbers, POS grid intact
 
+## Later additions (1 Sep session)
+
+- [x] Service charge had TWO editors (Settings quick-field + Charges screen)
+      and the Settings one matched by hard-coded name — removed. Charges is
+      the only editor; Tax & FBR shows active charges read-only with a link.
+- [x] Day **start**: `startBusinessDay` — the first day ever, and the
+      "shut Tuesday, trading Thursday" case where the auto-opened day has
+      gone stale (an empty stale day is re-dated; one with orders refuses
+      and tells you to close it). Start Day button + stale warning on the
+      Day Close screen.
+- [x] `closeBusinessDay` now refuses to close a day that has not started
+      (future-dated with no orders) — repeated clicks were walking the
+      calendar forward. Its transaction callback's refusals are now
+      inspected, not discarded.
+- [x] **Waiters & Tables** admin screen (`/floor`, admin-only): edit/retire
+      waiters, and a new `dining_tables` master (migration 004) with
+      name/seats/area/sort. Neither is ever deleted — retiring keeps history
+      readable. The till's table field is now a picker over active tables
+      that still accepts a typed name.
+
 ## Pending (ordered)
 
 1. Local acceptance testing by Adnan of everything incl. F–J screens
