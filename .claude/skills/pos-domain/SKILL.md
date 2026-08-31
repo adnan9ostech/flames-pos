@@ -5,31 +5,38 @@ description: >
   walkthrough of the live Blink POS benchmark account. Use when designing or
   building any POS feature — orders, tills, shifts/cash, KDS, discounts,
   charges, inventory, reports — so flows, money math, naming, and permission
-  verbs match how a proven POS actually works, and to know which reference doc
-  answers which question.
+  verbs match how a proven POS actually works.
 ---
 
 # POS Domain — Flames POS working knowledge
 
 Benchmark: Blink POS (blinkco.io), explored live on the restaurant's own account.
-Deep references in the repo — consult before designing, don't re-derive:
 
-- `docs/ROADMAP.md` — the committed phase plan (P0–P6) and rework traps. **Scope is
-  locked; check the phase order before proposing any feature work.**
-- `blink-pos-architecture.md` (repo root) — module atlas: every Blink screen/route.
-- `docs/blink-walkthrough-flows.md` — screen-level flows: till anatomy, Z-report
-  sections, KDS views, permission verbs, Master Settings switches, report catalog,
-  and the adoption table mapping each finding to a phase.
-- `docs/blink-screens/*.png` — screenshots of the key screens.
-- The 57-finding QA audit behind P0 was retired from the tree once P0 shipped;
-  read it from history if needed: `git show 3c640d7:qa-review.md`.
+**The source documents are no longer in the tree.** Everything below IS the
+distillation — treat this file as the reference, not as an index to other files.
+The originals were deleted on 1 Sep 2026 once their phases shipped; read them from
+git history only if this file leaves a real question unanswered:
+
+- `git show 7df6fab:docs/ROADMAP.md` — the phase plan P0–P6 and the six rework traps.
+  P0–P5 are shipped; the owner-agreed scope that is still unbuilt now lives in
+  `docs/STATUS.md` under "Future scope".
+- `git show 7df6fab:docs/blink-pos-architecture.md` — module atlas: every Blink
+  screen/route.
+- `git show 7df6fab:docs/blink-walkthrough-flows.md` — screen-level flows: till
+  anatomy, Z-report sections, KDS views, permission verbs, Master Settings
+  switches, report catalog.
+- `git show 7df6fab:docs/blink-screens/<name>.png` — screenshots of the key screens.
+- The 57-finding QA audit behind P0: `git show 3c640d7:qa-review.md`.
+
+The live status board — what is built, what is pending, and the current
+architecture — is `docs/STATUS.md`. Read it before designing anything.
 
 ## Money math (use these words and this order)
 
 - **Net Sales** = after-discount, excluding tax & charges. **TTV** = Net + Tax +
   Charges. **Gross** = Net + Discounts + Tax + Charges. Report all three.
 - Discount is stored as a **rupee amount** (percent is only an input), applied to
-  the subtotal; tax on the remainder (`src/lib/orderTotals.js` is canonical).
+  the subtotal; tax on the remainder (`src/lib/orderTotals.mjs` is canonical).
   Blink also supports tax-before-discount as a setting — never hard-code the
   assumption into new schema.
 - Discounts have **kinds** (manual / preset / voucher / bank-BIN / loyalty);
@@ -76,7 +83,8 @@ statuses + displayed columns only (`getKitchenOrders`).
 
 ## Permissions (P2 vocabulary)
 
-Use Blink's verb list as the starting jsonb (full list in the walkthrough doc):
+Blink's verb list, which seeded ours (`src/lib/auth/permissions.mjs` is the
+live one — this is the wider vocabulary to grow into):
 punch-order, order-type restrictions, manual-discount, open-order, on-hold,
 waste-item, place-order, complete-order, change-payment-type, restrict-printing,
 update-status per transition, per-entity CRUD, approval verbs (approve-PO,
@@ -98,40 +106,47 @@ Charges (name, amount, order types, status), discount presets, vouchers
 credit accounts (khata) — all admin-CRUD tables the till *selects from*.
 Free-typing money at the till is the exception (manual discount) and permission-gated.
 
-## Menu comes from the website (Sanity)
+## The menu (MySQL owns it; Sanity was a one-time import)
 
-The menu is authored in Sanity for flamesbytheindus.com and pulled into the
-till; Supabase stays the source of truth for anything the POS charges, and the
-till never reads Sanity on the ordering path. `sync_menu_from_sanity()`
-(migration 20) does the diffing; `src/lib/sanityMenu.js` does the reading.
-The dataset is public — the POS needs only `NEXT_PUBLIC_SANITY_PROJECT_ID`
-and `NEXT_PUBLIC_SANITY_DATASET`, and **no write token ever belongs on a till**.
+**MySQL is the source of truth for the menu.** The live Sanity sync and the
+Menu Management screen are both retired — the website's Sanity dataset seeded
+the menu once and the POS has owned it since. `src/lib/sanityMenu.js` and
+`scripts/migrate-to-mysql/` survive ONLY to run that import against production
+at cutover; they are deleted afterwards. **No Sanity write token ever belongs
+on a till.**
 
-- **Sanity owns** price, sizes→variants, description.
-  **The POS owns** `is_available`, modifiers, `category_id`, image, name.
-  Availability is the one that matters: the kitchen's 86 switch must survive
-  every sync, because a CMS cannot know what is in the walk-in.
-- **Sanity's `price` is the SMALLEST size; `menu_items.price` is the LARGEST**
+These rules governed the import and still explain the data you will find:
+
+- **Sanity's `price` was the SMALLEST size; `menu_items.price` is the LARGEST**
   (the grid tile shows it, and ModifierModal defaults to the last variant).
-  Copy one into the other and every karahi silently drops to half price. Sized
-  dishes are held back unless prices for the whole set are confirmed.
-- `sync_menu_from_sanity` is SECURITY DEFINER, so it **restates `is_admin()`
-  itself** — RLS does not guard a definer function.
-- Dry run must stay genuinely read-only: the name binding is computed into a
-  temp table and persisted only on apply.
-- `menu_items.sanity_id` is **not unique** — one Sanity dish can map to several
-  POS rows (a dish sitting in two menu sections), and they price together.
+  Copy one into the other and every karahi silently drops to half price.
+  Variants are ordered ascending by price.
+- `menu_items.sanity_id` is **not unique** — one dish can map to several POS
+  rows (a dish sitting in two menu sections), and they price together with
+  distinct POS names.
+- A `sizes` value can be JSON null; type-check before iterating (this crashed
+  the import once).
+- `is_available` — the kitchen's 86 switch — is POS-owned and must survive any
+  future re-import, because a CMS cannot know what is in the walk-in.
 - Never delete-and-recreate a menu row to "resync" it: `order_items.
-  menu_item_id` points at it, and the history goes with it.
+  menu_item_id` points at it, and the order history goes with it.
 
 ## Working on this codebase
 
-- Stack: Next.js App Router (JS, CSS modules) + Supabase; migrations applied by
-  hand in the SQL Editor, numbered in `supabase/migrations/` with README table.
-- Before item-shaped features: `order_items` must exist first (P1); before
-  approval flows: roles must exist (P2). The six rework traps in ROADMAP §10 rule.
-- Live-DB discipline: rehearse migrations on a branch DB, additive-only,
-  reconcile backfills by COUNT/SUM before promoting; RPC versioning `_v2`.
+- Stack: Next.js 16 App Router (plain JS, CSS modules) + **MySQL 8** via
+  `mysql2`. Migrations are numbered SQL in `mysql/migrations/`, applied by
+  `scripts/db/migrate.mjs`. Supabase and Sanity are both retired — if a doc or
+  comment still mentions them, it is stale, not a second source of truth.
+- The foundations those old phase gates protected are all in place now:
+  `order_items` is canonical, `payments` is a real ledger, users have per-person
+  roles and permissions, every table carries `branch_id`. Build on them; do not
+  re-derive the ordering.
+- Live-DB discipline: additive-only migrations, rehearse against
+  `flames_pos_test`, reconcile backfills by COUNT/SUM before promoting.
+- Money paths are the five verbs in `src/lib/db/orders.mjs`. Their error strings
+  are a cross-checked contract (the till string-matches them; tests assert them)
+  — never reword or fork one. Keep
+  `DB_NAME=flames_pos_test node --test 'tests/mysql/*.test.mjs'` green.
 - To re-explore Blink hands-on: Playwright `launchPersistentContext` with
   `--remote-debugging-port=9222`, let Adnan log in, then attach via
   `connectOverCDP` — navigate by clicking the app's own sidebar links (direct

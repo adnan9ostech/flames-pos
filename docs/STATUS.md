@@ -205,23 +205,64 @@ Also done in the integration pass (was "in progress" above):
 7. Confirm with accountant: FBR posture for tax-off orders and BTC
    (city-ledger) invoices
 
+## Future scope — agreed with the owner, deliberately not built
+
+Rescued from `docs/ROADMAP.md` before it was deleted (1 Sep). These are
+DECISIONS, not guesses, and nothing in the code implies them:
+
+- **QR dine-in ordering** — in scope: table QR → `/customer` gains a cart →
+  the order lands unpaid on the KDS tied to that table, settled at the till.
+- **Inventory goes all the way to procurement** (suppliers/POs/GRN) — this
+  one is DONE, shipped as phase J.
+- **Aggregators: channel tracking now, Foodpanda API later.** The API needs
+  partner access from Foodpanda — external and unbounded, so it was never
+  scheduled.
+- **Branch #2 = insert a row.** Every table already carries `branch_id` and
+  every unique index includes it. No branch UI until a second branch is real.
+- **Loyalty (lite)** and **notifications** (order-ready, low-stock,
+  day-end summary): agreed as low priority, after the above.
+- **Online ordering with payment** unblocks when the merchant account lands —
+  the Raast/EMVCo QR work is half-built and parked (`scripts/test_qr.mjs` and
+  the `crc` dep are kept for it deliberately).
+
+The rest of ROADMAP.md was the Supabase/Postgres design (SECURITY DEFINER
+RPCs, RLS, jsonb backfills, pgTAP) — superseded by the MySQL migration, and
+its phases P0–P5 are shipped. Read it from history if ever needed.
+
 ## Cleanup done (31 Aug, post-F–J)
 
 - Deleted the retired Postgres layer `supabase/` (migrations/tests/seed —
   git history is the archive), `scripts/menu/` (legacy Supabase-Storage
   one-offs), `scripts/test_crc.js`, the stray `.env.local.bak-*`, and the
   `dotenv` devDependency (the scripts hand-roll .env loading).
-  `blink-pos-architecture.md` moved into `docs/`.
+  (The Blink benchmark docs that moved into `docs/` here were themselves
+  deleted on 1 Sep — see below.)
 - KEPT deliberately, still load-bearing until the production import runs on
   the server: `scripts/migrate-to-mysql/`, `src/lib/sanityMenu.js`,
   `@supabase/supabase-js`. Delete these in the post-cutover sweep.
 - KEPT (not code): gitignored asset originals `menu-images/` (15M masters)
   and `social-media/` (37M) — they never ship and deleting originals is not
   reversible; remove by hand if you have them backed up elsewhere.
-- `docs/CLEANUP-AUDIT.md` still describes the Supabase-era architecture —
-  regenerate it with `/cleanup-audit` after cutover rather than trusting it.
 - Audit script taught that Next 16's `proxy.js` is framework-discovered
   (it was reporting it as an orphan).
+
+## Docs pruned (1 Sep)
+
+`docs/` is now three files, all of them live: this one, `deploy-cpanel.md`
+(the runbook, not yet executed) and `kiosk-printing.md` (Windows/Chrome
+silent printing — stack-independent and still exactly right).
+
+Deleted, with git history as the archive:
+
+- `ROADMAP.md` — the Supabase/Postgres phase plan. P0–P5 are shipped and its
+  "current assessment" described an architecture that no longer exists. The
+  owner-agreed scope worth keeping is in "Future scope" above.
+- `CLEANUP-AUDIT.md` — a 28 Aug point-in-time report citing `supabaseDb.js`
+  and a `supabase/` tree that are both gone. `/cleanup-audit` regenerates it.
+- `blink-pos-architecture.md`, `blink-walkthrough-flows.md` and
+  `blink-screens/` (10 PNGs, **5.8 MB** — the whole weight of `docs/`).
+  Benchmark research against blinkco.io whose findings are distilled into the
+  `pos-domain` skill and already shipped as phases F–J.
 
 ## Known cautions
 

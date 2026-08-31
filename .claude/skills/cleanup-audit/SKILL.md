@@ -5,7 +5,7 @@ description: Review the Flames POS codebase for dead code, duplicate logic, unus
 
 # Cleanup audit
 
-Produces the findings in `docs/CLEANUP-AUDIT.md`. Two halves: a script finds
+Writes the findings to `docs/CLEANUP-AUDIT.md`. Two halves: a script finds
 what imports and exports can prove, and you judge everything else. Never skip
 the second half — the script cannot see duplicate logic, over-complexity, or a
 file that is technically reachable but no longer means anything.
@@ -26,12 +26,10 @@ rather than only writing it in the report.
 
 ## 2. Verify every candidate before recommending deletion
 
-- `grep -rn '\bNAME\b' src scripts supabase/scripts` — the import graph misses
-  dynamic references and string-keyed use.
+- `grep -rn '\bNAME\b' src scripts tests` — the import graph misses dynamic
+  references and string-keyed use, and `tests/` is a real consumer.
 - For a dependency, check `node_modules/<pkg>/package.json` for
-  `peerDependencies` **before** suggesting removal. `@supabase/supabase-js`
-  looks unimported and is required by `@supabase/ssr`; dropping it breaks
-  sign-in at runtime, not at build.
+  `peerDependencies` **before** suggesting removal.
 - An export used only inside its own module is not dead — it is over-exported.
   Recommend narrowing, not deleting.
 
@@ -57,19 +55,20 @@ hold or have been fixed:
 Some dead code is deliberate and has a trigger. Do not recommend removing it
 early, and do not drop it from the report — restate the trigger.
 
-The standing one: the legacy fallback paths in `src/lib/supabaseDb.js` come out
-only **after** `18_orders_write_lockdown.sql` is applied and one live service
-has run. Check with:
+The standing ones (see `docs/STATUS.md` → "Pending"): `scripts/migrate-to-mysql/`,
+`src/lib/sanityMenu.js` and `@supabase/supabase-js` are all unreferenced by the
+running app and all still load-bearing — they run the ONE-TIME production menu
+import on the server. Their trigger is **cutover**: delete them in the
+post-cutover sweep, never before.
 
-```sql
-select count(*) from pg_policies
-where tablename='orders' and policyname='Authenticated manage orders';
--- 1 = still open, fallbacks must stay; 0 = migration 18 applied
-```
+Two exports are deliberately held as test seams and will always look dead:
+`computePlanDiscount` (DiscountPlans.jsx) and `allocate` (lib/fbr/payload.mjs).
 
 ## 5. Rewrite the report
 
-Update `docs/CLEANUP-AUDIT.md` in place, keeping its shape:
+Write `docs/CLEANUP-AUDIT.md`. The previous report was deleted on 1 Sep 2026
+once it went stale (it described the retired Supabase architecture), so the next
+run CREATES the file rather than editing one. Its shape:
 
 - Ordered by **how safe to act on**, not by size.
 - Every finding gives why it is unnecessary, the impact of removing it, the
