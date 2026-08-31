@@ -1,7 +1,7 @@
 import { createClient } from './supabase/client';
 
 const supabase = createClient();
-import { calcTotals, DEFAULT_TAX_RATE } from './orderTotals';
+import { calcTotals, DEFAULT_TAX_RATE } from './orderTotals.mjs';
 
 // ==================== CATEGORIES ====================
 

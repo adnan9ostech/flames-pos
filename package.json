@@ -11,9 +11,11 @@
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.93.3",
+    "bcryptjs": "^3.0.3",
     "crc": "^4.3.2",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
+    "mysql2": "^3.24.2",
     "next": "16.1.4",
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",

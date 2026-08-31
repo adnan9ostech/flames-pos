@@ -8,7 +8,7 @@ import {
     setMenuItemAvailability
 } from '@/lib/supabaseDb';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
-import { calcTotals, itemRound, DEFAULT_TAX_RATE } from '@/lib/orderTotals';
+import { calcTotals, itemRound, DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 import { getOrderNumber, formatOrderDate } from '@/lib/orderDisplay';
 import { loadCartDraft, saveCartDraft, clearCartDraft } from '@/lib/cartDraft';
 import { getSettings } from '@/app/settings/actions';

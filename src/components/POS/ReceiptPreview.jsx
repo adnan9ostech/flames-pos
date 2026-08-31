@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { generateEMVCoPayload } from '@/lib/emvco';
-import { DEFAULT_TAX_RATE } from '@/lib/orderTotals';
+import { DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 import { getSettings } from '@/app/settings/actions';
 import { formatDateTime } from '@/lib/timeFormat';
 import styles from './ReceiptPreview.module.css';

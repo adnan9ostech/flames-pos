@@ -7,7 +7,7 @@ import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import {
     getOrderNumber, buildImageMap, resolveItemImage, formatModifiers
 } from '@/lib/orderDisplay';
-import { isLatestRound } from '@/lib/orderTotals';
+import { isLatestRound } from '@/lib/orderTotals.mjs';
 import LiveClock from '@/components/Layout/LiveClock';
 import { UtensilsCrossed, Volume2, VolumeX, Maximize2, UserRound, Layers } from 'lucide-react';
 

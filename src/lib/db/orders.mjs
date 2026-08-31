@@ -1,0 +1,586 @@
+/*
+ * The order verbs — the only code that writes orders, rounds, items,
+ * payments, or the invoice counter. A straight port of the plpgsql RPCs
+ * (supabase migration 17, now retired): one transaction under one row lock
+ * per verb, totals recomputed server-side every time, idempotency through
+ * client_request_id, and the client's displayed total accepted only as a
+ * cross-check.
+ *
+ * Two things are contracts, not style:
+ *
+ *   1. Error message strings. The till string-matches and displays them
+ *      (`Total mismatch…`, `…already been settled.`), and the tests assert
+ *      them. Change one and a screen breaks silently.
+ *
+ *   2. Money math. `calcTotals` here is the SAME module the till imports —
+ *      not a mirror of it, the thing itself — so the two sides cannot drift.
+ *      Tax is resolved by payment method at settle (ICT taxes card and cash
+ *      differently); an unsettled order displays at the cash rate.
+ */
+import { randomUUID } from 'node:crypto';
+import { pool, withTransaction, query } from './pool.mjs';
+import { serializeRow } from './serialize.mjs';
+import { calcTotals } from '../orderTotals.mjs';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/* The calendar day in Asia/Karachi (fixed UTC+5, no DST). */
+export const karachiDay = (d = new Date()) =>
+    d.toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+
+/*
+ * The trading day an order belongs to: the open business day if day-close is
+ * in use (Phase F), else the Karachi calendar day. Never NULL.
+ */
+const resolveBusinessDate = async (conn, branchId) => {
+    const [rows] = await conn.query(
+        `SELECT business_date FROM business_days
+         WHERE branch_id = ? AND closed_at IS NULL
+         ORDER BY business_date DESC LIMIT 1`,
+        [branchId],
+    );
+    if (rows.length === 0) return karachiDay();
+    const d = rows[0].business_date;
+    return d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
+};
+
+const getTaxRates = async (conn) => {
+    const [rows] = await conn.query(
+        'SELECT tax_rate_cash, tax_rate_card FROM store_settings LIMIT 1',
+    );
+    return {
+        cash: Number(rows[0]?.tax_rate_cash ?? 0.16),
+        card: Number(rows[0]?.tax_rate_card ?? 0.16),
+    };
+};
+
+/* The rate a given payment method carries; anything unknown prices as cash. */
+const rateForMethod = (rates, method) => (method === 'card' ? rates.card : rates.cash);
+
+const fetchOrder = async (conn, orderId, { forUpdate = false } = {}) => {
+    const [rows] = await conn.query(
+        `SELECT * FROM orders WHERE id = ?${forUpdate ? ' FOR UPDATE' : ''}`,
+        [orderId],
+    );
+    return rows[0] ?? null;
+};
+
+const auditLog = async (conn, { branchId, businessDate, action, orderId = null, details = null }) => {
+    await conn.query(
+        `INSERT INTO audit_log (branch_id, business_date, action, order_id, details)
+         VALUES (?, ?, ?, ?, ?)`,
+        [branchId, businessDate, action, orderId, details ? JSON.stringify(details) : null],
+    );
+};
+
+/*
+ * Validates and inserts one round's lines. Create and append share this so
+ * the two paths cannot drift. Errors are worded for the till's alert box.
+ */
+const insertRoundItems = async (conn, { orderId, roundId, roundNo, branchId, items }) => {
+    if (!Array.isArray(items) || items.length === 0) {
+        throw new Error('A round needs at least one item');
+    }
+    for (const item of items) {
+        if (!item?.name || String(item.name).trim() === '') {
+            throw new Error('Every line needs an item name');
+        }
+        if (!(Number(item.qty) >= 1)) {
+            throw new Error(`Quantity must be at least 1 on "${item.name}"`);
+        }
+        if (!(Number(item.price) >= 0)) {
+            throw new Error(`Price missing or negative on "${item.name}"`);
+        }
+    }
+
+    // The cart spreads the menu item, so its uuid rides in as 'id'. A line
+    // whose dish was deleted (or whose id doesn't parse) keeps the name and
+    // loses the link — the bill is the record, the FK is a convenience.
+    const candidateIds = [...new Set(
+        items.map((i) => String(i.id ?? '')).filter((id) => UUID_RE.test(id)),
+    )];
+    let known = new Set();
+    if (candidateIds.length > 0) {
+        const [rows] = await conn.query(
+            'SELECT id FROM menu_items WHERE id IN (?)', [candidateIds],
+        );
+        known = new Set(rows.map((r) => r.id));
+    }
+
+    const values = items.map((i) => {
+        const id = String(i.id ?? '');
+        return [
+            randomUUID(), orderId, roundId, branchId, roundNo,
+            known.has(id) ? id : null,
+            i.name,
+            i.selectedVariant?.name ?? null,
+            i.selectedModifiers != null ? JSON.stringify(i.selectedModifiers) : null,
+            Number(i.price),
+            Number(i.qty),
+            i.notes ? String(i.notes) : null,
+        ];
+    });
+    await conn.query(
+        `INSERT INTO order_items
+           (id, order_id, round_id, branch_id, round_no, menu_item_id,
+            name, variant, modifiers, unit_price, qty, notes)
+         VALUES ?`,
+        [values],
+    );
+    return values.length;
+};
+
+/*
+ * The one place money math lives on the server, plus the JSON snapshot the
+ * KDS and receipts read — rebuilt from the lines so the two can never
+ * disagree. Lines are ordered (round_no, seq): the order food was rung in.
+ */
+const recomputeOrder = async (conn, orderId, { taxRate }) => {
+    const order = await fetchOrder(conn, orderId);
+    if (!order) throw new Error(`Order ${orderId} not found`);
+
+    const [lines] = await conn.query(
+        `SELECT menu_item_id, name, variant, modifiers, unit_price, qty, round_no, notes
+         FROM order_items WHERE order_id = ? ORDER BY round_no, seq`,
+        [orderId],
+    );
+
+    const totals = calcTotals(
+        lines.map((l) => ({ price: Number(l.unit_price), qty: l.qty })),
+        Boolean(order.include_tax),
+        { taxRate, discount: Number(order.discount) || 0 },
+    );
+
+    // jsonb_strip_nulls semantics: a key whose value is null is omitted.
+    const snapshot = lines.map((l) => {
+        const entry = {
+            id: l.menu_item_id ?? undefined,
+            name: l.name,
+            price: Number(l.unit_price),
+            qty: l.qty,
+            round: l.round_no,
+            selectedVariant: l.variant != null ? { name: l.variant } : undefined,
+            selectedModifiers: l.modifiers ?? undefined,
+            notes: l.notes ?? undefined,
+        };
+        for (const k of Object.keys(entry)) if (entry[k] === undefined) delete entry[k];
+        return entry;
+    });
+
+    await conn.query(
+        `UPDATE orders SET
+           items = ?, subtotal = ?, discount = ?, tax = ?, total = ?,
+           updated_at = UTC_TIMESTAMP(3)
+         WHERE id = ?`,
+        [JSON.stringify(snapshot), totals.subtotal, totals.discount, totals.tax, totals.total, orderId],
+    );
+    return fetchOrder(conn, orderId);
+};
+
+const isDuplicateKey = (e) => e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY');
+
+/*
+ * Settle inside an existing transaction — create_order's pay-now path calls
+ * this on its own uncommitted row (the FOR UPDATE is then a self-lock).
+ */
+const settleOrderTx = async (conn, orderId, {
+    method = 'cash', discount = null, discountReason = null,
+    includeTax = null, expectedTotal = null, clientRequestId = null,
+} = {}) => {
+    if (!['cash', 'card'].includes(method)) {
+        throw new Error(`Unknown payment method ${method}`);
+    }
+
+    // The lock: of two terminals settling the same tab, one wins and the
+    // other learns the truth instead of both charging the customer.
+    let order = await fetchOrder(conn, orderId, { forUpdate: true });
+    if (!order) throw new Error(`Order ${orderId} not found`);
+    if (order.status === 'cancelled') throw new Error('This order was voided.');
+
+    if (order.payment_status === 'paid') {
+        // A replay of the settle that already succeeded is a success; a
+        // second, distinct attempt is the double-charge this refuses.
+        if (clientRequestId) {
+            const [rows] = await conn.query(
+                'SELECT 1 FROM payments WHERE order_id = ? AND client_request_id = ? LIMIT 1',
+                [orderId, clientRequestId],
+            );
+            if (rows.length > 0) return order;
+        }
+        throw new Error('This bill has already been settled.');
+    }
+
+    const effectiveDiscount = discount ?? Number(order.discount) ?? 0;
+    await conn.query(
+        `UPDATE orders SET
+           include_tax = ?,
+           discount = ?,
+           discount_reason = ?
+         WHERE id = ?`,
+        [
+            includeTax ?? Boolean(order.include_tax),
+            effectiveDiscount,
+            effectiveDiscount > 0 ? (discountReason ?? order.discount_reason) : null,
+            orderId,
+        ],
+    );
+
+    // Tax at the rate this payment method carries — the ICT differential.
+    const rates = await getTaxRates(conn);
+    order = await recomputeOrder(conn, orderId, { taxRate: rateForMethod(rates, method) });
+
+    if (expectedTotal != null && Number(expectedTotal) !== Number(order.total)) {
+        throw new Error(
+            `Total mismatch: till shows ${expectedTotal}, server computed ${order.total} — reload before settling`,
+        );
+    }
+
+    // Sequential invoice number per branch per business day, assigned exactly
+    // once — a bill that already carries one keeps it, so a reprint is the
+    // same document forever. The upsert X-locks the counter row until commit,
+    // which is what serializes two same-moment settles on different orders.
+    const businessDate = await resolveBusinessDate(conn, order.branch_id);
+    if (order.invoice_number == null) {
+        await conn.query(
+            `INSERT INTO invoice_counters (branch_id, day, last_no) VALUES (?, ?, 1)
+             ON DUPLICATE KEY UPDATE last_no = last_no + 1`,
+            [order.branch_id, businessDate],
+        );
+        const [[{ last_no }]] = await conn.query(
+            'SELECT last_no FROM invoice_counters WHERE branch_id = ? AND day = ?',
+            [order.branch_id, businessDate],
+        );
+        const yymmdd = businessDate.slice(2).replaceAll('-', '');
+        await conn.query(
+            'UPDATE orders SET invoice_number = ? WHERE id = ?',
+            [`FBR-${yymmdd}-${String(last_no).padStart(4, '0')}`, orderId],
+        );
+    }
+
+    await conn.query(
+        `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [randomUUID(), orderId, order.branch_id, method, order.total, clientRequestId],
+    );
+
+    await conn.query(
+        `UPDATE orders SET
+           payment_status = 'paid',
+           payment_mode = ?,
+           paid_at = UTC_TIMESTAMP(3),
+           status = CASE WHEN status = 'ready' THEN 'completed' ELSE status END,
+           updated_at = UTC_TIMESTAMP(3)
+         WHERE id = ?`,
+        [method, orderId],
+    );
+    order = await fetchOrder(conn, orderId);
+
+    await auditLog(conn, {
+        branchId: order.branch_id,
+        businessDate,
+        action: 'settle_order',
+        orderId,
+        details: { method, total: Number(order.total), invoice: order.invoice_number },
+    });
+
+    return order;
+};
+
+export const settleOrder = async (orderId, opts = {}) =>
+    serializeRow('orders', await withTransaction((conn) => settleOrderTx(conn, orderId, opts)));
+
+/*
+ * One call: order row, round 1, its lines, recomputed totals — and for a
+ * pay-at-counter sale, the payment and invoice number too, all or nothing.
+ */
+export const createOrder = async (items, opts = {}, clientRequestId = null, expectedTotal = null) => {
+    // Idempotent replay: the same attempt returns the order it already made,
+    // indistinguishable from the first success. The duplicate-key catch below
+    // covers what this pre-check can't: two identical attempts in flight at
+    // once (a double-tap under latency).
+    if (clientRequestId) {
+        const rows = await query('SELECT * FROM orders WHERE client_request_id = ?', [clientRequestId]);
+        if (rows.length > 0) return serializeRow('orders', rows[0]);
+    }
+
+    const payNow = (opts.payment_status ?? 'paid') === 'paid';
+    const orderId = randomUUID();
+
+    const row = await withTransaction(async (conn) => {
+        const branchId = 1;
+        const businessDate = await resolveBusinessDate(conn, branchId);
+        try {
+            await conn.query(
+                `INSERT INTO orders
+                   (id, order_number, items, subtotal, tax, total, status, payment_status,
+                    order_type, include_tax, discount, discount_reason,
+                    table_number, waiter_id, waiter_name,
+                    customer_name, customer_phone, customer_address,
+                    round_count, last_round_at, client_request_id, branch_id, business_date,
+                    created_at, updated_at)
+                 VALUES (?, ?, '[]', 0, 0, 0, 'new', 'unpaid',
+                         ?, ?, ?, ?,
+                         ?, ?, ?,
+                         ?, ?, ?,
+                         1, UTC_TIMESTAMP(3), ?, ?, ?,
+                         UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))`,
+                [
+                    orderId,
+                    opts.order_number || String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0'),
+                    opts.order_type || 'dine-in',
+                    opts.include_tax ?? true,
+                    Number(opts.discount) || 0,
+                    opts.discount_reason || null,
+                    opts.table_number || null,
+                    opts.waiter_id || null,
+                    opts.waiter_name || null,
+                    opts.customer_name || null,
+                    opts.customer_phone || null,
+                    opts.customer_address || null,
+                    clientRequestId, branchId, businessDate,
+                ],
+            );
+        } catch (e) {
+            // Lost the race to our own twin: the other attempt's order is the
+            // order. Anything else is a real error.
+            if (isDuplicateKey(e) && clientRequestId) {
+                const [rows] = await conn.query(
+                    'SELECT * FROM orders WHERE client_request_id = ?', [clientRequestId],
+                );
+                if (rows.length > 0) return { twin: rows[0] };
+            }
+            throw e;
+        }
+
+        const roundId = randomUUID();
+        await conn.query(
+            `INSERT INTO order_rounds (id, order_id, branch_id, round_no, fired_at, client_request_id)
+             VALUES (?, ?, ?, 1, UTC_TIMESTAMP(3), ?)`,
+            [roundId, orderId, branchId, clientRequestId],
+        );
+
+        await insertRoundItems(conn, { orderId, roundId, roundNo: 1, branchId, items });
+
+        const rates = await getTaxRates(conn);
+        let order = await recomputeOrder(conn, orderId, {
+            // A pay-now sale prices at its method's rate from the start; an
+            // open tab displays at the cash rate until it is settled.
+            taxRate: payNow ? rateForMethod(rates, opts.payment_mode || 'cash') : rates.cash,
+        });
+
+        await auditLog(conn, {
+            branchId, businessDate, action: 'create_order', orderId,
+            details: { total: Number(order.total), type: order.order_type },
+        });
+
+        if (payNow) {
+            // Same-transaction settle; the expected-total check happens there.
+            order = await settleOrderTx(conn, orderId, {
+                method: opts.payment_mode || 'cash',
+                expectedTotal,
+                clientRequestId,
+            });
+        } else if (expectedTotal != null && Number(expectedTotal) !== Number(order.total)) {
+            throw new Error(
+                `Total mismatch: till shows ${expectedTotal}, server computed ${order.total} — reload and re-ring`,
+            );
+        }
+        return { order };
+    });
+
+    return serializeRow('orders', row.twin ?? row.order);
+};
+
+export const appendRound = async (orderId, items, clientRequestId = null, expectedTotal = null, opts = {}) => {
+    // Replay of a round that already landed: hand back the order as it is.
+    // A timed-out "send round" retried by the cashier must never cook and
+    // bill the food twice.
+    if (clientRequestId) {
+        const rows = await query(
+            'SELECT 1 FROM order_rounds WHERE client_request_id = ? LIMIT 1', [clientRequestId],
+        );
+        if (rows.length > 0) {
+            const order = await query('SELECT * FROM orders WHERE id = ?', [orderId]);
+            return serializeRow('orders', order[0]);
+        }
+    }
+
+    const row = await withTransaction(async (conn) => {
+        // The lock. Two terminals appending to one tab queue instead of
+        // last-write-wins overwriting each other's food.
+        const order = await fetchOrder(conn, orderId, { forUpdate: true });
+        if (!order) throw new Error(`Order ${orderId} not found`);
+
+        // Re-checked under the lock: a twin of this request that held the
+        // lock first has committed its round by the time we get here, and
+        // the pre-lock check above ran too early to see it.
+        if (clientRequestId) {
+            const [rows] = await conn.query(
+                'SELECT 1 FROM order_rounds WHERE client_request_id = ? LIMIT 1', [clientRequestId],
+            );
+            if (rows.length > 0) return order;
+        }
+
+        if (order.payment_status === 'paid') throw new Error('This bill has already been settled.');
+        if (order.status === 'cancelled') throw new Error('This order was voided.');
+
+        const roundNo = (order.round_count || 1) + 1;
+        const roundId = randomUUID();
+        try {
+            await conn.query(
+                `INSERT INTO order_rounds (id, order_id, branch_id, round_no, fired_at, client_request_id)
+                 VALUES (?, ?, ?, ?, UTC_TIMESTAMP(3), ?)`,
+                [roundId, orderId, order.branch_id, roundNo, clientRequestId],
+            );
+        } catch (e) {
+            if (isDuplicateKey(e) && clientRequestId) return order; // twin landed between the checks
+            throw e;
+        }
+
+        await insertRoundItems(conn, { orderId, roundId, roundNo, branchId: order.branch_id, items });
+
+        // Mid-sitting corrections the floor makes while adding food: table
+        // moved, shift changed the waiter, tax toggled. Only these keys are
+        // honoured, and only when present — `p_opts ? 'key'` semantics.
+        await conn.query(
+            `UPDATE orders SET
+               round_count = ?,
+               last_round_at = UTC_TIMESTAMP(3),
+               status = 'new',
+               include_tax = ?,
+               table_number = ?,
+               waiter_id = ?,
+               waiter_name = ?
+             WHERE id = ?`,
+            [
+                roundNo,
+                opts.include_tax ?? Boolean(order.include_tax),
+                'table_number' in opts ? (opts.table_number || null) : order.table_number,
+                'waiter_id' in opts ? (opts.waiter_id || null) : order.waiter_id,
+                'waiter_name' in opts ? (opts.waiter_name || null) : order.waiter_name,
+                orderId,
+            ],
+        );
+
+        const rates = await getTaxRates(conn);
+        const updated = await recomputeOrder(conn, orderId, { taxRate: rates.cash });
+
+        if (expectedTotal != null && Number(expectedTotal) !== Number(updated.total)) {
+            throw new Error(
+                `Total mismatch: till shows ${expectedTotal}, server computed ${updated.total} — reload and re-ring`,
+            );
+        }
+
+        await auditLog(conn, {
+            branchId: updated.branch_id,
+            businessDate: await resolveBusinessDate(conn, updated.branch_id),
+            action: 'append_round',
+            orderId,
+            details: { round: roundNo, total: Number(updated.total) },
+        });
+        return updated;
+    });
+
+    return serializeRow('orders', row);
+};
+
+/*
+ * Void. The caller (the server action) is responsible for the admin gate —
+ * this function trusts it, matching how the RPC trusted its caller, but the
+ * gate now lives on the server instead of in the browser.
+ */
+export const voidOrder = async (orderId, reason, by = null) => {
+    if (!reason || String(reason).trim() === '') throw new Error('A void needs a reason');
+
+    const row = await withTransaction(async (conn) => {
+        const order = await fetchOrder(conn, orderId, { forUpdate: true });
+        if (!order) throw new Error(`Order ${orderId} not found`);
+        if (order.status === 'cancelled') return order; // voiding a void is a no-op, not an error
+
+        // Voiding a paid bill reverses the money in the ledger, so the day's
+        // cash math nets to what is actually in the drawer.
+        if (order.payment_status === 'paid' && ['cash', 'card'].includes(order.payment_mode)) {
+            await conn.query(
+                `INSERT INTO payments (id, order_id, branch_id, method, amount)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [randomUUID(), orderId, order.branch_id, order.payment_mode, -Number(order.total)],
+            );
+        }
+
+        await conn.query(
+            `UPDATE orders SET
+               status = 'cancelled',
+               cancelled_at = UTC_TIMESTAMP(3),
+               cancel_reason = ?,
+               cancelled_by = ?,
+               updated_at = UTC_TIMESTAMP(3)
+             WHERE id = ?`,
+            [String(reason).trim(), by ? String(by).trim() || null : null, orderId],
+        );
+        const updated = await fetchOrder(conn, orderId);
+
+        await auditLog(conn, {
+            branchId: updated.branch_id,
+            businessDate: await resolveBusinessDate(conn, updated.branch_id),
+            action: 'void_order',
+            orderId,
+            details: {
+                reason: updated.cancel_reason,
+                by: updated.cancelled_by,
+                was_paid: updated.paid_at != null,
+                total: Number(updated.total),
+            },
+        });
+        return updated;
+    });
+
+    return serializeRow('orders', row);
+};
+
+/*
+ * Guarded KDS transition. No lock — the WHERE clause is the concurrency
+ * control: a stale bump loses to an append_round re-fire instead of parking
+ * a ticket with uncooked food in 'ready'. The UPDATE always touches
+ * updated_at, so affectedRows 0 reliably means "did not match", never
+ * "matched but nothing changed".
+ */
+export const bumpOrder = async (orderId, from, to) => {
+    if (!['preparing', 'ready', 'completed'].includes(to)) {
+        throw new Error(`Not a kitchen transition: ${to}`);
+    }
+    await pool.query(
+        `UPDATE orders SET status = ?, updated_at = UTC_TIMESTAMP(3)
+         WHERE id = ? AND status = ?`,
+        [to, orderId, from],
+    );
+    // Someone else moved it first (or a round re-fired it). Return the truth;
+    // the board redraws from it instead of overwriting it.
+    const rows = await query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    if (rows.length === 0) throw new Error(`Order ${orderId} not found`);
+    return serializeRow('orders', rows[0]);
+};
+
+/*
+ * 86 a dish. Any signed-in role — it's a floor act, not an admin one — and
+ * audited, because "who took the biryani off at 8pm" is a real question the
+ * morning after. Inherits the old menu_item_audit trigger's job too.
+ */
+export const setItemAvailability = async (itemId, available) => {
+    const row = await withTransaction(async (conn) => {
+        const [result] = await conn.query(
+            'UPDATE menu_items SET is_available = ?, updated_at = UTC_TIMESTAMP(3) WHERE id = ?',
+            [Boolean(available), itemId],
+        );
+        if (result.affectedRows === 0) throw new Error('That dish is no longer on the menu');
+        const [rows] = await conn.query('SELECT * FROM menu_items WHERE id = ?', [itemId]);
+        const item = rows[0];
+        await auditLog(conn, {
+            branchId: 1,
+            businessDate: await resolveBusinessDate(conn, 1),
+            action: 'set_availability',
+            details: { menu_item_id: item.id, name: item.name, available: Boolean(available) },
+        });
+        return item;
+    });
+    return serializeRow('menu_items', row);
+};
