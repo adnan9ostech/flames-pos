@@ -70,6 +70,10 @@ export const resetDb = async () => {
     for (const table of [
         'payments', 'order_items', 'order_rounds', 'fbr_invoices',
         'orders', 'audit_log', 'invoice_counters', 'business_days',
+        // Charge config changes totals (the seeded 5% service charge broke
+        // every dine-in expectation the day it landed) — tests that want a
+        // charge insert their own.
+        'charges',
     ]) {
         await pool.query(`DELETE FROM ${table}`);
     }

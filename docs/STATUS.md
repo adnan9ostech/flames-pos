@@ -65,13 +65,20 @@ touch global config; full runbook in `docs/deploy-cpanel.md`).
 
 ## In progress RIGHT NOW
 
-- [ ] Till wiring in `src/app/pos/page.js`: active charges into cart
-      pricing (`listActiveCharges` from `@/app/charges/actions`), City
-      Ledger as third pay mode (CompanyPicker at settle + pay-now,
-      `companyId` through settleOrder/addOrder), DiscountPlans one-tap
-      chips (`applicablePlans` + `computePlanDiscount`)
-- [ ] Then: `npm run build` green, full test run, restart :3210, UI pass
-      over the new screens, commit + push, update this file
+- (nothing — F–J fully integrated; next step is Adnan's acceptance pass,
+  see Pending)
+
+Also done in the integration pass (was "in progress" above):
+- [x] Till wiring: charges price the cart live (scoped by order type, tab's
+      type wins), City Ledger third pay mode with CompanyPicker (guards on
+      both pay-now and settle; picker cancel falls back to cash), discount
+      plan one-tap chips fill amount+reason
+- [x] Test harness owns charge config (resetDb clears `charges`); new test
+      11 proves the 5% dine-in service charge end-to-end incl. the
+      expected-total refusal — suite is now 18/18
+- [x] Build green (36 routes), server at :3210 restarted on the new build,
+      UI-verified: Back-office nav, Day Close (implicit-day + clear-to-close
+      gate), Handover report rendering live numbers, POS grid intact
 
 ## Pending (ordered)
 

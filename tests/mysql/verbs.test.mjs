@@ -208,3 +208,43 @@ test('10. line validation and method contract strings', async () => {
     await assert.rejects(settleOrder(open.id, { method: 'crypto' }),
         (e) => e.message === 'Unknown payment method crypto');
 });
+
+test('11. an auto-applied service charge lands on scoped order types only', async () => {
+    // 5% dine-in, before tax — the production seed's exact shape.
+    await q(
+        `INSERT INTO charges (name, value_type, value, order_types, before_tax, auto_apply, is_active)
+         VALUES ('Service Charge', 'percent', 5.00, '["dine-in"]', 1, 1, 1)`,
+    );
+
+    // Dine-in: 1000 food → 50 service → tax on 1050 → total 1050 + tax.
+    const dineIn = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', order_type: 'dine-in' },
+    );
+    const expectedTax = Math.round(1050 * TAX.cash);
+    assert.equal(Number(dineIn.charges_total), 50);
+    assert.equal(Number(dineIn.total), 1050 + expectedTax);
+    assert.deepEqual(dineIn.charges, [{ name: 'Service Charge', amount: 50, before_tax: true }]);
+
+    // Takeaway is outside the charge's scope: plain food + tax.
+    const takeaway = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', order_type: 'takeaway' },
+    );
+    assert.equal(Number(takeaway.charges_total), 0);
+    assert.equal(Number(takeaway.total), 1000 + Math.round(1000 * TAX.cash));
+
+    // The charge is part of the server's own recompute, so an expected total
+    // computed WITHOUT it must be refused, not silently overwritten.
+    await assert.rejects(
+        createOrder(
+            [{ name: 'Karahi', price: 1000, qty: 1 }],
+            { payment_status: 'paid', payment_mode: 'cash', order_type: 'dine-in' },
+            null,
+            1000 + Math.round(1000 * TAX.cash),
+        ),
+        (e) => /^Total mismatch/.test(e.message),
+    );
+
+    await q('DELETE FROM charges');
+});

@@ -8,6 +8,8 @@ import {
     setMenuItemAvailability
 } from '@/lib/dataClient';
 import { groupRoundByCategory, printKotSlip, runPrintQueue } from '@/lib/kotPrint';
+import { listActiveCharges } from '@/app/charges/actions';
+import { applicablePlans } from '@/app/discounts/actions';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import { calcTotals, itemRound, DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 import { getOrderNumber, formatOrderDate } from '@/lib/orderDisplay';
@@ -18,6 +20,8 @@ import { printReceipt } from '@/lib/printReceipt';
 import ModifierModal from '@/components/POS/ModifierModal';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
 import KotSlips from '@/components/POS/KotSlips';
+import CompanyPicker from '@/components/POS/CompanyPicker';
+import DiscountPlans from '@/components/POS/DiscountPlans';
 import TabsDrawer from '@/components/POS/TabsDrawer';
 import LiveClock from '@/components/Layout/LiveClock';
 import { useRole } from '@/components/Layout/AppLayout';
@@ -73,6 +77,16 @@ export default function POSPage() {
     // The KOT slip currently being printed; null keeps the hidden print root
     // out of the DOM so the customer receipt owns the paper again.
     const [kotJob, setKotJob] = useState(null);
+
+    // Auto-applied charges and the discount plans valid right now — both
+    // loaded once and repriced locally, so the till's expected total matches
+    // what the server will compute at settle.
+    const [activeCharges, setActiveCharges] = useState([]);
+    const [discountPlans, setDiscountPlans] = useState([]);
+
+    // City-ledger settles charge a company account instead of taking money.
+    const [company, setCompany] = useState(null);
+    const [showCompanyPicker, setShowCompanyPicker] = useState(false);
 
     /*
      * One id per basket, reused on every retry of that basket's checkout.
@@ -187,6 +201,7 @@ export default function POSPage() {
         // Rates come from store_settings so a rate change needs no deploy;
         // both fall back to the default if they can't be read.
         getTaxRates().then(r => r && setTaxRates(r));
+        listActiveCharges().then(r => r?.data && setActiveCharges(r.data)).catch(() => {});
         getSettings().then(s => setAutoPrint(s?.auto_print !== false));
     }, []);
 
@@ -377,7 +392,28 @@ export default function POSPage() {
     }, [discountValue, discountMode, tab, cart]);
 
     const taxRate = (paymentMode === 'card' ? taxRates.card : taxRates.cash) ?? DEFAULT_TAX_RATE;
-    const priceOpts = useMemo(() => ({ taxRate }), [taxRate]);
+
+    // The bill belongs to the tab's order type once one exists; the toggle
+    // only steers a fresh sale. Charges scope by that type, so a dine-in tab
+    // keeps its service charge even while the toggle sits on takeaway.
+    const effectiveOrderType = tab?.order_type ?? orderType;
+    const chargesForOrder = useMemo(
+        () => activeCharges.filter((c) => {
+            const types = Array.isArray(c.order_types) ? c.order_types : [];
+            return types.length === 0 || types.includes(effectiveOrderType);
+        }),
+        [activeCharges, effectiveOrderType]
+    );
+
+    const priceOpts = useMemo(() => ({ taxRate, charges: chargesForOrder }), [taxRate, chargesForOrder]);
+
+    // Plans depend on the order type and the clock; refetch when the type
+    // moves rather than pretending yesterday's list still applies.
+    useEffect(() => {
+        applicablePlans({ orderType: effectiveOrderType })
+            .then(r => setDiscountPlans(r?.data || []))
+            .catch(() => setDiscountPlans([]));
+    }, [effectiveOrderType]);
 
     // The round on its own is never discounted — a discount applies to the bill
     // being paid, and applying it here as well would double-count it.
@@ -493,6 +529,8 @@ export default function POSPage() {
         setCustomerAddress('');
         setCustomerFound(false);
         setPendingInvoiceNo(null);
+        setCompany(null);
+        setPaymentMode('cash');
         requestIdRef.current = null;
         roundRequestIdRef.current = null;
         settleRequestIdRef.current = null;
@@ -606,10 +644,15 @@ export default function POSPage() {
 
     // Pay-at-the-counter: one round, settled on the spot (the original flow)
     const handlePayNow = async () => {
+        if (paymentMode === 'city_ledger' && !company) {
+            setShowCompanyPicker(true);
+            return;
+        }
         setIsSending(true);
         try {
             const saved = await addOrder({
                 items: cart.map(item => ({ ...item, round: 1 })),
+                company_id: paymentMode === 'city_ledger' ? company.id : undefined,
                 ...billColumns(billTotals),
                 discount_reason: discountAmount > 0 ? discountReason.trim() || null : null,
                 client_request_id: ensureRequestId(),
@@ -713,11 +756,16 @@ export default function POSPage() {
             setNotice('Send or clear the unsent items in the cart before settling this tab.');
             return;
         }
+        if (paymentMode === 'city_ledger' && !company) {
+            setShowCompanyPicker(true);
+            return;
+        }
         setIsSending(true);
         if (!settleRequestIdRef.current) settleRequestIdRef.current = crypto.randomUUID();
         try {
             const settled = await settleOrder(tab.id, {
                 paymentMode,
+                companyId: paymentMode === 'city_ledger' ? company.id : undefined,
                 includeTax,
                 discount: discountAmount,
                 discountReason: discountAmount > 0 ? discountReason.trim() || null : null,
@@ -749,6 +797,21 @@ export default function POSPage() {
         <div className={styles.container}>
             {/* Hidden while null; while printing it owns the paper. */}
             <KotSlips job={kotJob} />
+
+            {showCompanyPicker && (
+                <CompanyPicker
+                    onSelect={(c) => {
+                        setCompany(c);
+                        setShowCompanyPicker(false);
+                    }}
+                    onClose={() => {
+                        setShowCompanyPicker(false);
+                        // Backed out without choosing: a companyless
+                        // city-ledger sale cannot exist, so fall back to cash.
+                        if (!company) setPaymentMode('cash');
+                    }}
+                />
+            )}
 
             {/* Modals */}
             {modifyingItem && (
@@ -1165,7 +1228,28 @@ export default function POSPage() {
                             <CreditCard size={18} aria-hidden="true" />
                             Card
                         </button>
+                        <button
+                            className={`${styles.modeBtn} ${paymentMode === 'city_ledger' ? styles.activeMode : ''}`}
+                            onClick={() => {
+                                setPaymentMode('city_ledger');
+                                if (!company) setShowCompanyPicker(true);
+                            }}
+                            title="Charge to a company account — settled later by receipt"
+                        >
+                            <Layers size={18} aria-hidden="true" />
+                            Company
+                        </button>
                     </div>
+
+                    {paymentMode === 'city_ledger' && (
+                        <button
+                            type="button"
+                            className={styles.secondaryBtn}
+                            onClick={() => setShowCompanyPicker(true)}
+                        >
+                            {company ? `Charging: ${company.name} — change` : 'Choose the company…'}
+                        </button>
+                    )}
 
                     {/* FBR Tax Toggle */}
                     <label className={styles.taxToggle}>
@@ -1181,6 +1265,18 @@ export default function POSPage() {
                         discount nobody can account for later is how a till
                         quietly leaks money. */}
                     <div className={styles.discountBlock}>
+                        {/* One-tap scheduled promos — a chip fills the rupee
+                            amount and the reason, nothing more magical. */}
+                        <DiscountPlans
+                            plans={discountPlans}
+                            billItems={billItems}
+                            subtotal={billTotals.subtotal}
+                            onApply={(planName, rupees) => {
+                                setDiscountMode('amount');
+                                setDiscountValue(String(rupees));
+                                setDiscountReason(planName);
+                            }}
+                        />
                         <div className={styles.discountRow}>
                             <div className={styles.discountModes}>
                                 <button
@@ -1247,6 +1343,12 @@ export default function POSPage() {
                             <span>− Rs. {receiptTotals.discount.toLocaleString()}</span>
                         </div>
                     )}
+                    {(receiptTotals.charges || []).map((c) => (
+                        <div className={styles.summaryRow} key={c.name}>
+                            <span>{c.name}</span>
+                            <span>Rs. {c.amount.toLocaleString()}</span>
+                        </div>
+                    ))}
                     <div className={styles.summaryRow}>
                         <span>Tax ({taxPercentLabel})</span>
                         <span>Rs. {receiptTotals.tax.toLocaleString()}</span>
