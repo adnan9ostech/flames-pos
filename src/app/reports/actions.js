@@ -4,37 +4,46 @@
 import { query } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { requireAdmin } from '@/lib/db/auth.mjs'
-import { subDays, differenceInMilliseconds } from 'date-fns'
 
 /*
- * All bucketing happens on the restaurant's clock, not the server's.
- *
- * These server actions run wherever the host happens to be — UTC in
- * production — so new Date().getHours() and date-fns' startOfDay() describe
- * the *server's* day: "today" began at 5am Karachi time and the dinner rush
- * landed in tomorrow's bucket. Interim JS fix; the permanent one moves
- * aggregation into SQL with AT TIME ZONE in P3.
- *
- * PKT is UTC+5 year-round (Pakistan abolished DST in 2009), so the fixed
- * offset in the day-boundary helpers is safe.
+ * Orders are selected and day-bucketed by business_date — the trading day
+ * stamped on the order at creation — not by wall-clock created_at. A ticket
+ * rung at 1am belongs to the previous evening's service: its created_at says
+ * the 28th, its business_date says the 27th, and the 27th is where its money
+ * must land or the dashboard disagrees with that night's till count.
+ * business_date arrives as 'YYYY-MM-DD' on the Karachi calendar, so range
+ * bounds are plain date strings compared in SQL — no timezone conversion at
+ * selection time. Only the hour-of-day chart still reads created_at (a clock
+ * hour is a clock hour, whichever trading day it falls in), and that
+ * conversion stays on the restaurant's clock rather than the server's,
+ * because these actions run wherever the host happens to be — UTC in
+ * production.
  */
 const KARACHI_TZ = 'Asia/Karachi'
 
 // 'YYYY-MM-DD' of an instant on the Karachi calendar (en-CA emits ISO order)
 const karachiDateStr = (date) => date.toLocaleDateString('en-CA', { timeZone: KARACHI_TZ })
 
-// The instants a Karachi calendar day begins and ends
-const karachiDayStart = (ymd) => new Date(`${ymd}T00:00:00.000+05:00`)
-const karachiDayEnd = (ymd) => new Date(`${ymd}T23:59:59.999+05:00`)
+// 'YYYY-MM-DD' plus/minus whole days. Parsed at UTC midnight so the
+// arithmetic can never straddle a DST jump (and PKT has none anyway).
+const shiftYmd = (ymd, days) => {
+    const d = new Date(`${ymd}T00:00:00Z`)
+    d.setUTCDate(d.getUTCDate() + days)
+    return d.toISOString().slice(0, 10)
+}
+
+// Inclusive day count of a ['YYYY-MM-DD', 'YYYY-MM-DD'] window
+const spanDays = (fromYmd, toYmd) =>
+    Math.round((Date.parse(toYmd) - Date.parse(fromYmd)) / 86_400_000) + 1
 
 // 0–23 hour of an instant on the Karachi clock (h23 so midnight is 0, not 24)
 const karachiHour = (isoString) => Number(
     new Date(isoString).toLocaleString('en-US', { timeZone: KARACHI_TZ, hour: '2-digit', hourCycle: 'h23' })
 )
 
-// 'Aug 27' — chart bucket label, on the Karachi calendar
-const karachiDayLabel = (isoString) =>
-    new Date(isoString).toLocaleDateString('en-US', { timeZone: KARACHI_TZ, month: 'short', day: '2-digit' })
+// 'Aug 27' — chart bucket label for a 'YYYY-MM-DD' business date
+const dayLabel = (ymd) =>
+    new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: '2-digit' })
 
 /*
  * An open tab is food fired, not money taken. Every revenue-shaped number
@@ -159,44 +168,44 @@ export async function getDashboardStats(range = 'today', endDateStr = null) {
         return { error: e.message }
     }
 
-    // Date range, in Karachi days: "today" is the restaurant's today, and a
-    // date picked in the filter means that calendar day in Karachi — not the
-    // server's timezone rendering of it.
-    const now = new Date()
-    let startDate = karachiDayStart(karachiDateStr(now))
-    let endDate = karachiDayEnd(karachiDateStr(now))
+    // Date range as inclusive business_date bounds: "today" is the trading day
+    // still in progress, and a date picked in the filter means that trading
+    // day — not the server's timezone rendering of it.
+    const todayYmd = karachiDateStr(new Date())
+    let startYmd = todayYmd
+    let endYmd = todayYmd
 
     // Check if range is a specific date (YYYY-MM-DD) or date range
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (dateRegex.test(range)) {
-        startDate = karachiDayStart(range);
-        endDate = karachiDayEnd(endDateStr && dateRegex.test(endDateStr) ? endDateStr : range);
+        startYmd = range;
+        endYmd = endDateStr && dateRegex.test(endDateStr) ? endDateStr : range;
     } else if (range === '7days') {
-        startDate = subDays(now, 7)
+        startYmd = shiftYmd(todayYmd, -7)
     } else if (range === '30days') {
-        startDate = subDays(now, 30)
+        startYmd = shiftYmd(todayYmd, -30)
     }
 
-    // The immediately preceding period of equal length, used for trend %s
-    // e.g. "7 Days" compares against the 7 days before that.
-    const durationMs = differenceInMilliseconds(endDate, startDate)
-    const prevEndDate = new Date(startDate.getTime() - 1)
-    const prevStartDate = new Date(prevEndDate.getTime() - durationMs)
+    // The immediately preceding run of trading days, equal in length, used for
+    // trend %s — e.g. "7 Days" compares against the 7 days before that.
+    const prevEndYmd = shiftYmd(startYmd, -1)
+    const prevStartYmd = shiftYmd(prevEndYmd, -(spanDays(startYmd, endYmd) - 1))
 
-    // Bound as JS Dates (the pool speaks UTC), then serialized so the
-    // aggregation below sees the same ISO-string shapes PostgREST used to send.
-    const fetchOrders = async (from, to) =>
+    // Bound on business_date — DATE against 'YYYY-MM-DD' strings, so a 1am
+    // ticket stays with its evening — then serialized so the aggregation below
+    // sees the same ISO-string shapes PostgREST used to send.
+    const fetchOrders = async (fromYmd, toYmd) =>
         serializeRows('orders', await query(
             `SELECT * FROM orders
-             WHERE created_at >= ? AND created_at <= ? AND status <> 'cancelled'`,
-            [from, to],
+             WHERE business_date >= ? AND business_date <= ? AND status <> 'cancelled'`,
+            [fromYmd, toYmd],
         ))
 
     let orders, prevOrders
     try {
         [orders, prevOrders] = await Promise.all([
-            fetchOrders(startDate, endDate),
-            fetchOrders(prevStartDate, prevEndDate)
+            fetchOrders(startYmd, endYmd),
+            fetchOrders(prevStartYmd, prevEndYmd)
         ])
     } catch (error) {
         console.error('Error fetching stats:', error)
@@ -206,20 +215,19 @@ export async function getDashboardStats(range = 'today', endDateStr = null) {
     const current = summarize(orders)
     const previous = summarize(prevOrders)
 
-    // Chart Data: Sales over time. Settled money only, on Karachi days —
-    // matching the revenue tile the chart sits under.
+    // Chart Data: Sales over time. Settled money only, on business days —
+    // matching the revenue tile the chart sits under. Keyed by the raw
+    // 'YYYY-MM-DD' so the sort is chronological, labelled for the axis.
     const salesByDate = {}
     orders.filter(isSettled).forEach(order => {
-        const dateStr = karachiDayLabel(order.created_at)
-        if (!salesByDate[dateStr]) {
-            salesByDate[dateStr] = { date: dateStr, sales: 0, orders: 0 }
+        const ymd = order.business_date
+        if (!salesByDate[ymd]) {
+            salesByDate[ymd] = { date: dayLabel(ymd), sales: 0, orders: 0 }
         }
-        salesByDate[dateStr].sales += order.total || 0
-        salesByDate[dateStr].orders += 1
+        salesByDate[ymd].sales += order.total || 0
+        salesByDate[ymd].orders += 1
     })
-    const chartData = Object.values(salesByDate).sort((a, b) =>
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-    )
+    const chartData = Object.keys(salesByDate).sort().map(ymd => salesByDate[ymd])
 
     // Top Selling Items — highest volume this period
     const topItems = Object.values(current.itemCounts)

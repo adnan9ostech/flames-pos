@@ -1,0 +1,169 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    background: var(--card);
+    width: 440px;
+    max-width: 90%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+.header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h2 {
+    font-size: 1.25rem;
+    color: var(--foreground);
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.searchBox {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 1rem 1.5rem 0;
+    padding: 0 0.65rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.searchBox:focus-within {
+    border-color: var(--primary);
+}
+
+.searchIcon {
+    color: var(--muted);
+    flex-shrink: 0;
+}
+
+.searchInput {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.6rem 0;
+}
+
+.searchInput::placeholder {
+    color: var(--muted);
+}
+
+/* The browser's own clear affordance is inconsistent and unstyleable */
+.searchInput::-webkit-search-cancel-button {
+    display: none;
+}
+
+.list {
+    padding: 1rem 1.5rem 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Full-width rows, not chips: a company is picked with one tap mid-settle */
+.row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.row:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.rowIcon {
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+}
+
+.row:hover .rowIcon {
+    color: var(--primary);
+}
+
+.rowText {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.rowName {
+    font-weight: 600;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rowContact {
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stateText {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

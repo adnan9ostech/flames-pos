@@ -1,0 +1,530 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 1.5rem;
+    color: var(--foreground);
+    max-width: 78rem;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+/* Table on the left, the (long) form on the right; stacks on a till held
+   in portrait. */
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(22rem, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 64rem) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+
+.noteError {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
+    color: var(--destructive);
+}
+
+.noteSuccess {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: color-mix(in srgb, var(--success) 45%, transparent);
+    color: var(--success);
+}
+
+/* ===== Table ===== */
+.listWrap {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    text-align: left;
+    padding: 0.9rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Switched off, still listed: dimmed instead of hidden so it can be found
+   and turned back on. */
+.rowInactive td {
+    opacity: 0.55;
+}
+
+.cellStrong {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.cellMuted {
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.cellSub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+}
+
+.alignRight {
+    text-align: right;
+}
+
+/* Active/off is a tap, not a form trip — the pill is the switch */
+.stateBtn {
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border: 1px solid;
+    background: transparent;
+    transition: opacity 0.15s;
+}
+
+.stateOn {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 45%, transparent);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.stateOff {
+    color: var(--muted-foreground);
+    border-color: var(--border);
+}
+
+.rowActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.iconBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.iconBtn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.dangerBtn:hover {
+    border-color: var(--destructive);
+    color: var(--destructive);
+}
+
+/* ===== Form ===== */
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cardTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.fieldRow {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.fieldLabel {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.input {
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.75rem;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    /* Without this the native picker icons render black on the dark field */
+    color-scheme: dark;
+}
+
+.input:focus {
+    border-color: var(--primary);
+}
+
+.input option {
+    /* Native popups don't inherit, so state them or they render light-on-light */
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.checkRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.checkChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--background);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--foreground);
+    cursor: pointer;
+}
+
+.checkChip:has(input:checked) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.checkChip input {
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.hint {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+}
+
+.overnightNote {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.4rem;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* ===== Scope pickers ===== */
+.pickSearch {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0 0.65rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+}
+
+.pickSearch:focus-within {
+    border-color: var(--primary);
+}
+
+.pickSearchInput {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.82rem;
+    padding: 0.5rem 0;
+}
+
+.pickSearchInput::placeholder {
+    color: var(--muted);
+}
+
+/* Tall menus scroll inside the box instead of stretching the form off
+   the screen. */
+.pickList {
+    max-height: 14rem;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    display: flex;
+    flex-direction: column;
+}
+
+.pickRow {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+}
+
+.pickRow:last-child {
+    border-bottom: none;
+}
+
+.pickRow:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.pickRow input {
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.pickEmpty {
+    margin: 0;
+    padding: 1rem;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    text-align: center;
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.primaryBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.primaryBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.primaryBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.secondaryBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.9rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.secondaryBtn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* ===== States ===== */
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1rem;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+.inlineSpinner {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== Delete confirmation ===== */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    width: 100%;
+    max-width: 26rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    padding: 1.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modalTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.modalBody {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+}
+
+/* Destructive, and coloured to say so before it's pressed */
+.dangerConfirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--destructive);
+    border: 1px solid var(--destructive);
+    color: var(--destructive-foreground);
+}
+
+.dangerConfirm:disabled,
+.secondaryBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .inlineSpinner {
+        animation-duration: 2s;
+    }
+}

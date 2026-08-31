@@ -7,8 +7,18 @@
 import { NextResponse } from 'next/server'
 import { COOKIE_NAME, verifySession, signSession, shouldResign, cookieOptions } from './lib/auth/session.mjs'
 
-const protectedPaths = ['/pos', '/orders', '/kds', '/profile', '/reports', '/settings']
-const adminOnlyPaths = ['/reports', '/settings']
+const protectedPaths = [
+    '/pos', '/orders', '/kds', '/profile', '/reports', '/settings',
+    // Back office (phases F–J). /drawer is deliberately staff-reachable —
+    // the cashier owns their drawer; everything else below is admin-only.
+    '/drawer', '/dayclose', '/expenses', '/companies', '/cityledger',
+    '/charges', '/discounts', '/inventory',
+]
+const adminOnlyPaths = [
+    '/reports', '/settings',
+    '/dayclose', '/expenses', '/companies', '/cityledger',
+    '/charges', '/discounts', '/inventory',
+]
 
 export async function proxy(request) {
     const pathname = request.nextUrl.pathname

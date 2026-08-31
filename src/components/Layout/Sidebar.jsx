@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
     Utensils, ClipboardList, BarChart3, ExternalLink, User, LogOut,
-    MonitorPlay, PanelLeftClose, PanelLeftOpen, Settings
+    MonitorPlay, PanelLeftClose, PanelLeftOpen, Settings,
+    Wallet, CalendarCheck, ReceiptText, Building2, Percent, BadgePercent, Package, BookText
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { logout } from '@/app/logout/actions';
@@ -18,17 +19,34 @@ const NAV_LINKS = [
     { href: '/settings', label: 'Settings', Icon: Settings, adminOnly: true }
 ];
 
+// The day-to-day paperwork of running the place. The drawer belongs to
+// whoever holds the cash, so it is the one staff-visible entry; the rest is
+// the admin's morning-after territory.
+const BACK_OFFICE_LINKS = [
+    { href: '/drawer', label: 'Cash Drawer', Icon: Wallet },
+    { href: '/dayclose', label: 'Day Close', Icon: CalendarCheck, adminOnly: true },
+    { href: '/expenses', label: 'Expenses', Icon: ReceiptText, adminOnly: true },
+    { href: '/companies', label: 'Companies', Icon: Building2, adminOnly: true },
+    { href: '/cityledger', label: 'City Ledger', Icon: BookText, adminOnly: true },
+    { href: '/charges', label: 'Charges', Icon: Percent, adminOnly: true },
+    { href: '/discounts', label: 'Discounts', Icon: BadgePercent, adminOnly: true },
+    { href: '/inventory', label: 'Inventory', Icon: Package, adminOnly: true },
+];
+
 const Sidebar = ({ collapsed = false, onToggle, role }) => {
     const pathname = usePathname();
     // Icons carry the whole nav once the labels are gone, so scale them up
     const iconSize = collapsed ? 26 : 20;
     const links = NAV_LINKS.filter(link => !link.adminOnly || role === 'admin');
+    const backOffice = BACK_OFFICE_LINKS.filter(link => !link.adminOnly || role === 'admin');
 
     const navLink = ({ href, label, Icon, newTab }) => (
         <Link
             key={href}
             href={href}
-            className={`${styles.link} ${pathname === href ? styles.active : ''}`}
+            /* startsWith keeps a nested page (/inventory/recipes) lighting its
+               section, while '/' alone can't match everything. */
+            className={`${styles.link} ${pathname === href || pathname.startsWith(`${href}/`) ? styles.active : ''}`}
             title={collapsed ? label : undefined}
             {...(newTab ? { target: '_blank' } : {})}
         >
@@ -90,6 +108,14 @@ const Sidebar = ({ collapsed = false, onToggle, role }) => {
                 )}
 
                 {links.map(navLink)}
+
+                {backOffice.length > 0 && (
+                    <>
+                        {!collapsed && <p className={styles.sectionLabel}>Back office</p>}
+                        {collapsed && <div className={styles.sectionRule} />}
+                        {backOffice.map(navLink)}
+                    </>
+                )}
 
                 <div className={styles.spacer}></div>
 

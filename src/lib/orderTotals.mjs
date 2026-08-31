@@ -16,17 +16,43 @@ export const DEFAULT_TAX_RATE = 0.16;
  * The percentage is an input; the money is the fact. Storing the percentage
  * would silently re-price a historical bill if anything else about it changed.
  */
-export const calcTotals = (items, includeTax = true, { taxRate = DEFAULT_TAX_RATE, discount = 0 } = {}) => {
+export const calcTotals = (items, includeTax = true, { taxRate = DEFAULT_TAX_RATE, discount = 0, charges = [] } = {}) => {
     const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
     // Never negative, never more than the bill — an over-large discount would
     // otherwise produce a total the till would happily accept as money owed.
     const appliedDiscount = Math.min(Math.max(Number(discount) || 0, 0), subtotal);
+    const net = subtotal - appliedDiscount;
 
-    const taxable = subtotal - appliedDiscount;
+    /*
+     * Auto-applied charges (service charge, delivery fee). A percent charge
+     * is a share of the discounted food total — charging service on money
+     * the customer was never asked for would be a quiet overcharge. A
+     * before-tax charge joins the taxable base (that is what "service charge
+     * is taxable" means); an after-tax one rides on the taxed total.
+     */
+    const appliedCharges = (charges || [])
+        .map((c) => ({
+            name: c.name,
+            amount: Math.round(c.value_type === 'percent' ? (net * Number(c.value)) / 100 : Number(c.value)),
+            before_tax: Boolean(c.before_tax),
+        }))
+        .filter((c) => c.amount > 0);
+    const chargesBefore = appliedCharges.reduce((s, c) => s + (c.before_tax ? c.amount : 0), 0);
+    const chargesAfter = appliedCharges.reduce((s, c) => s + (c.before_tax ? 0 : c.amount), 0);
+
+    const taxable = net + chargesBefore;
     const tax = includeTax ? Math.round(taxable * taxRate) : 0;
 
-    return { subtotal, discount: appliedDiscount, taxable, tax, total: taxable + tax };
+    return {
+        subtotal,
+        discount: appliedDiscount,
+        charges: appliedCharges,
+        chargesTotal: chargesBefore + chargesAfter,
+        taxable,
+        tax,
+        total: taxable + tax + chargesAfter,
+    };
 };
 
 // Rounds are stamped on each line as it is fired, so the kitchen can tell a

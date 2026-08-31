@@ -40,6 +40,18 @@ const fireFbrAfterSettle = (order) => {
 };
 
 /*
+ * Same posture for the stock room: a settled sale consumes its recipes'
+ * ingredients, a void hands them back — but the kitchen's ledger must never
+ * take down a sale. Both are idempotent inside the module.
+ */
+const fireInventoryAfterSettle = (order) => {
+    import('@/lib/inventory/consume.mjs').then(m => m.consumeForOrder(order)).catch(() => {});
+};
+const fireInventoryAfterVoid = (order) => {
+    import('@/lib/inventory/consume.mjs').then(m => m.reverseForOrder(order)).catch(() => {});
+};
+
+/*
  * One order object in, one stored order out — pay-now sales settle inside
  * the same call. The object is the till's own shape; it is unpacked into
  * verb arguments here so the pages did not have to change.
@@ -63,6 +75,7 @@ export const addOrder = async (order) => {
                 customer_name: order.customer_name,
                 customer_phone: order.customer_phone,
                 customer_address: order.customer_address,
+                company_id: order.company_id,
             },
             order.client_request_id || null,
             // The total the till showed the cashier; the verb refuses to
@@ -83,7 +96,10 @@ export const addOrder = async (order) => {
             }).catch(() => {});
         }
 
-        if (data?.payment_status === 'paid') fireFbrAfterSettle(data);
+        if (data?.payment_status === 'paid') {
+            fireFbrAfterSettle(data);
+            fireInventoryAfterSettle(data);
+        }
         return { data };
     } catch (e) {
         return { error: e.message };
@@ -111,19 +127,23 @@ export const appendRoundToOrder = async (orderId, newItems, details = {}, { clie
 
 export const settleOrder = async (orderId, {
     paymentMode = 'cash', includeTax, discount, discountReason,
-    expectedTotal, clientRequestId,
+    expectedTotal, clientRequestId, companyId,
 } = {}) => {
     try {
         await requireUser();
         const data = await settleOrderVerb(orderId, {
             method: paymentMode,
+            companyId: companyId || null,
             discount: discount ?? null,
             discountReason: discountReason ?? null,
             includeTax: includeTax ?? null,
             expectedTotal: expectedTotal ?? null,
             clientRequestId: clientRequestId || null,
         });
-        if (data?.payment_status === 'paid') fireFbrAfterSettle(data);
+        if (data?.payment_status === 'paid') {
+            fireFbrAfterSettle(data);
+            fireInventoryAfterSettle(data);
+        }
         return { data };
     } catch (e) {
         return { error: e.message };
@@ -155,6 +175,7 @@ export const cancelOrder = async (orderId, { reason, by } = {}) => {
         }
 
         const data = await voidOrder(orderId, reason.trim(), by || null);
+        if (data) fireInventoryAfterVoid(data);
         return { data };
     } catch (e) {
         return { error: e.message };

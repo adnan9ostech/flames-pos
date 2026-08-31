@@ -173,6 +173,15 @@ const ReceiptPreview = ({
                                 <span>− Rs. {totals.discount.toLocaleString()}</span>
                             </div>
                         )}
+                        {/* Auto-applied charges (service charge, delivery fee),
+                            each on its own line — a fee folded silently into the
+                            total is how arguments at the counter start. */}
+                        {(totals.charges || []).map((c) => (
+                            <div className={styles.row} key={c.name}>
+                                <span>{c.name}:</span>
+                                <span>Rs. {c.amount.toLocaleString()}</span>
+                            </div>
+                        ))}
                         {includeTax && (
                             <div className={styles.row}>
                                 {/* Label and rate come from settings, so a rate change

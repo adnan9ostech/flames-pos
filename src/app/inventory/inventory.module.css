@@ -1,0 +1,178 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 1.5rem;
+    color: var(--foreground);
+}
+
+.header {
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+}
+
+.errorNote {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
+    border-radius: var(--radius);
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--destructive);
+    font-size: 0.85rem;
+}
+
+/* ===== At-a-glance numbers ===== */
+.statsRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.statCard {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+}
+
+.statIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+/* Items short of stock get the amber treatment so the number reads as a
+   to-do, not a statistic */
+.warnIcon {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent);
+}
+
+.warnValue {
+    color: var(--accent);
+}
+
+.statLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+.statValue {
+    margin-top: 0.2rem;
+    font-size: 1.45rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.statHint {
+    margin-top: 0.1rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== Surface tiles ===== */
+.tileGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.tile {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    color: var(--foreground);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+}
+
+.tileIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.tileBody {
+    min-width: 0;
+    flex: 1;
+}
+
+.tileTitle {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.tileBlurb {
+    margin-top: 0.15rem;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.tileArrow {
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.tile:hover .tileArrow {
+    color: var(--primary);
+    transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tile,
+    .tileArrow {
+        transition: none;
+    }
+}

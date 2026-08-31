@@ -1,0 +1,443 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: 100vh;
+    padding: 1.5rem;
+    color: var(--foreground);
+}
+
+.header {
+    margin-bottom: 0.25rem;
+}
+
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-decoration: none;
+}
+
+.backLink:hover {
+    color: var(--primary);
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+}
+
+/* ===== Cards ===== */
+.card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    padding: 1.25rem;
+}
+
+.cardHead {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.cardIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    color: var(--primary);
+}
+
+.cardTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.cardBlurb {
+    margin-top: 0.15rem;
+    font-size: 0.82rem;
+    color: var(--muted-foreground);
+}
+
+.cardFoot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+/* ===== Form ===== */
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.fieldLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.fieldWide {
+    grid-column: 1 / -1;
+}
+
+.input {
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.45rem 0.6rem;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.input:focus {
+    border-color: var(--primary);
+}
+
+.inputNarrow {
+    min-width: 4.5rem;
+    max-width: 7.5rem;
+    text-align: right;
+}
+
+.inputSelect {
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.45rem 0.4rem;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+}
+
+.inputSelect:focus {
+    border-color: var(--primary);
+}
+
+.inputSelect option {
+    /* Native popups don't inherit, so state them or they render light-on-light */
+    background: var(--card);
+    color: var(--foreground);
+}
+
+/* ===== Line editor + tables ===== */
+.linesWrap,
+.tableWrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.linesWrap {
+    background: var(--background);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table tfoot td {
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+}
+
+.totalLabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+.totalValue {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.clickableRow {
+    cursor: pointer;
+}
+
+.clickableRow:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.chevCell {
+    width: 2rem;
+    color: var(--muted-foreground);
+}
+
+/* The expanded GRN's lines sit on a tinted ground so they read as detail of
+   the row above, not more rows of the outer list */
+.detailCell {
+    background: color-mix(in srgb, var(--primary) 4%, transparent);
+    padding: 0.75rem 1rem 1rem 3rem !important;
+}
+
+.subTable {
+    width: 100%;
+    max-width: 40rem;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.subTable th {
+    text-align: left;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+.subTable td {
+    padding: 0.35rem 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+.detailNotes {
+    margin-top: 0.6rem;
+    font-size: 0.82rem;
+    color: var(--muted-foreground);
+}
+
+.draftForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+/* ===== Cells ===== */
+.cellStrong {
+    font-weight: 700;
+}
+
+.cellMuted {
+    color: var(--muted-foreground);
+}
+
+.num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.alignRight {
+    text-align: right;
+}
+
+.emptyCell {
+    text-align: center;
+    padding: 2.5rem 1rem !important;
+    color: var(--muted-foreground);
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.chip_open {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent);
+}
+
+.chip_fulfilled {
+    border-color: color-mix(in srgb, var(--success) 45%, transparent);
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+/* ===== Buttons ===== */
+.primaryBtn,
+.addBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.primaryBtn:hover:not(:disabled),
+.addBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.primaryBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.addBtn {
+    margin-left: auto;
+}
+
+.ghostBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.82rem;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.ghostBtn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.iconBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.iconBtn:hover:not(:disabled) {
+    border-color: var(--destructive);
+    color: var(--destructive);
+}
+
+/* ===== Notes ===== */
+.errorNote {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
+    border-radius: var(--radius);
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--destructive);
+    font-size: 0.85rem;
+}
+
+.successNote {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
+    border-radius: var(--radius);
+    background: rgba(34, 197, 94, 0.08);
+    color: var(--success);
+    font-size: 0.85rem;
+}
+
+/* ===== Loading ===== */
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1rem;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .primaryBtn,
+    .addBtn,
+    .ghostBtn,
+    .iconBtn {
+        transition: none;
+    }
+}

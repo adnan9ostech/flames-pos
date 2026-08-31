@@ -54,8 +54,24 @@ const getTaxRates = async (conn) => {
     };
 };
 
-/* The rate a given payment method carries; anything unknown prices as cash. */
+/* The rate a given payment method carries; anything unknown prices as cash
+ * (a city-ledger credit sale taxes at the standard rate). */
 const rateForMethod = (rates, method) => (method === 'card' ? rates.card : rates.cash);
+
+/*
+ * The auto-applied charges this order type carries (service charge on
+ * dine-in, delivery fee on delivery). Empty order_types means every type.
+ * The till loads the same list, so its expected total already includes them.
+ */
+const activeChargesFor = async (conn, orderType) => {
+    const [rows] = await conn.query(
+        'SELECT name, value_type, value, order_types, before_tax FROM charges WHERE is_active = 1 AND auto_apply = 1',
+    );
+    return rows.filter((c) => {
+        const types = Array.isArray(c.order_types) ? c.order_types : [];
+        return types.length === 0 || types.includes(orderType);
+    });
+};
 
 const fetchOrder = async (conn, orderId, { forUpdate = false } = {}) => {
     const [rows] = await conn.query(
@@ -148,7 +164,11 @@ const recomputeOrder = async (conn, orderId, { taxRate }) => {
     const totals = calcTotals(
         lines.map((l) => ({ price: Number(l.unit_price), qty: l.qty })),
         Boolean(order.include_tax),
-        { taxRate, discount: Number(order.discount) || 0 },
+        {
+            taxRate,
+            discount: Number(order.discount) || 0,
+            charges: await activeChargesFor(conn, order.order_type),
+        },
     );
 
     // jsonb_strip_nulls semantics: a key whose value is null is omitted.
@@ -169,10 +189,15 @@ const recomputeOrder = async (conn, orderId, { taxRate }) => {
 
     await conn.query(
         `UPDATE orders SET
-           items = ?, subtotal = ?, discount = ?, tax = ?, total = ?,
+           items = ?, subtotal = ?, discount = ?, charges = ?, charges_total = ?,
+           tax = ?, total = ?,
            updated_at = UTC_TIMESTAMP(3)
          WHERE id = ?`,
-        [JSON.stringify(snapshot), totals.subtotal, totals.discount, totals.tax, totals.total, orderId],
+        [
+            JSON.stringify(snapshot), totals.subtotal, totals.discount,
+            JSON.stringify(totals.charges), totals.chargesTotal,
+            totals.tax, totals.total, orderId,
+        ],
     );
     return fetchOrder(conn, orderId);
 };
@@ -197,9 +222,21 @@ class TwinExists extends Error {
 const settleOrderTx = async (conn, orderId, {
     method = 'cash', discount = null, discountReason = null,
     includeTax = null, expectedTotal = null, clientRequestId = null,
+    companyId = null,
 } = {}) => {
-    if (!['cash', 'card'].includes(method)) {
+    if (!['cash', 'card', 'city_ledger'].includes(method)) {
         throw new Error(`Unknown payment method ${method}`);
+    }
+
+    // A city-ledger settle is a credit sale charged to a company account —
+    // the bill closes, the money arrives later through a receipt.
+    if (method === 'city_ledger') {
+        if (!companyId) throw new Error('A city-ledger bill needs a company');
+        const [companies] = await conn.query(
+            'SELECT is_active FROM companies WHERE id = ?', [companyId],
+        );
+        if (companies.length === 0) throw new Error('A city-ledger bill needs a company');
+        if (!companies[0].is_active) throw new Error('That company account is inactive');
     }
 
     // The lock: of two terminals settling the same tab, one wins and the
@@ -269,9 +306,10 @@ const settleOrderTx = async (conn, orderId, {
     }
 
     await conn.query(
-        `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [randomUUID(), orderId, order.branch_id, method, order.total, clientRequestId],
+        `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id, company_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [randomUUID(), orderId, order.branch_id, method, order.total, clientRequestId,
+         method === 'city_ledger' ? companyId : null],
     );
 
     await conn.query(
@@ -398,6 +436,7 @@ const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, pay
             // Same-transaction settle; the expected-total check happens there.
             order = await settleOrderTx(conn, orderId, {
                 method: opts.payment_mode || 'cash',
+                companyId: opts.company_id || null,
                 expectedTotal,
                 clientRequestId,
             });
@@ -520,12 +559,22 @@ export const voidOrder = async (orderId, reason, by = null) => {
         if (order.status === 'cancelled') return order; // voiding a void is a no-op, not an error
 
         // Voiding a paid bill reverses the money in the ledger, so the day's
-        // cash math nets to what is actually in the drawer.
-        if (order.payment_status === 'paid' && ['cash', 'card'].includes(order.payment_mode)) {
+        // cash math nets to what is actually in the drawer — and a voided
+        // city-ledger charge comes off the company's account the same way.
+        if (order.payment_status === 'paid' && ['cash', 'card', 'city_ledger'].includes(order.payment_mode)) {
+            let companyId = null;
+            if (order.payment_mode === 'city_ledger') {
+                const [rows] = await conn.query(
+                    `SELECT company_id FROM payments
+                     WHERE order_id = ? AND method = 'city_ledger' AND amount > 0 LIMIT 1`,
+                    [orderId],
+                );
+                companyId = rows[0]?.company_id ?? null;
+            }
             await conn.query(
-                `INSERT INTO payments (id, order_id, branch_id, method, amount)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [randomUUID(), orderId, order.branch_id, order.payment_mode, -Number(order.total)],
+                `INSERT INTO payments (id, order_id, branch_id, method, amount, company_id)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [randomUUID(), orderId, order.branch_id, order.payment_mode, -Number(order.total), companyId],
             );
         }
 

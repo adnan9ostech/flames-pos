@@ -1,0 +1,381 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem;
+    overflow: hidden;
+    color: var(--foreground);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.dayNote {
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Toolbar ===== */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0 0.65rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+}
+
+.control:focus-within {
+    border-color: var(--primary);
+}
+
+.dateInput {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.15rem;
+    /* Without this the native picker icon renders black on the dark field */
+    color-scheme: dark;
+}
+
+.dateSep {
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.toolBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.toolBtn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.toolBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.resultCount {
+    margin-left: auto;
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Table ===== */
+.listWrap {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--card);
+    text-align: left;
+    padding: 0.9rem 1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.alignRight {
+    text-align: right;
+}
+
+.cellStrong {
+    font-weight: 700;
+}
+
+/* Category rows carry the rollup, so collapsed is already the summary view */
+.catRow {
+    cursor: pointer;
+    background: var(--card-elevated);
+    font-weight: 700;
+}
+
+.catRow:hover td {
+    color: var(--primary);
+}
+
+.catCell {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.itemCount {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+}
+
+.itemCell {
+    padding-left: 2.4rem !important;
+}
+
+.variantRow td {
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+    border-bottom: none;
+}
+
+.variantCell {
+    padding-left: 3.6rem !important;
+}
+
+.tfootRow td {
+    position: sticky;
+    bottom: 0;
+    background: var(--card-elevated);
+    border-top: 2px solid var(--border);
+    border-bottom: none;
+    font-weight: 700;
+}
+
+.reconcile {
+    margin: 0.75rem 0 0;
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.reconcileWarn {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* ===== Loading / empty / error ===== */
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1rem;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== Thermal preview ===== */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.printModal {
+    background: white;
+    color: black;
+    /*
+     * Exactly the printable width, like ReceiptPreview: printThermal()
+     * measures this strip to size the page, and a preview laid out at any
+     * other width would make that measurement a measurement of the wrong
+     * thing — blank roll or a clipped tail on every print.
+     */
+    width: 80mm;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.receipt {
+    /* ~3mm of the roll is unprintable on either side */
+    padding: 2mm 3mm;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+    /* px, not rem, and a little weight: the measured height must not move
+       with the root font size, and thin 11px strokes burn grey on a thermal
+       head — same lesson the receipt already learned. */
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: #000;
+}
+
+.rHeader {
+    text-align: center;
+    margin-bottom: 2mm;
+}
+
+.rHeader h2 {
+    margin: 0;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+}
+
+.rHeader p {
+    margin: 1px 0;
+    font-size: 11px;
+}
+
+.rRule {
+    border-top: 1px dashed #000;
+    margin: 2mm 0;
+}
+
+.rCat {
+    margin-bottom: 2mm;
+}
+
+.rCatHead {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-bottom: 1px solid #000;
+    margin-bottom: 1mm;
+}
+
+.rLine {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+}
+
+.rLine span:first-child {
+    /* Long dish names wrap rather than shoving the money off the roll */
+    overflow-wrap: anywhere;
+}
+
+.rVariant {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    padding-left: 4mm;
+    font-size: 11px;
+}
+
+.rTotal {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    font-weight: 700;
+    font-size: 13px;
+    border-top: 1px solid #000;
+    margin-top: 1mm;
+    padding-top: 1mm;
+}
+
+.printActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border-top: 1px solid #ddd;
+    background: #f5f5f5;
+}
+
+.secondaryBtn,
+.primaryBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.secondaryBtn {
+    background: transparent;
+    border: 1px solid #ccc;
+    color: #444;
+}
+
+.primaryBtn {
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    color: white;
+}
+
+.primaryBtn:hover {
+    background: var(--primary-hover);
+}

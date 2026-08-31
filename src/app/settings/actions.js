@@ -13,7 +13,17 @@ export async function getSettings() {
     // redacted into something unreadable.
     try {
         await requireUser()
-        return await getStoreSettings()
+        const settings = await getStoreSettings()
+        if (!settings) return null
+        // The standing service charge lives in the charges engine (one row,
+        // by name); Settings offers its percentage as a quick edit beside
+        // the tax rates. 0 means switched off.
+        const rows = await query(
+            "SELECT value, is_active FROM charges WHERE name = 'Service Charge' LIMIT 1",
+        )
+        settings.service_charge_percent = rows.length && rows[0].is_active
+            ? Number(rows[0].value) : 0
+        return settings
     } catch (e) {
         console.error('Error fetching settings:', e.message)
         return null
@@ -72,6 +82,19 @@ export async function updateSettings(formData) {
                 [randomUUID(), merchant_name, merchant_city, raast_id,
                     qr_enabled ? 1 : 0, auto_print ? 1 : 0,
                     tax_rate_cash, tax_rate_card, tax_label],
+            )
+        }
+
+        // Service charge rides the charges engine, keyed by name: the quick
+        // field edits the percentage, 0 switches the charge off, and the
+        // Charges screen keeps full control of its shape.
+        const scRaw = Number(formData.get('service_charge_percent'))
+        if (Number.isFinite(scRaw)) {
+            const pct = Math.min(Math.max(scRaw, 0), 100)
+            await query(
+                `UPDATE charges SET value = ?, is_active = ?, updated_at = UTC_TIMESTAMP(3)
+                 WHERE name = 'Service Charge'`,
+                [pct, pct > 0 ? 1 : 0],
             )
         }
 

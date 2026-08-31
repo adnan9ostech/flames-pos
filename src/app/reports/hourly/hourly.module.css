@@ -1,0 +1,194 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem;
+    overflow: hidden;
+    color: var(--foreground);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.dayNote {
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Toolbar ===== */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0 0.65rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+}
+
+.control:focus-within {
+    border-color: var(--primary);
+}
+
+.dateInput {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.15rem;
+    /* Without this the native picker icon renders black on the dark field */
+    color-scheme: dark;
+}
+
+.resultCount {
+    margin-left: auto;
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Bar list ===== */
+.card {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+}
+
+.barList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.barRow {
+    display: grid;
+    grid-template-columns: 4rem 1fr 10rem;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+/* An hour with no bills inside the trading window: kept, but visually quiet */
+.quietRow {
+    opacity: 0.45;
+}
+
+.barLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.barTrack {
+    height: 1.35rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.barFill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 5px 0 0 5px;
+    min-width: 2px;
+    transition: width 0.2s;
+}
+
+.barMeta {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.barRevenue {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.barBills {
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+}
+
+.totalsRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.totalsMoney {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Loading / empty / error ===== */
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1rem;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .barFill { transition: none; }
+}

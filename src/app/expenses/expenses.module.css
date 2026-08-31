@@ -1,0 +1,754 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 1.5rem;
+    color: var(--foreground);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.tabs {
+    display: flex;
+    gap: 1rem;
+    background: var(--card);
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.filterTab {
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.filterTab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.filterCount {
+    background: var(--accent);
+    color: #1a1613;
+    border-radius: 999px;
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0 0.3rem;
+}
+
+.filterTab.active .filterCount {
+    background: white;
+    color: var(--primary);
+}
+
+.exportBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.85rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.exportBtn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.exportBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Form and table take the room; categories sit alongside until the screen
+   narrows, then stack below where a till-sized window can still reach them. */
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 19rem;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 64rem) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.cardIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.cardTitle {
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.cardHint {
+    margin-top: 0.15rem;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+/* ===== Entry form ===== */
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.25rem;
+}
+
+@media (max-width: 40rem) {
+    .formGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.fieldWide {
+    grid-column: 1 / -1;
+}
+
+.label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.input,
+.select {
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.75rem;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.input:focus,
+.select:focus {
+    border-color: var(--primary);
+}
+
+.select {
+    cursor: pointer;
+}
+
+.select option {
+    /* Native popups don't inherit, so state them or they render light-on-light */
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.dateInput {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.55rem 0.6rem;
+    /* Without this the native picker icon renders black on the dark field */
+    color-scheme: dark;
+}
+
+.dateInput:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.dateSep {
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.fieldHint {
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.fieldError {
+    font-size: 0.75rem;
+    color: var(--destructive);
+}
+
+.categoryRow,
+.inlineCat,
+.addCatRow {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.categoryRow .select {
+    flex: 1;
+    min-width: 0;
+}
+
+.inlineCat .input,
+.addCatRow .input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Drawer / bank / other */
+.segment {
+    display: flex;
+    gap: 0.25rem;
+    background: var(--background);
+    padding: 0.3rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.segmentBtn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.4rem;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.segmentBtn:hover {
+    color: var(--foreground);
+}
+
+.segmentBtn.segmentActive {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0;
+    font-size: 0.85rem;
+    color: var(--foreground);
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius);
+    border: 1px solid;
+    font-size: 0.82rem;
+}
+
+.noteError {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
+    color: var(--destructive);
+}
+
+.noteSuccess {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: color-mix(in srgb, var(--success) 45%, transparent);
+    color: var(--success);
+}
+
+.submitRow {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.submitBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.submitBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ===== Voucher table ===== */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.toolbarNote {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.dateRange {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.resultCount {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.tableWrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    background: var(--card);
+    text-align: left;
+    padding: 0.9rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* The footer carries the money that matters; lift it off the rows. */
+.table tfoot td {
+    border-bottom: none;
+    border-top: 1px solid var(--border);
+    background: var(--card-elevated);
+    font-variant-numeric: tabular-nums;
+}
+
+.cellStrong {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.cellMuted {
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.alignRight {
+    text-align: right;
+}
+
+.statusBadge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.statusPaid {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+}
+
+/* Amber, same voice as an unpaid tab on the orders screen */
+.statusPayable {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent);
+}
+
+.rowActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.markPaidBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.markPaidBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.markPaidBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.iconBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.iconBtn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.iconBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.deleteBtn:hover:not(:disabled) {
+    border-color: var(--destructive);
+    color: var(--destructive);
+}
+
+/* ===== Category manager ===== */
+.addCatRow {
+    margin-bottom: 1rem;
+}
+
+.catEmpty {
+    font-size: 0.82rem;
+    color: var(--muted-foreground);
+}
+
+.catList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.catRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+}
+
+.catRow:last-child {
+    border-bottom: none;
+}
+
+.catName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.catInactive {
+    color: var(--muted);
+    text-decoration: line-through;
+}
+
+.catToggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.catToggle:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* ===== Loading / empty ===== */
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1rem;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+.inlineSpinner {
+    animation: spin 0.8s linear infinite;
+}
+
+/* Rows already on screen stay readable while a range change loads, so the
+   refetch reads as a refresh rather than a flash of empty state. */
+.stale {
+    opacity: 0.55;
+    transition: opacity 0.15s;
+    pointer-events: none;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .inlineSpinner { animation-duration: 2s; }
+    .stale { transition: none; }
+}
+
+/* ===== Delete confirmation ===== */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    width: 100%;
+    max-width: 26rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    padding: 1.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modalTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.modalBody {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+}
+
+.modalError {
+    margin: 0.5rem 0 0;
+    font-size: 0.78rem;
+    color: var(--destructive);
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+}
+
+.modalCancel,
+.modalConfirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.modalCancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+}
+
+/* Destructive, and coloured to say so before it's pressed */
+.modalConfirm {
+    background: var(--destructive);
+    border: 1px solid var(--destructive);
+    color: var(--destructive-foreground);
+}
+
+.modalConfirm:disabled,
+.modalCancel:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}

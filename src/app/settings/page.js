@@ -67,6 +67,8 @@ export default function SettingsPage() {
     // operator's raw text lives here while they type.
     const [taxCashInput, setTaxCashInput] = useState('')
     const [taxCardInput, setTaxCardInput] = useState('')
+    // Already a percentage end to end, unlike the tax fractions above.
+    const [serviceChargeInput, setServiceChargeInput] = useState('')
     const [saved, setSaved] = useState(EMPTY)
 
     useEffect(() => {
@@ -78,6 +80,7 @@ export default function SettingsPage() {
             next.auto_print = next.auto_print !== false
             next.tax_rate_cash = Number(next.tax_rate_cash ?? EMPTY.tax_rate_cash)
             next.tax_rate_card = Number(next.tax_rate_card ?? EMPTY.tax_rate_card)
+            next.service_charge_percent = Number(next.service_charge_percent ?? 0)
             setSettings(next)
             setSaved(next)
             // Seeded here rather than in an effect: the percentage fields keep
@@ -85,6 +88,7 @@ export default function SettingsPage() {
             // way to "16" isn't normalised under the cursor.
             setTaxCashInput(String(Number((next.tax_rate_cash * 100).toFixed(2))))
             setTaxCardInput(String(Number((next.tax_rate_card * 100).toFixed(2))))
+            setServiceChargeInput(String(next.service_charge_percent))
             setLoading(false)
         })
     }, [])
@@ -102,7 +106,8 @@ export default function SettingsPage() {
             || settings.qr_enabled !== saved.qr_enabled
             || settings.auto_print !== saved.auto_print
             || Number(settings.tax_rate_cash) !== Number(saved.tax_rate_cash)
-            || Number(settings.tax_rate_card) !== Number(saved.tax_rate_card),
+            || Number(settings.tax_rate_card) !== Number(saved.tax_rate_card)
+            || Number(settings.service_charge_percent) !== Number(saved.service_charge_percent),
         [settings, saved]
     )
 
@@ -312,6 +317,32 @@ export default function SettingsPage() {
                             />
                             <p className="mt-1.5 text-xs text-gray-500">
                                 The ICT differential rate for card and digital payments — resolved when the bill settles.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label htmlFor="service_charge_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
+                                Service charge
+                            </label>
+                            <input
+                                id="service_charge_percent"
+                                type="number"
+                                name="service_charge_percent"
+                                min="0"
+                                max="100"
+                                step="0.5"
+                                inputMode="decimal"
+                                value={serviceChargeInput}
+                                onChange={(e) => {
+                                    setServiceChargeInput(e.target.value)
+                                    setSettings(s => ({ ...s, service_charge_percent: Number(e.target.value) || 0 }))
+                                }}
+                                autoComplete="off"
+                                className={fieldClass.replace('pl-10', 'pl-4')}
+                                placeholder="5"
+                            />
+                            <p className="mt-1.5 text-xs text-gray-500">
+                                Percent added automatically to dine-in bills, taxed like the food. 0 switches it off; scope and more charges live under Charges.
                             </p>
                         </div>
 

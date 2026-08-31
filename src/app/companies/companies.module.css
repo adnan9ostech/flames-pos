@@ -1,0 +1,399 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem;
+    overflow: hidden;
+    color: var(--foreground);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.primaryBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.primaryBtn:hover {
+    background: var(--primary-hover);
+}
+
+.errorBanner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
+    border-radius: var(--radius);
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--destructive);
+    font-size: 0.85rem;
+}
+
+/* ===== Table ===== */
+.tableWrap {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--card);
+    text-align: left;
+    padding: 0.9rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.inactiveRow td {
+    opacity: 0.55;
+}
+
+/* Actions stay tappable on a dimmed row */
+.inactiveRow td:last-child {
+    opacity: 1;
+}
+
+.cellStrong {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.cellMuted {
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.cellSub {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--muted-foreground);
+    margin-top: 0.15rem;
+}
+
+.alignRight {
+    text-align: right;
+}
+
+/* Money still owed is what this screen exists to show */
+.balanceDue {
+    color: var(--accent);
+}
+
+.statusChip {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.activeChip {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+}
+
+.inactiveChip {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+.invoicedChip {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.uninvoicedChip {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent);
+}
+
+.rowActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.iconBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.iconBtn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.iconBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.dangerBtn:hover {
+    border-color: var(--destructive);
+    color: var(--destructive);
+}
+
+/* ===== Loading / empty ===== */
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1rem;
+    color: var(--muted-foreground);
+    text-align: center;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== Modals ===== */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    width: 100%;
+    max-width: 30rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    padding: 1.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Statement needs six columns of breathing room */
+.wideModal {
+    max-width: 52rem;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+}
+
+.modalTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+}
+
+.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.input,
+.textarea {
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.75rem;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.textarea {
+    resize: vertical;
+}
+
+.input:focus,
+.textarea:focus {
+    border-color: var(--primary);
+}
+
+.modalError {
+    margin: 0.75rem 0 0;
+    font-size: 0.78rem;
+    color: var(--destructive);
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+}
+
+.modalCancel,
+.modalConfirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.modalCancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+}
+
+.modalConfirm {
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    color: white;
+}
+
+.modalConfirm:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.modalConfirm:disabled,
+.modalCancel:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ===== Statement ===== */
+.statementHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.statementWrap {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.receiptCell {
+    color: var(--success);
+}
+
+.statementFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+}
+
+.statementFooter strong {
+    font-size: 1.15rem;
+    color: var(--foreground);
+}

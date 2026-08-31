@@ -1,0 +1,304 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem;
+    overflow: hidden;
+    color: var(--foreground);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--card);
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.errorBanner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
+    border-radius: var(--radius);
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--destructive);
+    font-size: 0.85rem;
+}
+
+/* ===== Forms ===== */
+.formCard {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.formRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.9rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 9rem;
+}
+
+.label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.input,
+.select {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.55rem 0.7rem;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.input:focus,
+.select:focus {
+    border-color: var(--primary);
+}
+
+.select:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.select option {
+    /* Native popups don't inherit, so state them or they render light-on-light */
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.input[type='date'] {
+    /* Without this the native picker icon renders black on the dark field */
+    color-scheme: dark;
+}
+
+.primaryBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.primaryBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.primaryBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius);
+    border: 1px solid;
+    font-size: 0.82rem;
+}
+
+.noteError {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
+    color: var(--destructive);
+}
+
+.noteSuccess {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: color-mix(in srgb, var(--success) 45%, transparent);
+    color: var(--success);
+}
+
+/* ===== Tables ===== */
+.tableWrap {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--card);
+    text-align: left;
+    padding: 0.9rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.cellStrong {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.cellMuted {
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.alignRight {
+    text-align: right;
+}
+
+/* Money owed draws the eye; money received sits back in green */
+.dueText {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.paidText {
+    color: var(--success);
+}
+
+.settledChip {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+}
+
+/* Aging severity ramps with the bucket, not the amount */
+.agingWarn {
+    color: var(--accent);
+}
+
+.agingLate {
+    color: var(--destructive);
+    font-weight: 700;
+}
+
+.inactiveTag {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--muted-foreground);
+}
+
+/* ===== Loading / empty ===== */
+.stateBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1rem;
+    color: var(--muted-foreground);
+    text-align: center;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+/* On the submit button the spinner sits on the primary fill */
+.primaryBtn .spinner {
+    color: white;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

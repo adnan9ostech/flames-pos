@@ -106,6 +106,27 @@ export default function ReportsPage() {
                 </p>
             </div>
 
+            {/* The report library — each page owns one question the business
+                asks; this dashboard stays the at-a-glance overview. */}
+            <div className="flex flex-wrap gap-2 no-print">
+                {[
+                    ['/reports/handover', 'Handover'],
+                    ['/reports/daily-sales', 'Daily Food Sales'],
+                    ['/reports/hourly', 'Hourly Sales'],
+                    ['/reports/item-wise', 'Item-wise Sale'],
+                    ['/reports/menu-analytics', 'Menu Analytics'],
+                    ['/reports/gross-profit', 'Gross Profit'],
+                ].map(([href, label]) => (
+                    <a
+                        key={href}
+                        href={href}
+                        className="px-3.5 py-2 rounded-lg bg-gray-900/80 border border-gray-800/60 text-sm text-gray-300 hover:text-white hover:border-orange-600/50 transition-colors"
+                    >
+                        {label}
+                    </a>
+                ))}
+            </div>
+
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4 no-print">
                 <div className="min-w-0">
