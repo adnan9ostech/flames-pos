@@ -105,6 +105,24 @@ Also done in the integration pass (was "in progress" above):
 7. Confirm with accountant: FBR posture for tax-off orders and BTC
    (city-ledger) invoices
 
+## Cleanup done (31 Aug, post-F–J)
+
+- Deleted the retired Postgres layer `supabase/` (migrations/tests/seed —
+  git history is the archive), `scripts/menu/` (legacy Supabase-Storage
+  one-offs), `scripts/test_crc.js`, the stray `.env.local.bak-*`, and the
+  `dotenv` devDependency (the scripts hand-roll .env loading).
+  `blink-pos-architecture.md` moved into `docs/`.
+- KEPT deliberately, still load-bearing until the production import runs on
+  the server: `scripts/migrate-to-mysql/`, `src/lib/sanityMenu.js`,
+  `@supabase/supabase-js`. Delete these in the post-cutover sweep.
+- KEPT (not code): gitignored asset originals `menu-images/` (15M masters)
+  and `social-media/` (37M) — they never ship and deleting originals is not
+  reversible; remove by hand if you have them backed up elsewhere.
+- `docs/CLEANUP-AUDIT.md` still describes the Supabase-era architecture —
+  regenerate it with `/cleanup-audit` after cutover rather than trusting it.
+- Audit script taught that Next 16's `proxy.js` is framework-discovered
+  (it was reporting it as an orphan).
+
 ## Known cautions
 
 - Old MariaDB datadir preserved at

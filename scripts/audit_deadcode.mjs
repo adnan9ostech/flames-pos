@@ -23,7 +23,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SRC = join(ROOT, 'src');
 
-const NEXT_ENTRY = /^(page|layout|loading|error|not-found|route|template|default|middleware|icon|opengraph-image)\.(js|jsx|ts|tsx)$/;
+// `proxy` is Next 16's rename of `middleware` — framework-discovered by
+// filename, so nothing imports it and it is not an orphan.
+const NEXT_ENTRY = /^(page|layout|loading|error|not-found|route|template|default|middleware|proxy|icon|opengraph-image)\.(js|jsx|ts|tsx)$/;
 const CODE = /\.(js|jsx|mjs|ts|tsx)$/;
 
 const walk = (dir, out = []) => {
