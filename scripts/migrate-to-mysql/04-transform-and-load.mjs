@@ -143,13 +143,14 @@ try {
         load('waiters.json'),
         (r) => [r.id, r.name, r.code, flag(r.is_active, true), toDate(r.created_at)]);
 
-    // Supabase had one tax_rate; MySQL taxes by payment method. Both start at
-    // the old rate — the card rate diverges later when ICT confirms it.
+    // Supabase had one tax_rate; MySQL taxes by payment method. Cash keeps
+    // the old rate; card is the ICT differential — 5%, confirmed by Adnan on
+    // 31 Aug 2026. Both stay editable as percentages in Settings.
     await insert('store_settings',
         ['id', 'merchant_name', 'merchant_city', 'raast_id', 'jazzcash_id', 'qr_enabled', 'tax_rate_cash', 'tax_rate_card', 'tax_label', 'auto_print', 'updated_at'],
         load('store_settings.json'),
         (r) => [r.id, r.merchant_name, r.merchant_city, r.raast_id, r.jazzcash_id,
-            flag(r.qr_enabled, true), r.tax_rate ?? 0.16, r.tax_rate ?? 0.16,
+            flag(r.qr_enabled, true), r.tax_rate ?? 0.16, 0.05,
             r.tax_label ?? 'GST', flag(r.auto_print, true), toDate(r.updated_at)]);
 
     await conn.commit();

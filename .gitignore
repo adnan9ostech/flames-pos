@@ -59,7 +59,7 @@ menu-photo-review-2.html
 menu-photo-review-final.html
 
 # Menu photography masters — 15MB, mirrored in Supabase Storage
-menu-images/
+/menu-images/
 *.zip
 
 # Local QA review list
