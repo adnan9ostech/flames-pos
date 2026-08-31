@@ -8,7 +8,7 @@ import styles from './orders.module.css';
 import {
     getOrdersPage, getUnpaidOrdersCount, bumpOrder, getMenuItems,
     cancelOrder, ORDERS_PAGE_SIZES
-} from '@/lib/supabaseDb';
+} from '@/lib/dataClient';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
 import { printReceipt } from '@/lib/printReceipt';
 import { useRole } from '@/components/Layout/AppLayout';

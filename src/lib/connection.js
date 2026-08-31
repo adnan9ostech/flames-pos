@@ -1,10 +1,10 @@
 /*
  * Whether this terminal is actually connected — both to the network and to
- * Supabase's realtime socket.
+ * the server it polls for order changes.
  *
- * These are separate failures and only one of them is obvious. A dropped socket
+ * These are separate failures and only one of them is obvious. A failing poll
  * on a working network is the dangerous case: the kitchen display keeps showing
- * the tickets it had when the socket died and nothing says otherwise, so staff
+ * the tickets it had when polling broke and nothing says otherwise, so staff
  * read a stale board as a quiet one. An offline banner is a much better failure
  * than that.
  *

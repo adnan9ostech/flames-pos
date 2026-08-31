@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { login, requestPinReset } from '@/app/login/actions'
+import { login } from '@/app/login/actions'
 import CookingLoader from '@/components/Layout/CookingLoader'
 import { Utensils, Loader2, ShieldCheck, UserRound } from 'lucide-react'
 
@@ -10,28 +10,10 @@ const ROLES = [
     { key: 'staff', label: 'Staff', Icon: UserRound },
 ]
 
-const LINK_ERRORS = {
-    // Requesting a reset replaces the previous token, so an older email's link
-    // is already dead by the time it's clicked — worth saying outright, since
-    // "expired" alone sends people hunting for the wrong problem.
-    link_expired: 'That reset link is no longer valid — only the newest email works. Request a new one below and open that link.',
-    link_malformed: 'That reset link was incomplete. Request a new one below.',
-    link_invalid: 'That reset link could not be used. Request a new one below.',
-}
-
-// `linkError` and `justReset` come from the page's searchParams, resolved on
-// the server — the outcome of a redirect is known before this ever renders, so
-// it belongs in initial state rather than in an effect that fires after paint.
-export default function LoginForm({ linkError = '', justReset = false }) {
+export default function LoginForm() {
     const [role, setRole] = useState('admin')
-    const [error, setError] = useState(
-        linkError ? (LINK_ERRORS[linkError] || LINK_ERRORS.link_invalid) : ''
-    )
-    const [notice, setNotice] = useState(
-        justReset ? 'PIN updated. Sign in with your new PIN.' : ''
-    )
+    const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
-    const [resetting, setResetting] = useState(false)
 
     // `loading` deliberately stays true through a successful sign-in: the action
     // resolves well before /pos finishes rendering, and dropping the pending
@@ -39,7 +21,6 @@ export default function LoginForm({ linkError = '', justReset = false }) {
     const handleSubmit = async (formData) => {
         setLoading(true)
         setError('')
-        setNotice('')
 
         const result = await login(formData)
 
@@ -47,18 +28,6 @@ export default function LoginForm({ linkError = '', justReset = false }) {
             setError(result.error)
             setLoading(false)
         }
-    }
-
-    const handleReset = async () => {
-        setResetting(true)
-        setError('')
-        setNotice('')
-
-        const result = await requestPinReset(role)
-
-        setNotice(result?.success || '')
-        setError(result?.error || '')
-        setResetting(false)
     }
 
     return (
@@ -97,7 +66,7 @@ export default function LoginForm({ linkError = '', justReset = false }) {
                                 key={key}
                                 type="button"
                                 onClick={() => setRole(key)}
-                                disabled={loading || resetting}
+                                disabled={loading}
                                 aria-pressed={role === key}
                                 className={`flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold border transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${role === key
                                         ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-500/20'
@@ -124,7 +93,7 @@ export default function LoginForm({ linkError = '', justReset = false }) {
                             autoComplete="off"
                             required
                             autoFocus
-                            disabled={loading || resetting}
+                            disabled={loading}
                             className="appearance-none block w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-900/50 text-white placeholder-gray-500 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200 disabled:opacity-60"
                             placeholder="••••••"
                         />
@@ -134,14 +103,6 @@ export default function LoginForm({ linkError = '', justReset = false }) {
                         <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3">
                             <p className="text-red-400 text-sm text-center font-medium">
                                 {error}
-                            </p>
-                        </div>
-                    )}
-
-                    {notice && (
-                        <div className="bg-emerald-500/10 border border-emerald-500/50 rounded-lg p-3">
-                            <p className="text-emerald-400 text-sm text-center font-medium">
-                                {notice}
                             </p>
                         </div>
                     )}
@@ -161,16 +122,8 @@ export default function LoginForm({ linkError = '', justReset = false }) {
                         )}
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        disabled={resetting || loading}
-                        className="w-full text-center text-sm text-gray-400 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                    >
-                        {resetting
-                            ? 'Sending reset link...'
-                            : `Forgot ${role === 'admin' ? 'Admin' : 'Staff'} PIN?`}
-                    </button>
+                    {/* Forgot-PIN lives with the admin now: Settings > reset
+                        either role's PIN at the counter. No emailed links. */}
                 </form>
             </div>
         </div>

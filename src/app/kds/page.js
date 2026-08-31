@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import styles from './kds.module.css';
-import { getKitchenOrders, bumpOrder, getMenuItems } from '@/lib/supabaseDb';
+import { getKitchenOrders, bumpOrder, getMenuItems } from '@/lib/dataClient';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import {
     getOrderNumber, buildImageMap, resolveItemImage, formatModifiers
@@ -12,7 +12,7 @@ import LiveClock from '@/components/Layout/LiveClock';
 import { UtensilsCrossed, Volume2, VolumeX, Maximize2, UserRound, Layers } from 'lucide-react';
 
 // Kitchen lanes, in the order tickets flow across the screen. These keys are
-// the statuses getKitchenOrders() fetches (KITCHEN_STATUSES in supabaseDb.js) —
+// the statuses getKitchenOrders() fetches (KITCHEN_STATUSES in dataClient.js) —
 // a lane added here without adding it there would render permanently empty.
 const LANES = [
     { key: 'new', label: 'New', next: 'preparing', action: 'Start' },
@@ -119,9 +119,10 @@ export default function KDSPage() {
     }, [chime]);
 
     /*
-     * Session-aware subscription that also refetches after a reconnect — the
-     * board runs unattended for a whole service, and events missed while the
-     * socket was down would otherwise never arrive.
+     * Version polling that also refetches after a gap — the board runs
+     * unattended for a whole service, and changes made while a poll was
+     * failing would otherwise never arrive. The hook polls every ~4s, which
+     * also retires the old belt-and-braces 15s interval this effect carried.
      */
     useRealtimeTable({ table: 'orders', channel: 'kds_channel', onChange: loadOrders });
 
@@ -131,11 +132,6 @@ export default function KDSPage() {
         // nothing is set synchronously here — the rule can't see past the call.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadOrders();
-
-        // Belt and braces on top of the reconnect refetch: a socket can be
-        // healthy and still have dropped a message.
-        const poll = setInterval(loadOrders, 15000);
-        return () => clearInterval(poll);
     }, [loadOrders]);
 
     // Ticket age drives the colour coding, so keep a ticking clock

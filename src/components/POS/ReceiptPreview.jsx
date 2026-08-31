@@ -11,6 +11,14 @@ const ROLE_LABEL = { admin: 'Admin', staff: 'Staff' };
 const ReceiptPreview = ({
     cart, totals, includeTax, invoiceNumber, meta, printLabel, role, busy, onClose, onPrint,
     /*
+     * The settled order row, when the caller has one. Only read for
+     * fbr_invoice_number — the number FBR itself issued, backfilled after
+     * settle (or later, by the retry worker). Callers without a row (a
+     * pre-payment preview) simply get no FBR block, which is the truth:
+     * that sale hasn't been reported yet.
+     */
+    order = null,
+    /*
      * Reprint mode. `orderDate` is the original sale's timestamp and `reprint`
      * marks the paper as a copy. Without these a reprint stamped today's date
      * on last week's bill — two documents for one sale, each asserting a
@@ -190,14 +198,29 @@ const ReceiptPreview = ({
                         </div>
                     )}
 
-                    {/* FBR QR Code - only show when tax is included.
-                        Rendered inline rather than fetched from an image host: a
-                        third-party request at print time is simply missing on a
-                        till with a flaky connection, and this has to reach paper. */}
-                    {includeTax && (
+                    {/* FBR Digital Invoicing — only once FBR has actually issued
+                        a number (the old placeholder QR encoded a constant, which
+                        verifies nothing). The QR carries JUST the number: Tax
+                        Asaan looks the invoice up by it, and wrapping it in a URL
+                        breaks the app's scanner. Rendered inline rather than
+                        fetched from an image host: a third-party request at print
+                        time is simply missing on a till with a flaky connection,
+                        and this has to reach paper. */}
+                    {order?.fbr_invoice_number && (
                         <div className={styles.qrSection}>
-                            <QRCodeSVG value="FBR-VERIFY-INVOICE" size={84} level="M" />
-                            <p>Verify this invoice via FBR Tax Asaan App</p>
+                            <p className={styles.qrCaption}>FBR Invoice # {order.fbr_invoice_number}</p>
+                            {/* ~1 inch at 80mm thermal — the size Tax Asaan scans
+                                reliably at arm's length */}
+                            <QRCodeSVG value={order.fbr_invoice_number} size={96} level="M" />
+                            {/* Preflight makes img a block, so it needs auto margins
+                                to centre — same reason .logoImg carries them. */}
+                            <img
+                                src="/fbr-logo.png"
+                                alt="FBR Digital Invoicing"
+                                className={styles.fbrLogo}
+                                style={{ margin: '2.5mm auto 1mm' }}
+                            />
+                            <p>Verify this invoice via the FBR Tax Asaan app</p>
                         </div>
                     )}
 

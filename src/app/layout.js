@@ -3,8 +3,7 @@ import "./globals.css";
 import AppLayout from "@/components/Layout/AppLayout";
 import ConnectionStatus from "@/components/Layout/ConnectionStatus";
 import ServiceWorkerRegistrar from "@/components/Layout/ServiceWorkerRegistrar";
-import { createClient } from "@/lib/supabase/server";
-import { getRole } from "@/lib/supabase/role";
+import { readSession } from "@/lib/db/auth.mjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,9 +27,10 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const role = await getRole(supabase, user?.id);
+  // Cookie-only read — the layout renders on every request, so it gets the
+  // role from the signed session without touching the DB.
+  const session = await readSession();
+  const role = session?.role ?? null;
 
   return (
     <html lang="en">

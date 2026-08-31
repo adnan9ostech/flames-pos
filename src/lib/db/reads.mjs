@@ -28,16 +28,7 @@ export const getStoreSettings = async () => {
     return rows.length ? serializeRow('store_settings', rows[0]) : null;
 };
 
-/* Both rates; the till prices the payment sheet per mode. */
-export const getTaxRates = async () => {
-    const rows = await query('SELECT tax_rate_cash, tax_rate_card FROM store_settings LIMIT 1');
-    return {
-        cash: Number(rows[0]?.tax_rate_cash ?? 0.16),
-        card: Number(rows[0]?.tax_rate_card ?? 0.16),
-    };
-};
-
-export const KITCHEN_STATUSES = ['new', 'preparing', 'ready'];
+const KITCHEN_STATUSES = ['new', 'preparing', 'ready'];
 
 // Exactly the columns a ticket renders — totals and customer details stay
 // off a screen that displays none of them.

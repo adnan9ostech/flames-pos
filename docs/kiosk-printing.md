@@ -55,7 +55,7 @@ So teach the profile once, with the preview still available:
 1. Launch Chrome with the profile but **without** `--kiosk-printing`:
 
    ```
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\pos-profile" https://flamespos.vercel.app/pos
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\pos-profile" https://pos.flamesbytheindus.com/pos
    ```
 
 2. Sign in, open any order in **Orders** and press the 🖨 button to get a receipt.
@@ -74,7 +74,7 @@ Now the kiosk shortcut will print silently using exactly those settings.
 Create a desktop shortcut with this as the target:
 
 ```
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk --kiosk-printing --user-data-dir="C:\pos-profile" --app=https://flamespos.vercel.app/pos
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk --kiosk-printing --user-data-dir="C:\pos-profile" --app=https://pos.flamesbytheindus.com/pos
 ```
 
 What each part is for:

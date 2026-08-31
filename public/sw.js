@@ -11,12 +11,13 @@
  *
  * Deliberate exclusions:
  *   - anything but GET, so no write is ever intercepted
- *   - cross-origin requests, which includes every Supabase call: auth, data and
- *     realtime must always hit the network or the till would act on stale rows
- *   - /auth/* and /login, so a session is never decided from cache
+ *   - cross-origin requests
+ *   - /api/*, the data path now that the API is same-origin: orders, auth and
+ *     settings must always hit the network or the till would act on stale rows
+ *   - /login, so a session is never decided from cache
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `flames-shell-${VERSION}`;
 const ASSET_CACHE = `flames-assets-${VERSION}`;
 const OFFLINE_URL = '/offline.html';
@@ -48,6 +49,10 @@ const isCacheableAsset = (url) =>
     // version of a file that has changed.
     url.pathname.startsWith('/_next/static/')
     || url.pathname.startsWith('/icons/')
+    // /menu-images/ files match here too, and they are NOT content-hashed:
+    // cache-first means new bytes under an old filename keep serving the old
+    // image until VERSION bumps. The rule, therefore: a changed menu image
+    // gets a NEW filename, never a replacement under the old one.
     || /\.(?:png|jpg|jpeg|svg|webp|avif|ico|woff2?)$/.test(url.pathname);
 
 self.addEventListener('fetch', (event) => {
@@ -57,11 +62,15 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(request.url);
 
-    // Same-origin only. Supabase is another origin, so this covers every data,
-    // auth and storage call in one condition.
+    // Same-origin only — third-party requests are never ours to answer.
     if (url.origin !== self.location.origin) return;
 
-    if (url.pathname.startsWith('/auth/') || url.pathname === '/login') return;
+    // The API is the data path, and it lives on this origin now: every order,
+    // auth and settings call goes under /api/, and none of it may ever come
+    // from cache.
+    if (url.pathname.startsWith('/api/')) return;
+
+    if (url.pathname === '/login') return;
 
     if (isCacheableAsset(url)) {
         event.respondWith(

@@ -1,17 +1,7 @@
 import LoginForm from '@/components/Auth/LoginForm'
 
-/*
- * Thin server wrapper so the redirect outcomes carried in the query string
- * (?reset=1, ?error=link_expired) are resolved before render and handed to the
- * form as initial state, rather than being read from window in an effect.
- */
-export default async function LoginPage({ searchParams }) {
-    const params = await searchParams
-
-    return (
-        <LoginForm
-            linkError={typeof params?.error === 'string' ? params.error : ''}
-            justReset={Boolean(params?.reset)}
-        />
-    )
+// The email-reset flow is gone with Supabase Auth, and with it the query-string
+// outcomes this wrapper used to resolve — the form now stands on its own.
+export default function LoginPage() {
+    return <LoginForm />
 }

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import styles from './customer.module.css';
-import { getFullMenuData } from '@/lib/supabaseDb';
+import { getFullMenuData } from '@/lib/dataClient';
 import { Soup, Flame, Utensils, Cookie, GlassWater, Plus, Search, LayoutGrid, List } from 'lucide-react';
 import Image from 'next/image';
 

@@ -1,7 +1,9 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/pool.mjs'
+import { serializeRows } from '@/lib/db/serialize.mjs'
+import { requireAdmin } from '@/lib/db/auth.mjs'
 import { subDays, differenceInMilliseconds } from 'date-fns'
 
 /*
@@ -149,7 +151,13 @@ function trendPct(current, previous) {
 }
 
 export async function getDashboardStats(range = 'today', endDateStr = null) {
-    const supabase = await createClient()
+    // Admin-only: takings and per-waiter figures are not floor reading.
+    // Returned rather than thrown — production redacts thrown action errors.
+    try {
+        await requireAdmin()
+    } catch (e) {
+        return { error: e.message }
+    }
 
     // Date range, in Karachi days: "today" is the restaurant's today, and a
     // date picked in the filter means that calendar day in Karachi — not the
@@ -175,16 +183,14 @@ export async function getDashboardStats(range = 'today', endDateStr = null) {
     const prevEndDate = new Date(startDate.getTime() - 1)
     const prevStartDate = new Date(prevEndDate.getTime() - durationMs)
 
-    const fetchOrders = async (from, to) => {
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .gte('created_at', from.toISOString())
-            .lte('created_at', to.toISOString())
-            .neq('status', 'cancelled') // Exclude cancelled orders
-        if (error) throw error
-        return data
-    }
+    // Bound as JS Dates (the pool speaks UTC), then serialized so the
+    // aggregation below sees the same ISO-string shapes PostgREST used to send.
+    const fetchOrders = async (from, to) =>
+        serializeRows('orders', await query(
+            `SELECT * FROM orders
+             WHERE created_at >= ? AND created_at <= ? AND status <> 'cancelled'`,
+            [from, to],
+        ))
 
     let orders, prevOrders
     try {

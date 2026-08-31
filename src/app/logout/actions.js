@@ -1,18 +1,19 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { COOKIE_NAME } from '@/lib/auth/session.mjs'
 
 export async function logout() {
-    const supabase = await createClient()
     /*
-     * Local scope only. The default ('global') revokes every session for the
-     * account — and because admin/staff are shared accounts, one person
-     * signing out of the back office dropped the till and the kitchen display
-     * mid-service. This ends the session on this device and leaves the other
-     * terminals working.
+     * Per-device by construction: deleting the cookie only signs out this
+     * browser. That matters because admin/staff are shared accounts — one
+     * person signing out of the back office must never drop the till and the
+     * kitchen display mid-service, and here it can't: their cookies live on
+     * their own devices, untouched.
      */
-    await supabase.auth.signOut({ scope: 'local' })
+    const store = await cookies()
+    store.delete(COOKIE_NAME)
     redirect('/login')
 }

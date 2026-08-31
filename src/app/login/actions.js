@@ -3,76 +3,76 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { headers, cookies } from 'next/headers'
+import bcrypt from 'bcryptjs'
+import { query } from '@/lib/db/pool.mjs'
+import { COOKIE_NAME, signSession, cookieOptions } from '@/lib/auth/session.mjs'
 
-// The role toggle only picks which account to attempt — it is never trusted
-// as a role claim. Everything downstream (middleware, RLS) re-derives the
-// real role from `profiles`, keyed by whichever account this login actually
-// authenticates as.
-const ROLE_EMAIL = {
-    admin: process.env.AUTH_ADMIN_EMAIL,
-    staff: process.env.AUTH_STAFF_EMAIL,
+// The role toggle only picks which account row to attempt — it is never
+// trusted as a role claim. The session's role comes from the users row this
+// login actually authenticates against, and every later check re-reads it
+// from the signed cookie or the DB.
+const ROLES = new Set(['admin', 'staff'])
+
+/*
+ * A 6-digit PIN is a million-key space, which online guessing chews through
+ * unless failures cost time. Per role+IP, consecutive failures past 5 buy an
+ * exponentially growing wait (capped — this must slow a script, not lock out
+ * a fat-fingered waiter). In-memory on purpose: single-process deploy, and a
+ * process restart forgiving the count is an acceptable trade.
+ */
+const failures = new Map()
+const FREE_ATTEMPTS = 5
+const MAX_DELAY_MS = 30_000
+
+const clientKey = async (role) => {
+    const h = await headers()
+    const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local'
+    return `${role}:${ip}`
 }
 
-export async function login(formData) {
-    const supabase = await createClient()
+const failureDelay = (count) =>
+    count < FREE_ATTEMPTS ? 0 : Math.min(MAX_DELAY_MS, 1000 * 2 ** (count - FREE_ATTEMPTS))
 
+export async function login(formData) {
     const role = formData.get('role')
     const pin = formData.get('pin')
-    const email = ROLE_EMAIL[role]
 
-    if (!email) {
+    if (!ROLES.has(role)) {
         return { error: 'Unknown role' }
     }
     if (!/^\d{6}$/.test(pin || '')) {
         return { error: 'Enter a 6-digit PIN' }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password: pin,
-    })
+    const key = await clientKey(role)
+    const delay = failureDelay(failures.get(key) ?? 0)
+    if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+    }
 
-    if (error) {
-        // Don't pass through Supabase's raw message — the PIN's keyspace is
-        // small enough that error detail isn't worth leaking.
+    const rows = await query(
+        'SELECT id, role, pin_hash, pin_version FROM users WHERE role = ?',
+        [role]
+    )
+    // A missing row and a wrong PIN answer identically — the PIN's keyspace
+    // is small enough that error detail isn't worth leaking.
+    const user = rows[0]
+    const ok = user ? await bcrypt.compare(pin, user.pin_hash) : false
+
+    if (!ok) {
+        failures.set(key, (failures.get(key) ?? 0) + 1)
         return { error: 'Incorrect PIN' }
     }
+    failures.delete(key)
+
+    const store = await cookies()
+    store.set(
+        COOKIE_NAME,
+        await signSession({ sub: user.id, role: user.role, pv: user.pin_version }),
+        cookieOptions()
+    )
 
     revalidatePath('/pos', 'layout')
     redirect('/pos')
-}
-
-// Forgot-PIN. The login screen never collects an email, so the role toggle is
-// what picks the account — same ROLE_EMAIL indirection as login(), so a caller
-// still can't aim a reset at an arbitrary address.
-//
-// The mail lands in the inbox that owns the role account, so completing a
-// reset requires access to that inbox. Anyone can *trigger* one, though; the
-// only cost of an unwanted trigger is a stray email (Supabase rate-limits the
-// send), never a PIN change.
-export async function requestPinReset(role) {
-    const email = ROLE_EMAIL[role]
-
-    if (!email) {
-        return { error: 'Unknown role' }
-    }
-
-    const h = await headers()
-    const proto = h.get('x-forwarded-proto') ?? 'http'
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || `${proto}://${h.get('host')}`
-
-    const supabase = await createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${origin}/auth/confirm?next=/reset-pin`,
-    })
-
-    if (error) {
-        // Rate limiting is the realistic failure here; surface it as guidance
-        // rather than an internal message.
-        return { error: 'Could not send the reset email just yet — wait a minute and try again.' }
-    }
-
-    return { success: 'Reset link sent. Check the inbox for this account, then follow the link to set a new PIN.' }
 }

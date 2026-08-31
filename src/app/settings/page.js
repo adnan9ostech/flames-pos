@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import MenuSyncPanel from '@/components/Settings/MenuSyncPanel'
 import { getSettings, updateSettings } from './actions'
-import { Save, Loader2, CreditCard, Building, MapPin, CheckCircle2, AlertTriangle, QrCode } from 'lucide-react'
+import { adminSetPin } from '@/app/profile/actions'
+import { Save, Loader2, CreditCard, Building, MapPin, CheckCircle2, AlertTriangle, QrCode, KeyRound } from 'lucide-react'
 
 // EMVCo caps these fields, and emvco.js silently truncates the name at 25 —
 // better to stop typing at the limit than to let a name look saved and then
@@ -17,8 +17,11 @@ const EMPTY = {
     raast_id: '',
     qr_enabled: true,
     auto_print: true,
-    // Stored as a fraction; the field below is edited as a percentage.
-    tax_rate: 0.16,
+    // Stored as fractions; the fields below are edited as percentages. Two
+    // rates because ICT taxes cash and card sales differently — which one a
+    // bill pays is resolved at settle.
+    tax_rate_cash: 0.16,
+    tax_rate_card: 0.16,
     tax_label: 'GST',
 }
 
@@ -60,9 +63,10 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState({ type: '', text: '' })
     const [settings, setSettings] = useState(EMPTY)
-    // The tax field is edited as a percentage but stored as a fraction, so the
+    // The tax fields are edited as percentages but stored as fractions, so the
     // operator's raw text lives here while they type.
-    const [taxPercentInput, setTaxPercentInput] = useState('')
+    const [taxCashInput, setTaxCashInput] = useState('')
+    const [taxCardInput, setTaxCardInput] = useState('')
     const [saved, setSaved] = useState(EMPTY)
 
     useEffect(() => {
@@ -72,13 +76,15 @@ export default function SettingsPage() {
             // toggle can't render as off against a database that has no opinion.
             next.qr_enabled = next.qr_enabled !== false
             next.auto_print = next.auto_print !== false
-            next.tax_rate = Number(next.tax_rate ?? EMPTY.tax_rate)
+            next.tax_rate_cash = Number(next.tax_rate_cash ?? EMPTY.tax_rate_cash)
+            next.tax_rate_card = Number(next.tax_rate_card ?? EMPTY.tax_rate_card)
             setSettings(next)
             setSaved(next)
-            // Seeded here rather than in an effect: the percentage field keeps
+            // Seeded here rather than in an effect: the percentage fields keep
             // the operator's raw text while typing, so a half-entered "1" on the
             // way to "16" isn't normalised under the cursor.
-            setTaxPercentInput(String(Number((next.tax_rate * 100).toFixed(2))))
+            setTaxCashInput(String(Number((next.tax_rate_cash * 100).toFixed(2))))
+            setTaxCardInput(String(Number((next.tax_rate_card * 100).toFixed(2))))
             setLoading(false)
         })
     }, [])
@@ -95,7 +101,8 @@ export default function SettingsPage() {
             .some(k => (settings[k] || '').trim() !== (saved[k] || '').trim())
             || settings.qr_enabled !== saved.qr_enabled
             || settings.auto_print !== saved.auto_print
-            || Number(settings.tax_rate) !== Number(saved.tax_rate),
+            || Number(settings.tax_rate_cash) !== Number(saved.tax_rate_cash)
+            || Number(settings.tax_rate_card) !== Number(saved.tax_rate_card),
         [settings, saved]
     )
 
@@ -127,14 +134,14 @@ export default function SettingsPage() {
     /*
      * Edited as a percentage, stored as a fraction. Kept as a separate string in
      * state while typing so a half-entered "1" on the way to "16" doesn't get
-     * normalised to 0.01 under the operator's cursor.
+     * normalised to 0.01 under the operator's cursor. One factory, two fields.
      */
 
-    const handleTaxRateChange = (e) => {
+    const handleTaxRateChange = (field, setInput) => (e) => {
         const raw = e.target.value
-        setTaxPercentInput(raw)
+        setInput(raw)
         const percent = Math.min(Math.max(Number(raw) || 0, 0), 100)
-        setSettings(prev => ({ ...prev, tax_rate: percent / 100 }))
+        setSettings(prev => ({ ...prev, [field]: percent / 100 }))
     }
 
     if (loading) {
@@ -208,8 +215,9 @@ export default function SettingsPage() {
                         the action can't tell apart from a missing field. */}
                     <input type="hidden" name="qr_enabled" value={settings.qr_enabled ? 'true' : 'false'} />
                     <input type="hidden" name="auto_print" value={settings.auto_print ? 'true' : 'false'} />
-                    {/* The visible field is a percentage; the stored value is the fraction. */}
-                    <input type="hidden" name="tax_rate" value={settings.tax_rate ?? 0.16} />
+                    {/* The visible fields are percentages; the stored values are the fractions. */}
+                    <input type="hidden" name="tax_rate_cash" value={settings.tax_rate_cash ?? 0.16} />
+                    <input type="hidden" name="tax_rate_card" value={settings.tax_rate_card ?? 0.16} />
                     <div className="grid gap-6 md:grid-cols-2">
                         <div>
                             <div className="flex items-baseline justify-between mb-1.5">
@@ -264,6 +272,50 @@ export default function SettingsPage() {
                         </div>
 
                         <div>
+                            <label htmlFor="tax_rate_cash_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
+                                GST — cash
+                            </label>
+                            <input
+                                id="tax_rate_cash_percent"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                inputMode="decimal"
+                                value={taxCashInput}
+                                onChange={handleTaxRateChange('tax_rate_cash', setTaxCashInput)}
+                                autoComplete="off"
+                                className={fieldClass.replace('pl-10', 'pl-4')}
+                                placeholder="16"
+                            />
+                            <p className="mt-1.5 text-xs text-gray-500">
+                                Percent charged on cash bills. Applies to new orders only — past bills keep the tax they were charged.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label htmlFor="tax_rate_card_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
+                                GST — card/digital
+                            </label>
+                            <input
+                                id="tax_rate_card_percent"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                inputMode="decimal"
+                                value={taxCardInput}
+                                onChange={handleTaxRateChange('tax_rate_card', setTaxCardInput)}
+                                autoComplete="off"
+                                className={fieldClass.replace('pl-10', 'pl-4')}
+                                placeholder="5"
+                            />
+                            <p className="mt-1.5 text-xs text-gray-500">
+                                The ICT differential rate for card and digital payments — resolved when the bill settles.
+                            </p>
+                        </div>
+
+                        <div>
                             <label htmlFor="tax_label" className="block text-sm font-medium text-gray-300 mb-1.5">
                                 Tax name
                             </label>
@@ -279,28 +331,6 @@ export default function SettingsPage() {
                                 placeholder="GST"
                             />
                             <p className="mt-1.5 text-xs text-gray-500">Shown on the receipt tax line.</p>
-                        </div>
-
-                        <div>
-                            <label htmlFor="tax_rate_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
-                                Tax rate (%)
-                            </label>
-                            <input
-                                id="tax_rate_percent"
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                inputMode="decimal"
-                                value={taxPercentInput}
-                                onChange={handleTaxRateChange}
-                                autoComplete="off"
-                                className={fieldClass.replace('pl-10', 'pl-4')}
-                                placeholder="16"
-                            />
-                            <p className="mt-1.5 text-xs text-gray-500">
-                                Applies to new orders only — past bills keep the tax they were charged.
-                            </p>
                         </div>
 
                         <div className="md:col-span-2">
@@ -373,7 +403,168 @@ export default function SettingsPage() {
                 </form>
             </div>
 
-            <MenuSyncPanel />
+            <StaffPinCard />
+        </div>
+    )
+}
+
+/*
+ * PINs are set here by an admin for both shared accounts — there is no
+ * "current PIN" prompt, because the admin gate on the action is the authority
+ * and a forgotten staff PIN is exactly what this card exists to fix. Setting
+ * one bumps that account's pin_version, so every other device signed in as
+ * that role is logged out at its next action.
+ */
+function StaffPinCard() {
+    const [role, setRole] = useState('staff')
+    const [pin, setPin] = useState('')
+    const [confirm, setConfirm] = useState('')
+    const [busy, setBusy] = useState(false)
+    const [note, setNote] = useState({ type: '', text: '' })
+
+    // The login pad accepts exactly six digits, so nothing else may be stored.
+    const digitsOnly = (value) => value.replace(/\D/g, '').slice(0, 6)
+
+    const fieldClass =
+        'w-full px-4 py-2.5 rounded-lg bg-gray-800/50 border border-gray-700/50 text-gray-100 placeholder-gray-500 outline-none transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 font-mono tracking-widest'
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setNote({ type: '', text: '' })
+
+        if (!/^\d{6}$/.test(pin)) {
+            setNote({ type: 'error', text: 'PIN must be exactly 6 digits' })
+            return
+        }
+        if (pin !== confirm) {
+            setNote({ type: 'error', text: 'PINs do not match' })
+            return
+        }
+
+        setBusy(true)
+        const res = await adminSetPin(role, pin)
+        if (res?.error) {
+            setNote({ type: 'error', text: res.error })
+        } else {
+            setNote({
+                type: 'success',
+                text: `${role === 'admin' ? 'Admin' : 'Staff'} PIN updated — other devices on that account will need to sign in again.`,
+            })
+            setPin('')
+            setConfirm('')
+        }
+        setBusy(false)
+    }
+
+    return (
+        <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6 mt-6">
+            <div className="flex items-start gap-4 mb-6">
+                <div className="h-12 w-12 bg-orange-900/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <KeyRound className="h-6 w-6 text-orange-500" />
+                </div>
+                <div className="min-w-0">
+                    <h2 className="text-xl font-semibold text-white">Staff PIN</h2>
+                    <p className="text-sm text-gray-400">
+                        Set the sign-in PIN for either shared account. Changing one signs that
+                        account out everywhere else.
+                    </p>
+                </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <span className="block text-sm font-medium text-gray-300 mb-1.5">Account</span>
+                    <div className="flex gap-2">
+                        {[['admin', 'Admin'], ['staff', 'Staff']].map(([value, label]) => (
+                            <button
+                                key={value}
+                                type="button"
+                                aria-pressed={role === value}
+                                onClick={() => setRole(value)}
+                                className={`px-5 py-2.5 rounded-lg text-sm font-semibold border transition-colors ${role === value
+                                    ? 'bg-orange-600 border-orange-500 text-white'
+                                    : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-800'
+                                    }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                        <label htmlFor="pin_new" className="block text-sm font-medium text-gray-300 mb-1.5">
+                            New PIN
+                        </label>
+                        <input
+                            id="pin_new"
+                            type="password"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            maxLength={6}
+                            value={pin}
+                            onChange={(e) => setPin(digitsOnly(e.target.value))}
+                            className={fieldClass}
+                            placeholder="••••••"
+                        />
+                        <p className="mt-1.5 text-xs text-gray-500">Exactly 6 digits — the login pad accepts nothing else.</p>
+                    </div>
+
+                    <div>
+                        <label htmlFor="pin_confirm" className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Confirm PIN
+                        </label>
+                        <input
+                            id="pin_confirm"
+                            type="password"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            maxLength={6}
+                            value={confirm}
+                            onChange={(e) => setConfirm(digitsOnly(e.target.value))}
+                            className={fieldClass}
+                            placeholder="••••••"
+                        />
+                    </div>
+                </div>
+
+                {note.type && (
+                    <div
+                        role="status"
+                        aria-live="polite"
+                        className={`flex items-start gap-3 p-4 rounded-lg border text-sm ${note.type === 'error'
+                            ? 'bg-red-900/20 border-red-800/50 text-red-300'
+                            : 'bg-green-900/20 border-green-800/50 text-green-300'
+                            }`}
+                    >
+                        {note.type === 'error'
+                            ? <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-px" />
+                            : <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-px" />}
+                        {note.text}
+                    </div>
+                )}
+
+                <div className="flex items-center justify-end pt-5 border-t border-gray-800">
+                    <button
+                        type="submit"
+                        disabled={busy || !pin || !confirm}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        {busy ? (
+                            <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Setting...
+                            </>
+                        ) : (
+                            <>
+                                <KeyRound className="h-4 w-4" />
+                                Set PIN
+                            </>
+                        )}
+                    </button>
+                </div>
+            </form>
         </div>
     )
 }

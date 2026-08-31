@@ -4,9 +4,10 @@ import { flushSync } from 'react-dom';
 import styles from './pos.module.css';
 import {
     getMenuItems, getCategories, addOrder, getModifiers, getWaiters,
-    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRate, findCustomerByPhone,
+    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone,
     setMenuItemAvailability
-} from '@/lib/supabaseDb';
+} from '@/lib/dataClient';
+import { groupRoundByCategory, printKotSlip, runPrintQueue } from '@/lib/kotPrint';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import { calcTotals, itemRound, DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 import { getOrderNumber, formatOrderDate } from '@/lib/orderDisplay';
@@ -16,6 +17,7 @@ import { printReceipt } from '@/lib/printReceipt';
 
 import ModifierModal from '@/components/POS/ModifierModal';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
+import KotSlips from '@/components/POS/KotSlips';
 import TabsDrawer from '@/components/POS/TabsDrawer';
 import LiveClock from '@/components/Layout/LiveClock';
 import { useRole } from '@/components/Layout/AppLayout';
@@ -68,6 +70,10 @@ export default function POSPage() {
     const [activeTabId, setActiveTabId] = useState(null);
     const [pendingInvoiceNo, setPendingInvoiceNo] = useState(null);
 
+    // The KOT slip currently being printed; null keeps the hidden print root
+    // out of the DOM so the customer receipt owns the paper again.
+    const [kotJob, setKotJob] = useState(null);
+
     /*
      * One id per basket, reused on every retry of that basket's checkout.
      *
@@ -107,7 +113,14 @@ export default function POSPage() {
     const [tableNumber, setTableNumber] = useState('');
     const [orderType, setOrderType] = useState('dine-in');
     const [includeTax, setIncludeTax] = useState(true);
-    const [taxRate, setTaxRate] = useState(DEFAULT_TAX_RATE);
+    /*
+     * Both rates, because ICT taxes card and cash differently and the sheet
+     * must show what this payment will actually cost. The effective rate
+     * follows the selected payment mode, so switching cash↔card reprices the
+     * bill on screen — and the expected total sent to the server is computed
+     * with the same rate the server will settle at.
+     */
+    const [taxRates, setTaxRates] = useState({ cash: DEFAULT_TAX_RATE, card: DEFAULT_TAX_RATE });
     // Absent column reads as enabled, matching how qr_enabled degrades
     const [autoPrint, setAutoPrint] = useState(true);
 
@@ -171,9 +184,9 @@ export default function POSPage() {
             // reattaching to a closed bill is worse than starting detached.
             setNotice('Recovered an unsent order from this device.');
         }
-        // Rate comes from store_settings so it survives a rate change without a
-        // deploy; getTaxRate falls back to the default if it can't be read.
-        getTaxRate().then(setTaxRate);
+        // Rates come from store_settings so a rate change needs no deploy;
+        // both fall back to the default if they can't be read.
+        getTaxRates().then(r => r && setTaxRates(r));
         getSettings().then(s => setAutoPrint(s?.auto_print !== false));
     }, []);
 
@@ -363,6 +376,7 @@ export default function POSPage() {
         return Math.round(value);
     }, [discountValue, discountMode, tab, cart]);
 
+    const taxRate = (paymentMode === 'card' ? taxRates.card : taxRates.cash) ?? DEFAULT_TAX_RATE;
     const priceOpts = useMemo(() => ({ taxRate }), [taxRate]);
 
     // The round on its own is never discounted — a discount applies to the bill
@@ -407,6 +421,35 @@ export default function POSPage() {
     const printIfEnabled = () => {
         if (!autoPrint) return;
         printReceipt();
+    };
+
+    /*
+     * One kitchen slip per category in the round just sent — four sections in
+     * the order means four cuts, handed out by the runner. Runs only after
+     * the server accepted the round (kitchen must never cook food that was
+     * never stored) and always before the customer receipt, whose print CSS
+     * the slip root deliberately overrides while mounted. Gated on autoPrint
+     * with the receipt: without --kiosk-printing each slip would raise its
+     * own dialog.
+     */
+    const printKotSlips = async (sentItems, order, roundNo) => {
+        if (!autoPrint || !order) return;
+        const slips = groupRoundByCategory(sentItems, menuData.items, menuData.categories);
+        const meta = {
+            orderNumber: getOrderNumber(order),
+            table: order.table_number,
+            waiter: order.waiter_name,
+            orderType: order.order_type,
+            roundNo,
+            at: new Date(),
+        };
+        await runPrintQueue(slips, (slip) => {
+            // flushSync, not a queued set: printKotSlip() reads the DOM on
+            // the next line, and a queued render would print the prior slip.
+            flushSync(() => setKotJob({ slip, meta }));
+            printKotSlip();
+        });
+        flushSync(() => setKotJob(null));
     };
 
     // "16%" from a 0.16 rate, without a trailing ".00" on whole percentages
@@ -584,8 +627,10 @@ export default function POSPage() {
              * a queued render would print the placeholder.
              */
             flushSync(() => setPendingInvoiceNo(saved?.invoice_number || null));
-            // Stored, so it's safe to hand over paper. Before clearOrderFields,
+            // Stored, so it's safe to hand over paper. Kitchen slips first,
+            // then the customer receipt — and both before clearOrderFields,
             // which unmounts the receipt being printed.
+            await printKotSlips(cart, saved, 1);
             printIfEnabled();
             clearOrderFields();
             setReceiptMode(null);
@@ -616,6 +661,8 @@ export default function POSPage() {
                 status: 'new',
                 payment_status: 'unpaid'
             });
+            // Slips for round 1 go out now; the bill prints at settle time.
+            await printKotSlips(cart, created, 1);
             await loadTabs();
             setActiveTabId(created.id);
             setCart([]);
@@ -642,6 +689,9 @@ export default function POSPage() {
                 ...orderDetails()
             }, { clientRequestId: roundRequestIdRef.current });
             roundRequestIdRef.current = null;
+            // Only this round's food goes to the sections — earlier rounds
+            // are already cooking.
+            await printKotSlips(cart, tab, nextRound);
             await loadTabs();
             setCart([]);
             setNotice(`Round ${nextRound} sent to the kitchen.`);
@@ -697,6 +747,9 @@ export default function POSPage() {
 
     return (
         <div className={styles.container}>
+            {/* Hidden while null; while printing it owns the paper. */}
+            <KotSlips job={kotJob} />
+
             {/* Modals */}
             {modifyingItem && (
                 <ModifierModal

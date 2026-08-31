@@ -24,7 +24,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SRC = join(ROOT, 'src');
 
 const NEXT_ENTRY = /^(page|layout|loading|error|not-found|route|template|default|middleware|icon|opengraph-image)\.(js|jsx|ts|tsx)$/;
-const CODE = /\.(js|jsx|ts|tsx)$/;
+const CODE = /\.(js|jsx|mjs|ts|tsx)$/;
 
 const walk = (dir, out = []) => {
     for (const entry of readdirSync(dir)) {
@@ -51,7 +51,9 @@ const resolveImport = (spec, fromFile) => {
     else if (spec.startsWith('.')) base = resolve(dirname(fromFile), spec);
     else return null; // bare package
 
-    for (const cand of [base, `${base}.js`, `${base}.jsx`, `${base}.ts`, `${base}.tsx`,
+    // .mjs is a first-class src extension here (shared server/Node modules);
+    // leaving it out once made mysql2 look script-only and pool.mjs orphaned.
+    for (const cand of [base, `${base}.js`, `${base}.jsx`, `${base}.mjs`, `${base}.ts`, `${base}.tsx`,
                         join(base, 'index.js'), join(base, 'index.jsx')]) {
         if (existsSync(cand) && statSync(cand).isFile()) return cand;
     }

@@ -21,7 +21,7 @@ const SECRET = () => {
 };
 
 export const COOKIE_NAME = 'fbi_session';
-export const MAX_AGE_S = 30 * 24 * 60 * 60;     // a till stays signed in for a month
+const MAX_AGE_S = 30 * 24 * 60 * 60;     // a till stays signed in for a month
 const RESIGN_AFTER_S = 24 * 60 * 60;            // sliding renewal cadence
 
 const enc = new TextEncoder();

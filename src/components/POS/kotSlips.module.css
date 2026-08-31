@@ -1,0 +1,171 @@
+/*
+ * Kitchen slip — print-first. The slip has no on-screen life, so unlike the
+ * receipt (whose isolation lives in globals.css to reach ancestors a module
+ * can't) everything sits here, using :global() to address the un-hashed
+ * #kot-print-root id.
+ */
+
+.slip {
+    /*
+     * Hidden by position, NOT display:none — printKotSlip() measures
+     * scrollHeight to size the page, and display:none measures 0, which would
+     * fall back to a 297mm page and feed a third of a metre of blank roll per
+     * slip.
+     */
+    position: fixed;
+    left: -9999px;
+    top: 0;
+
+    /* Laid out at exactly the printable width so the measured height is the
+       printed height — same reasoning as the receipt modal's 80mm. */
+    width: 80mm;
+    /* ~3mm of the roll is unprintable on either side */
+    padding: 2mm 3mm;
+    box-sizing: border-box;
+
+    background: #fff;
+    color: #000;
+
+    /*
+     * px, not rem: the measurement must not move with the root font size.
+     * Sans rather than the receipt's Courier, and heavier throughout: this is
+     * read at arm's length over steam, and bold sans survives a thermal head
+     * far better than small serif strokes.
+     */
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+/* The routing line — a runner sorts tickets by this alone */
+.station {
+    font-size: 22px;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.ticketType {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 1.5mm;
+    margin-bottom: 1.5mm;
+}
+
+.meta {
+    border-bottom: 1px dashed #000;
+    padding-bottom: 1.5mm;
+    margin-bottom: 1mm;
+}
+
+.metaRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+}
+
+.line {
+    padding: 1mm 0;
+}
+
+.lineHead {
+    display: flex;
+    gap: 2mm;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* Fixed column so dish names align down the ticket */
+.qty {
+    min-width: 8mm;
+}
+
+/* Takes the rest of the row, so a long dish name wraps inside its own column
+   rather than under the quantity */
+.name {
+    flex: 1;
+}
+
+/* Variant and modifiers indent under the dish they belong to */
+.detail {
+    margin-left: calc(8mm + 2mm);
+    font-size: 13px;
+}
+
+/* The line a cook must not miss: boxed, shouted, unmistakably not a modifier */
+.notes {
+    margin-left: calc(8mm + 2mm);
+    margin-top: 0.5mm;
+    padding: 0.5mm 1.5mm;
+    width: fit-content;
+    border: 1px solid #000;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.footer {
+    border-top: 1px dashed #000;
+    margin-top: 1.5mm;
+    padding-top: 1.5mm;
+    text-align: center;
+    font-size: 11px;
+}
+
+@media print {
+    /*
+     * Same isolation technique as the receipt (globals.css): hide the whole
+     * document, re-show one subtree, scoped by :has() so a print with no slip
+     * mounted is untouched. visibility, not display, for the same reason as
+     * there — ancestors must keep their boxes.
+     *
+     * !important on both halves is the one deliberate difference: a slip can
+     * be mounted while the receipt modal is open (Send & Pay Now fires the
+     * kitchen slips before the customer receipt), and the receipt's own
+     * visibility rules in globals.css are unimportant — so while
+     * #kot-print-root is in the DOM, the slip owns the paper and the receipt
+     * stays off it. The page unmounts the slip (job = null) before the
+     * receipt prints.
+     */
+    :global(body:has(#kot-print-root) *) {
+        visibility: hidden !important;
+    }
+
+    :global(#kot-print-root),
+    :global(#kot-print-root *) {
+        visibility: visible !important;
+    }
+
+    :global(#kot-print-root) {
+        /* On paper the off-screen parking spot becomes the top of the page.
+           Padding and type are NOT restated here — they come from .slip, so
+           the measured height is the printed height. */
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 80mm;
+        margin: 0;
+        background: #fff;
+        color: #000;
+    }
+
+    /* Thermal printers are one colour; nothing may rely on a light grey */
+    :global(#kot-print-root *) {
+        background: transparent !important;
+        color: #000 !important;
+        box-shadow: none !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    /* A slip is one continuous strip — never break mid-line */
+    :global(#kot-print-root div) {
+        break-inside: avoid;
+    }
+}

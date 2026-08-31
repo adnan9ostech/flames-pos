@@ -1,45 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flames by the Indus — POS
 
-## Getting Started
+Point of sale for the restaurant: the till (`/pos`), kitchen display (`/kds`),
+orders and reports, settings, and a public customer menu (`/customer`).
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router), plain JavaScript — no TypeScript — with CSS
+  Modules
+- **MySQL 8** via `mysql2`; the pool, serializers and order verbs live in
+  `src/lib/db/` (`.mjs` so plain Node scripts and workers import them too)
+- **Signed-cookie sessions** with PIN login (`src/lib/auth/session.mjs`,
+  `src/lib/db/auth.mjs`) — no external auth service
+- All money math in one shared module: `src/lib/orderTotals.mjs`
+
+## Local development
+
+### 1. MySQL 8
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+brew install mysql@8.0
+brew services start mysql@8.0
+mysql -u root -e "CREATE DATABASE flames_pos_dev; CREATE DATABASE flames_pos_test;"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+MySQL must be **8.0.16 or newer** — the migrator refuses older versions
+because CHECK constraints have to be enforced.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 2. Environment
 
-## Database
+Create `.env.local` in the repo root:
 
-Schema, migrations, seed data and auth setup live in [`supabase/`](supabase/) —
-see [`supabase/README.md`](supabase/README.md) for the apply order and the
-dashboard configuration the login and PIN-recovery flows depend on.
+```ini
+DB_NAME=flames_pos_dev
+DB_USER=root
+DB_PASSWORD=
+DB_HOST=127.0.0.1
+DB_PORT=3306
+SESSION_SECRET=<openssl rand -hex 32>
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
 
-Local environment needs `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `AUTH_ADMIN_EMAIL` and `AUTH_STAFF_EMAIL`.
+All variables:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Required | What it is |
+|---|---|---|
+| `DB_NAME` | yes | Database to use (`flames_pos_dev` locally) |
+| `DB_USER` | yes | MySQL user (`root` locally) |
+| `DB_PASSWORD` | yes | MySQL password (empty locally) |
+| `DB_HOST` / `DB_PORT` | TCP only | `127.0.0.1` / `3306` locally |
+| `DB_SOCKET` | socket only | Unix socket path; replaces host/port (production uses this) |
+| `SESSION_SECRET` | yes | 32+ random bytes for session signing — `openssl rand -hex 32` |
+| `NEXT_PUBLIC_SITE_URL` | yes | Public origin; **bakes into the client bundle at build time** |
+| `FBR_ENABLED` | for FBR | `true` to queue fiscal invoices |
+| `FBR_MODE` | for FBR | `sandbox` or `production` |
+| `FBR_BPOSID` | for FBR | POS registration id issued by FBR |
+| `FBR_TOKEN` | for FBR | API bearer token issued by FBR |
+| `FBR_SELLER_NTN` | for FBR | Business NTN on the invoice |
+| `FBR_SALE_TYPE` | for FBR | FBR sale-type code |
+| `FBR_HS_CODE` | for FBR | HS code reported per line |
+| `FBR_UOM` | for FBR | Unit of measure reported per line |
 
-## Learn More
+### 3. Schema, then run
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+node scripts/db/migrate.mjs      # applies mysql/migrations/*.sql in order
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`node scripts/db/migrate.mjs --status` lists applied vs pending migrations.
+Open [http://localhost:3000](http://localhost:3000) and log in with a PIN.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+Production runs on a shared cPanel box behind Apache, managed by PM2 —
+**not** on Vercel. The full first-time runbook, and the one-command update
+path (`deploy.sh`), are in [`docs/deploy-cpanel.md`](docs/deploy-cpanel.md).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Other docs
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [`docs/deploy-cpanel.md`](docs/deploy-cpanel.md) — production runbook
+- [`docs/kiosk-printing.md`](docs/kiosk-printing.md) — silent receipt
+  printing on the till machines (Windows + Chrome)

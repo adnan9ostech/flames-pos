@@ -25,7 +25,7 @@ import { calcTotals } from '../orderTotals.mjs';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /* The calendar day in Asia/Karachi (fixed UTC+5, no DST). */
-export const karachiDay = (d = new Date()) =>
+const karachiDay = (d = new Date()) =>
     d.toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
 
 /*
@@ -180,6 +180,17 @@ const recomputeOrder = async (conn, orderId, { taxRate }) => {
 const isDuplicateKey = (e) => e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY');
 
 /*
+ * Thrown inside a transaction when a concurrent twin already inserted our
+ * client_request_id. The twin's row CANNOT be read from inside the losing
+ * transaction: under REPEATABLE READ its consistent-read snapshot predates
+ * the winner's commit, so a plain re-select sees nothing (the bug the race
+ * suite caught). The recovery read happens outside, on a fresh snapshot.
+ */
+class TwinExists extends Error {
+    constructor() { super('twin exists'); this.name = 'TwinExists'; }
+}
+
+/*
  * Settle inside an existing transaction — create_order's pay-now path calls
  * this on its own uncommitted row (the FOR UPDATE is then a self-lock).
  */
@@ -306,7 +317,22 @@ export const createOrder = async (items, opts = {}, clientRequestId = null, expe
     const payNow = (opts.payment_status ?? 'paid') === 'paid';
     const orderId = randomUUID();
 
-    const row = await withTransaction(async (conn) => {
+    let row;
+    try {
+        row = await createOrderTx(orderId, items, opts, clientRequestId, expectedTotal, payNow);
+    } catch (e) {
+        if (e instanceof TwinExists) {
+            // Fresh pool read, fresh snapshot: the winner's commit is visible.
+            const rows = await query('SELECT * FROM orders WHERE client_request_id = ?', [clientRequestId]);
+            if (rows.length > 0) return serializeRow('orders', rows[0]);
+        }
+        throw e;
+    }
+    return serializeRow('orders', row);
+};
+
+const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, payNow) =>
+    withTransaction(async (conn) => {
         const branchId = 1;
         const businessDate = await resolveBusinessDate(conn, branchId);
         try {
@@ -343,12 +369,7 @@ export const createOrder = async (items, opts = {}, clientRequestId = null, expe
         } catch (e) {
             // Lost the race to our own twin: the other attempt's order is the
             // order. Anything else is a real error.
-            if (isDuplicateKey(e) && clientRequestId) {
-                const [rows] = await conn.query(
-                    'SELECT * FROM orders WHERE client_request_id = ?', [clientRequestId],
-                );
-                if (rows.length > 0) return { twin: rows[0] };
-            }
+            if (isDuplicateKey(e) && clientRequestId) throw new TwinExists();
             throw e;
         }
 
@@ -385,11 +406,8 @@ export const createOrder = async (items, opts = {}, clientRequestId = null, expe
                 `Total mismatch: till shows ${expectedTotal}, server computed ${order.total} — reload and re-ring`,
             );
         }
-        return { order };
+        return order;
     });
-
-    return serializeRow('orders', row.twin ?? row.order);
-};
 
 export const appendRound = async (orderId, items, clientRequestId = null, expectedTotal = null, opts = {}) => {
     // Replay of a round that already landed: hand back the order as it is.
@@ -413,10 +431,14 @@ export const appendRound = async (orderId, items, clientRequestId = null, expect
 
         // Re-checked under the lock: a twin of this request that held the
         // lock first has committed its round by the time we get here, and
-        // the pre-lock check above ran too early to see it.
+        // the pre-lock check above ran too early to see it. FOR SHARE, not a
+        // plain read — a consistent read here would use this transaction's
+        // pre-lock snapshot and miss the twin's commit; a locking read sees
+        // latest-committed. (The duplicate-key catch below stays as the belt.)
         if (clientRequestId) {
             const [rows] = await conn.query(
-                'SELECT 1 FROM order_rounds WHERE client_request_id = ? LIMIT 1', [clientRequestId],
+                'SELECT 1 FROM order_rounds WHERE client_request_id = ? LIMIT 1 FOR SHARE',
+                [clientRequestId],
             );
             if (rows.length > 0) return order;
         }

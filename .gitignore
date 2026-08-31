@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# One-time Supabase -> MySQL import working data (exports, image map, fixtures)
+/scripts/migrate-to-mysql/out/
+
 # production
 /build
 

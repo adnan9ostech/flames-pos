@@ -1,25 +1,31 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { createClient } from './supabase/client';
 import { setChannelHealth, forgetChannel } from './connection';
 
 /*
- * Subscribes to changes on a table and — the part that was missing — refetches
- * after a reconnect.
+ * Watches a table for changes and — the part that must survive the move off
+ * Supabase — refetches after a gap in coverage.
  *
- * The bug this fixes: supabase-js reconnects a dropped socket on its own, but
- * the events that happened while it was down are gone. Screens that only
- * refetched on an event went on showing whatever they held when the socket died.
- * On a kitchen display that means tickets that never appear, which reads as a
- * quiet service rather than a broken one.
+ * There is no realtime socket any more. Instead each screen polls a tiny
+ * version endpoint (an aggregate over orders that changes whenever any row
+ * does) and refetches when the string differs from the last one it saw. Same
+ * interface as the socket version so the call sites don't change; "healthy"
+ * in the connection store now means "the last poll succeeded".
  *
- * So the reconnect itself is treated as a signal: whenever the channel becomes
- * healthy after having been unhealthy, and whenever the network comes back,
- * refetch to close the gap.
+ * The failure this guards against is unchanged: a terminal that silently
+ * stops hearing about orders reads as a quiet service, not a broken screen.
+ * So a poll that fails marks the channel unhealthy (the offline banner), and
+ * the first poll that succeeds afterwards refetches unconditionally — the
+ * version string alone can't say what was missed while blind.
  */
+
+const POLL_MS = 4000;
+// Jitter so a wall of terminals doesn't hit the server in lockstep.
+const JITTER_MS = 500;
+
 export function useRealtimeTable({ table, channel, onChange, enabled = true }) {
     // Held in a ref so a changing callback identity — which is normal, it
-    // usually closes over filters — never tears down and rebuilds the socket.
+    // usually closes over filters — never tears down and rebuilds the poll.
     const onChangeRef = useRef(onChange);
     useEffect(() => {
         onChangeRef.current = onChange;
@@ -28,46 +34,86 @@ export function useRealtimeTable({ table, channel, onChange, enabled = true }) {
     useEffect(() => {
         if (!enabled) return;
 
-        const supabase = createClient();
-        // Tracked locally: only a recovery counts as a reason to refetch, not
-        // the first successful subscribe (the caller has just loaded).
+        let stopped = false;
+        let timer = null;
+        let inFlight = false;
+        // null until the first successful poll: the baseline never fires
+        // onChange, because the caller has just loaded its own data.
+        let lastVersion = null;
         let wasUnhealthy = false;
 
-        const client = supabase
-            .channel(channel)
-            .on('postgres_changes', { event: '*', schema: 'public', table }, () => {
-                onChangeRef.current?.();
-            })
-            .subscribe((status) => {
-                const healthy = status === 'SUBSCRIBED';
-                setChannelHealth(channel, healthy);
-
-                if (!healthy) {
+        const poll = async () => {
+            if (inFlight) return;
+            inFlight = true;
+            try {
+                const res = await fetch('/api/orders/version', { cache: 'no-store' });
+                if (stopped) return;
+                if (!res.ok) {
+                    // 401 lands here too: a dead session can't see new
+                    // orders, which is exactly what the banner is for.
                     wasUnhealthy = true;
+                    setChannelHealth(channel, false);
                     return;
                 }
-                if (wasUnhealthy) {
-                    wasUnhealthy = false;
-                    onChangeRef.current?.();
-                }
-            });
+                const { version } = await res.json();
+                if (stopped) return;
+                const changed = lastVersion !== null && version !== lastVersion;
+                const recovered = wasUnhealthy;
+                lastVersion = version;
+                wasUnhealthy = false;
+                setChannelHealth(channel, true);
+                // A recovery refetches even on a matching version — the fetch
+                // that failed might have been the caller's own data load.
+                if (changed || recovered) onChangeRef.current?.();
+            } catch {
+                if (stopped) return;
+                wasUnhealthy = true;
+                setChannelHealth(channel, false);
+            } finally {
+                inFlight = false;
+            }
+        };
 
-        // A laptop lid closing suspends the socket without a status change, so
-        // coming back online is its own trigger.
+        const schedule = () => {
+            clearTimeout(timer);
+            if (stopped || document.hidden) return;
+            const jitter = (Math.random() * 2 - 1) * JITTER_MS;
+            timer = setTimeout(tick, POLL_MS + jitter);
+        };
+
+        const tick = async () => {
+            await poll();
+            schedule();
+        };
+
+        tick();
+
+        // A laptop lid closing kills the timers along with everything else,
+        // so coming back online is its own trigger.
         const refetchOnOnline = () => onChangeRef.current?.();
         window.addEventListener('online', refetchOnOnline);
 
-        // Same for a tab that was backgrounded long enough to miss events.
-        const refetchOnVisible = () => {
-            if (document.visibilityState === 'visible') onChangeRef.current?.();
+        // A hidden tab doesn't poll — nobody is looking, and a wedged
+        // background timer would only burn requests. Coming back polls at
+        // once, which refetches by itself if anything changed meanwhile.
+        const onVisibility = () => {
+            if (document.hidden) {
+                clearTimeout(timer);
+                timer = null;
+            } else {
+                tick();
+            }
         };
-        document.addEventListener('visibilitychange', refetchOnVisible);
+        document.addEventListener('visibilitychange', onVisibility);
 
         return () => {
+            stopped = true;
+            clearTimeout(timer);
             window.removeEventListener('online', refetchOnOnline);
-            document.removeEventListener('visibilitychange', refetchOnVisible);
-            client.unsubscribe();
+            document.removeEventListener('visibilitychange', onVisibility);
             forgetChannel(channel);
         };
+        // `table` stays a dependency for interface parity even though every
+        // channel now polls the same orders version endpoint.
     }, [table, channel, enabled]);
 }
