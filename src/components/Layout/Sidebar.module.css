@@ -254,3 +254,75 @@
     margin: 10px 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+/* ---- Search trigger ---------------------------------------------------- */
+
+.searchWrap {
+    padding: 0.7rem 0.75rem 0.25rem;
+    flex-shrink: 0;
+}
+
+.collapsed .searchWrap {
+    padding: 0.7rem 0.5rem 0.25rem;
+}
+
+/*
+ * Dressed as an input because that is what it does — but it is a button, so
+ * the palette owns the only text field and there is no half-typed query
+ * stranded in the rail when the dialog closes.
+ */
+.search {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    /* The 44px touch floor the till's controls use. */
+    min-height: 44px;
+    padding: 0 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.87rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.search:hover {
+    border-color: var(--primary);
+    color: var(--foreground);
+}
+
+.search:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+.searchCollapsed {
+    justify-content: center;
+    padding: 0;
+}
+
+.searchLabel {
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.searchKbd {
+    flex-shrink: 0;
+    padding: 0.1rem 0.32rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--card);
+    font-family: inherit;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    color: var(--muted-foreground);
+}
+
+/* No keyboard, no point promising a shortcut. */
+@media (hover: none) and (pointer: coarse) {
+    .searchKbd { display: none }
+}

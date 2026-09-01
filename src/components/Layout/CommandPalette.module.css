@@ -1,0 +1,249 @@
+/*
+ * The search palette.
+ *
+ * Sized for the two devices this app runs on at once: a wall-mounted
+ * touchscreen till and a manager's laptop. That is why rows are 52px rather
+ * than the 36px a desktop-only palette would use — the same 44px-minimum rule
+ * the cart's quantity buttons follow, with margin, because these rows sit
+ * directly under a finger arriving at speed.
+ */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;              /* above the sidebar's 50 and any page chrome */
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(3px);
+    display: flex;
+    justify-content: center;
+    /* Not centered: a palette pinned near the top stays put as results grow
+       and shrink, where a vertically-centered one jumps on every keystroke. */
+    align-items: flex-start;
+    padding: 9vh 1rem 1rem;
+    animation: overlayIn 0.12s ease-out;
+}
+
+.panel {
+    width: 100%;
+    max-width: 620px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 1.5);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 78vh;
+    animation: panelIn 0.14s ease-out;
+}
+
+@keyframes overlayIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes panelIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.99) }
+    to   { opacity: 1; transform: none }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .overlay, .panel { animation: none }
+}
+
+/* ---- Input ---- */
+
+.inputRow {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0 1rem;
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.inputIcon {
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+}
+
+.input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--foreground);
+    font-family: inherit;
+    /* 16px floor: anything smaller and mobile Safari zooms the page on focus. */
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.input::placeholder {
+    color: var(--muted-foreground);
+    font-weight: 400;
+}
+
+.closeBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Same 44px touch floor as the till's controls. */
+    min-width: 44px;
+    min-height: 44px;
+    margin-right: -0.6rem;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+
+.closeBtn:hover { color: var(--foreground); background: rgba(255, 255, 255, 0.06) }
+.closeBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px }
+
+/* ---- Results ---- */
+
+.results {
+    overflow-y: auto;
+    overscroll-behavior: contain;   /* don't scroll the page at the list's end */
+    padding: 0.4rem;
+    flex: 1;
+}
+
+.heading {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.7rem 0.75rem 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 0.75rem;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.94rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+/*
+ * One highlight, driven by state rather than :hover. The keyboard and the
+ * pointer both write to the same `active` index, so the row under the finger
+ * and the row Enter will open are never two different rows — the bug every
+ * palette that styles :hover separately ends up with.
+ */
+.rowActive {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.rowIcon { flex-shrink: 0; opacity: 0.9 }
+
+.rowLabel {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mark {
+    background: transparent;
+    color: inherit;
+    /* Underline rather than a highlight block: on the active row a coloured
+       highlight would fight the row's own fill. */
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+}
+
+.rowSection {
+    flex-shrink: 0;
+    font-size: 0.76rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.rowActive .rowSection { color: var(--primary-foreground); opacity: 0.75 }
+
+.rowEnter { flex-shrink: 0; opacity: 0.8 }
+
+/* Hide the section hint before the label truncates on a narrow till. */
+@media (max-width: 460px) {
+    .rowSection { display: none }
+}
+
+/* ---- Empty state ---- */
+
+.empty { padding: 2.2rem 1rem 2.6rem; text-align: center }
+
+.emptyTitle {
+    color: var(--foreground);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+    /* A long unbroken query must not widen the panel. */
+    overflow-wrap: anywhere;
+}
+
+.emptyHint {
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* ---- Footer ---- */
+
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.hint {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.73rem;
+    color: var(--muted-foreground);
+}
+
+.kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 0.3rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    font-family: inherit;
+    font-size: 0.68rem;
+    line-height: 1;
+    color: var(--muted-foreground);
+}
+
+/* The keyboard legend is noise on a device with no keyboard. */
+@media (hover: none) and (pointer: coarse) {
+    .footer { display: none }
+}

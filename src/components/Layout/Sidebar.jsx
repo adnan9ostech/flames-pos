@@ -1,58 +1,56 @@
 'use client';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
-    Utensils, ClipboardList, BarChart3, ExternalLink, User, LogOut,
-    MonitorPlay, PanelLeftClose, PanelLeftOpen, Settings,
-    Wallet, CalendarCheck, ReceiptText, Building2, Percent, BadgePercent, Package, BookText, Armchair,
-    Users
+    LogOut, PanelLeftClose, PanelLeftOpen, Search,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { ROLES } from '@/lib/auth/permissions.mjs';
+import { primaryNav, backOfficeNav } from '@/lib/navIndex.mjs';
+import { navIcon } from './navIcons';
+import CommandPalette from './CommandPalette';
 import { logout } from '@/app/logout/actions';
 
 /*
- * Each link names the right that opens it — the same key the proxy checks —
- * so the rail draws exactly the app this person can actually reach, and a
- * new role needs no change here. A link with no `perm` needs only a session.
+ * The rail draws exactly the app this person can reach: both lists come from
+ * `src/lib/navIndex.js`, filtered by the same permission keys the proxy checks,
+ * so a new role needs no change here and a new screen appears in the rail and
+ * in search together.
  */
-const NAV_LINKS = [
-    { href: '/pos', label: 'POS', Icon: Utensils, perm: 'pos' },
-    { href: '/orders', label: 'Orders', Icon: ClipboardList, perm: 'orders' },
-    { href: '/kds', label: 'Kitchen Display', Icon: MonitorPlay, newTab: true, perm: 'kds' },
-    { href: '/customer', label: 'Customer View', Icon: ExternalLink, newTab: true },
-    { href: '/reports', label: 'Reports', Icon: BarChart3, perm: 'reports' },
-];
-
-// The day-to-day paperwork of running the place: the morning-after reads and
-// the master lists, kept out of the way of the till.
-const BACK_OFFICE_LINKS = [
-    { href: '/drawer', label: 'Cash Drawer', Icon: Wallet, perm: 'drawer' },
-    { href: '/dayclose', label: 'Day Close', Icon: CalendarCheck, perm: 'dayclose' },
-    { href: '/floor', label: 'Waiters & Tables', Icon: Armchair, perm: 'menu' },
-    { href: '/expenses', label: 'Expenses', Icon: ReceiptText, perm: 'expenses' },
-    { href: '/companies', label: 'Companies', Icon: Building2, perm: 'cityledger' },
-    { href: '/cityledger', label: 'City Ledger', Icon: BookText, perm: 'cityledger' },
-    { href: '/charges', label: 'Charges', Icon: Percent, perm: 'menu' },
-    { href: '/discounts', label: 'Discounts', Icon: BadgePercent, perm: 'menu' },
-    { href: '/inventory', label: 'Inventory', Icon: Package, perm: 'inventory' },
-    { href: '/users', label: 'Users', Icon: Users, perm: 'users' },
-    // Last, because it is the least-visited screen in the building.
-    { href: '/settings', label: 'Settings', Icon: Settings, perm: 'settings' },
-];
-
 const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
     const pathname = usePathname();
+    const [searchOpen, setSearchOpen] = useState(false);
+
     // Icons carry the whole nav once the labels are gone, so scale them up
     // there; expanded, they sit beside text and can afford to be smaller —
     // eighteen rows have to fit a laptop viewport.
     const iconSize = collapsed ? 24 : 17;
-    const can = (key) => !key || perms.includes(key);
-    const links = NAV_LINKS.filter(link => can(link.perm));
-    const backOffice = BACK_OFFICE_LINKS.filter(link => can(link.perm));
+    const links = primaryNav(perms);
+    const backOffice = backOfficeNav(perms);
 
-    const navLink = ({ href, label, Icon, newTab }) => (
+    /*
+     * Cmd/Ctrl-K from anywhere in the app. A modifier combo rather than a bare
+     * "/" on purpose: the till has a search field of its own and someone
+     * hunting for a dish must be able to type a slash into it.
+     */
+    useEffect(() => {
+        const onKey = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setSearchOpen((v) => !v);
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
+
+    const closeSearch = useCallback(() => setSearchOpen(false), []);
+
+    const navLink = ({ href, label, icon, newTab }) => {
+        const Icon = navIcon(icon);
+        return (
         <Link
             key={href}
             href={href}
@@ -65,7 +63,8 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
             <Icon className={styles.icon} size={iconSize} />
             {!collapsed && <span className={styles.label}>{label}</span>}
         </Link>
-    );
+        );
+    };
 
     return (
         <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
@@ -106,6 +105,34 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                 )}
             </div>
 
+            {/*
+              * Search sits above the rail, not inside it: it is the way to
+              * reach the screens the rail deliberately does not list — the six
+              * reports, the inventory sub-pages, tax settings — and burying it
+              * among eighteen links would hide the one control that finds the
+              * other seventeen. It is a button rather than a real input so
+              * there is one place text is typed (the palette) rather than two
+              * that have to stay in sync.
+              */}
+            <div className={styles.searchWrap}>
+                <button
+                    type="button"
+                    className={`${styles.search} ${collapsed ? styles.searchCollapsed : ''}`}
+                    onClick={() => setSearchOpen(true)}
+                    title={collapsed ? 'Search screens (Ctrl K)' : undefined}
+                    aria-label="Search screens"
+                    aria-haspopup="dialog"
+                >
+                    <Search className={styles.icon} size={collapsed ? iconSize : 16} />
+                    {!collapsed && (
+                        <>
+                            <span className={styles.searchLabel}>Search…</span>
+                            <kbd className={styles.searchKbd}>⌘K</kbd>
+                        </>
+                    )}
+                </button>
+            </div>
+
             <nav className={styles.nav}>
                 {collapsed && (
                     <button
@@ -133,7 +160,7 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
             {/* Outside the scroller: however long the rail grows, the way out
                 of the app stays on screen. */}
             <div className={styles.navPinned}>
-                {navLink({ href: '/profile', label: 'Profile', Icon: User })}
+                {navLink({ href: '/profile', label: 'Profile', icon: 'User' })}
 
                 <form action={logout} className={styles.logoutForm}>
                     <button
@@ -158,6 +185,8 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                     {!collapsed && 'Online'}
                 </div>
             </div>
+
+            <CommandPalette open={searchOpen} onClose={closeSearch} perms={perms} />
         </aside>
     );
 };
