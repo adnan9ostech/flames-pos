@@ -85,6 +85,14 @@ export const resetDb = async () => {
         // every dine-in expectation the day it landed) — tests that want a
         // charge insert their own.
         'charges',
+        // The ledger, children first. Journals cascade their lines, but the
+        // DELETE is explicit so a future test reading a stray line cannot be
+        // fooled by cascade ordering. The chart of accounts itself is NOT
+        // wiped: it is migration-seeded reference data, like the tax rates,
+        // and the poster resolves against it on every settle.
+        'gl_journal_lines', 'gl_journals', 'gl_voucher_counters',
+        'expense_voucher_payments', 'expense_voucher_lines',
+        'expense_vouchers', 'expense_voucher_counters', 'expenses',
     ]) {
         await pool.query(`DELETE FROM ${table}`);
     }
