@@ -2,7 +2,7 @@
 
 > Update this file whenever meaningful work lands. A fresh Claude session (or
 > a human) should be able to read this top to bottom and know exactly where
-> things stand. Last update: **31 Aug 2026, late night** (branch
+> things stand. Last update: **2 Sep 2026** (branch
 > `mysql-migration`, repo `adnan9ostech/flames-pos`).
 
 ## What this project is
@@ -30,7 +30,7 @@ touch global config; full runbook in `docs/deploy-cpanel.md`).
   `src/lib/orderActions.js`. Realtime = 4s version polling
   (`useRealtimeTable` → `/api/orders/version`).
 - Tests: `DB_NAME=flames_pos_test node --test 'tests/mysql/*.test.mjs'`
-  (17 tests incl. concurrency races — keep green).
+  (45 tests incl. concurrency races — keep green).
 - Run locally: `ALLOW_HTTP_COOKIES=true npx next start -p 3210`
   (LAN devices: http://<mac-ip>:3210; Secure-cookie override is LAN-only).
 - FBR Digital Invoicing: module `src/lib/fbr/*` + `scripts/fbr-worker.mjs`;
@@ -204,6 +204,48 @@ Also done in the integration pass (was "in progress" above):
    scripts/migrate-to-mysql; run `/cleanup-audit`
 7. Confirm with accountant: FBR posture for tax-off orders and BTC
    (city-ledger) invoices
+
+## Accounts module (2 Sep) — double-entry GL, modelled on ChowPOS
+
+Owner asked for ALL sixteen tiles of ChowPOS's Accounts Dashboard (mapped
+read-only from rms.roomy.pk; findings + screenshots were in the session
+scratchpad; the decoded link-code mechanism is documented in
+`src/lib/accounts/constants.mjs`). Decisions taken as the expert, not asked:
+one GST Payable account for both the 16% cash and 5% card rate (same
+authority — FBR); Cash Over/Short is an expense; the ledger starts at go-live
+with an Opening Balance JV for capital invested; chart edits need
+`accounts_admin` (admin + accountant, NOT manager); sales journal on the
+order's business_date, corrections on the current open day, never blocking
+a settle.
+
+Built so far:
+- [x] Step 1 — schema: migrations 006 (11 tables, seeded 68-account chart,
+      gl_links, gl_settings; re-runnable) + 007 (ALTERs on expenses /
+      expense_categories). gl_journals CHECK debit_total = credit_total;
+      expenses.voucher_line_id UNIQUE so a voucher can never project twice.
+      **Expense vouchers are the DOCUMENT; `expenses` rows are their
+      PROJECTION** (drawer expected-cash and handover read `expenses`).
+- [x] Step 2 — permissions `accounts` + `accounts_admin`, `/accounts` route
+      gate, sidebar entry (after City Ledger), 16 searchable inner pages,
+      section shell (`layout.js` + `AccountsNav` strip, 7 stops), hub with
+      4 stat cards + the 16 tiles in ChowPOS's 4 groups.
+- [x] Step 3 — Chart of Accounts (`/accounts/chart`): list with group
+      tabs / search / show-inactive, side form with number (leading digit
+      enforced per group, next-free suggested), name, category (datalist),
+      link-code checkbox matrix with plain-English labels, active. System
+      accounts can be renamed, never switched off. No delete, ever.
+      Server-validated; every write audited with staff_id.
+
+Next steps (each shippable, suite green): 4 posting engine
+(`src/lib/accounts/post.mjs`, 4 lines in orderActions.js, stamp
+`orders.tax_rate` at settle, tests incl. concurrent double-fire) → 5 GL
+Transaction list + Trial Balance (+CSV/print) → 6 xlsx export
+(`src/lib/reports/xlsx.mjs`, zero deps) → 7 Income Statement, Balance
+Sheet, Cash Register → 8 Posting Health + repost + day-close soft warning →
+9 manual JV → 10 expense codes/categories screens + expense vouchers
+(draft/post/pay, projecting into `expenses`) + expense/payables reports →
+11 city-ledger receipts + supplier payments posting → 12 opening balances +
+drawer variance journal. Shared stylesheet: `src/app/accounts/accounts.module.css`.
 
 ## Future scope — agreed with the owner, deliberately not built
 

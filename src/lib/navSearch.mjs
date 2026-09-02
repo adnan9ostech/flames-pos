@@ -1,12 +1,27 @@
 /*
  * Ranking for the nav search palette.
  *
- * The shape of the problem: a very small corpus (about thirty screens) that a
- * person types into while looking at it, on a touchscreen, mid-service. That
- * makes latency a non-issue and makes the ORDER of the first three results
- * everything — nobody scrolls a command palette. So this scores rather than
- * filters, and the scoring is deliberately blunt: an exact label beats a label
- * prefix beats a word start beats a keyword beats a scattered subsequence.
+ * The shape of the problem: a small corpus (fifty-odd screens) that a person
+ * types into while looking at it, on a touchscreen, mid-service. Latency is a
+ * non-issue; the ORDER of the first three results is everything, because
+ * nobody scrolls a command palette. So this scores rather than filters, and
+ * the scoring is deliberately blunt: an exact label beats a label prefix beats
+ * a word start beats a keyword beats a scattered subsequence.
+ *
+ * Three rules that came out of watching it fail on a bigger index:
+ *
+ *  - A field's score is the BEST of the ways it matched, and an entry's score
+ *    is the best across its fields. The first version returned the label's
+ *    score whenever the label matched at all, so a weak three-letter
+ *    subsequence in "Companies" beat the word "coa" sitting in Chart of
+ *    Accounts' keywords.
+ *  - Subsequence matching is for the LABEL only. Keyword blobs are long, so
+ *    almost any short query threads through one somewhere; that is how
+ *    "grpr" once offered eight results. Keywords are vocabulary — whole
+ *    words — and match as words.
+ *  - Initials are a first-class match. "tb", "coa", "gp", "kds": people who
+ *    live in these screens abbreviate them, and an acronym hit outranks any
+ *    fuzzy one.
  *
  * Every token in the query must match something (AND, not OR), because "day
  * sales" meaning "anything with day OR sales" would bury Daily Food Sales under
@@ -17,14 +32,22 @@ const norm = (s) => (s || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '') // strip accents so "cafe" finds "café"
-    .replace(/[^a-z0-9\s]/g, ' ')    // & - / punctuation are noise here
+    // "p&l" is one word, not the two single letters "p" and "l" that would
+    // match half the app; "Waiters & Tables" keeps its space.
+    .replace(/(?<=[a-z0-9])&(?=[a-z0-9])/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')    // remaining punctuation is noise here
     .replace(/\s+/g, ' ')
     .trim();
 
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/* Initials of the label's words: "Chart of Accounts" -> "coa". */
+const acronymOf = (label) => norm(label).split(' ').filter(Boolean).map((w) => w[0]).join('');
+
 /*
- * Is `q` spread through `text` in order? "gp" finds "Gross Profit", "ivrec"
- * finds "Inventory Receiving". Returns the span it used, so a tight match can
- * outrank a match scattered across the whole string.
+ * Is `q` spread through `text` in order? "grpr" finds "Gross Profit". Returns
+ * the span it used, so a tight match can outrank one scattered across the
+ * whole string.
  */
 const subsequence = (text, q) => {
     let i = 0, start = -1;
@@ -38,42 +61,50 @@ const subsequence = (text, q) => {
     return null;
 };
 
-/* Where a token sits in a string, and how good that position is. */
-const scoreField = (field, token) => {
+/* How well a token sits in a field, by whole-word placement only. */
+const wordScore = (field, token) => {
     if (!field) return 0;
     if (field === token) return 1000;
     if (field.startsWith(token)) return 880;
-    // A word start: "sale" in "daily food sales"
-    if (new RegExp(`(^| )${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(field)) return 760;
-    if (field.includes(token)) return 620;
-    const sub = subsequence(field, token);
-    if (sub) {
-        // Tighter spans are better: "grpr" over "Gross Profit" beats a match
-        // that wandered the length of a keyword blob.
-        const span = sub.end - sub.start + 1;
-        return Math.max(180, 420 - (span - token.length) * 12);
-    }
+    const t = escapeRe(token);
+    if (new RegExp(`(^| )${t}( |$)`).test(field)) return 800;   // a whole word
+    if (new RegExp(`(^| )${t}`).test(field)) return 700;        // starts a word
+    // Buried mid-word ("pl" inside "suppliers"): weak, and weaker the shorter
+    // the token, so two letters never outrank a curated keyword.
+    if (field.includes(token)) return Math.min(600, 400 + token.length * 40);
+    return 0;
+};
+
+/* The label also accepts a subsequence, scored by how tightly it landed. */
+const labelScore = (label, token) => {
+    const words = wordScore(label, token);
+    if (words) return words;
+    const sub = subsequence(label, token);
+    if (!sub) return 0;
+    const span = sub.end - sub.start + 1;
+    return Math.max(120, 300 - (span - token.length) * 15);
+};
+
+const acronymScore = (acronym, token) => {
+    if (!acronym || token.length < 2) return 0;
+    if (acronym === token) return 900;
+    if (acronym.startsWith(token)) return 720;
     return 0;
 };
 
 /*
- * Score one entry against one token. The label is what the person is looking
- * at, so it dominates; keywords are the vocabulary bridge and are worth less
- * than a real label hit; the section is a weak tiebreak so typing "report"
- * still surfaces the whole group.
+ * One entry against one token: the best of its fields, each weighted by how
+ * much a hit there says about intent. The label is what the person is looking
+ * at, so it dominates; the acronym is the label in shorthand; keywords are the
+ * vocabulary bridge; the section and the path are weak tiebreaks.
  */
-const scoreEntry = (entry, token) => {
-    const label = scoreField(norm(entry.label), token);
-    if (label) return label * 1.0;
-    const keywords = scoreField(norm(entry.keywords), token);
-    if (keywords) return keywords * 0.62;
-    const section = scoreField(norm(entry.section), token);
-    if (section) return section * 0.34;
-    // The path itself, so someone who knows the URL can type it.
-    const href = scoreField(norm(entry.href), token);
-    if (href) return href * 0.30;
-    return 0;
-};
+const scoreEntry = (entry, token) => Math.max(
+    labelScore(norm(entry.label), token),
+    acronymScore(acronymOf(entry.label), token),
+    wordScore(norm(entry.keywords), token) * 0.70,
+    wordScore(norm(entry.section), token) * 0.34,
+    wordScore(norm(entry.href), token) * 0.30,
+);
 
 /*
  * The highlight range on the label, if the query hit the label at all. Only
@@ -118,12 +149,9 @@ export const searchNav = (entries, query, { limit = 12 } = {}) => {
     if (scored.length === 0) return [];
 
     /*
-     * Cut the weak tail. A short query like "grpr" subsequence-matches half the
-     * app — Gross Profit genuinely, then Profile, Menu Analytics and Recipes by
-     * coincidence. Showing those makes the real answer look like one guess
-     * among eight. Anything scoring under 40% of the best match is noise, and a
-     * palette that offers five results is more trustworthy than one that offers
-     * every result it can technically justify.
+     * Cut the weak tail. Anything scoring under 40% of the best match is
+     * noise, and a palette that offers three results is more trustworthy than
+     * one that offers everything it can technically justify.
      */
     const floor = scored[0].score * 0.4;
     return scored.filter((r) => r.score >= floor).slice(0, limit).map((r) => r.entry);

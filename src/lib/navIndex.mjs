@@ -101,12 +101,94 @@ export const NAV_INDEX = [
     {
         href: '/companies', label: 'Companies', icon: 'Building2', perm: 'cityledger',
         section: 'Back office', nav: 'backoffice',
-        keywords: 'corporate btc bill to company accounts clients organisations',
+        keywords: 'corporate bill to company accounts clients organisations customers on account',
     },
     {
         href: '/cityledger', label: 'City Ledger', icon: 'BookText', perm: 'cityledger',
         section: 'Back office', nav: 'backoffice',
         keywords: 'btc credit receivable company invoices receipts aging statement',
+    },
+
+    // ---- Accounts: the double-entry ledger, modelled on ChowPOS ----
+    {
+        href: '/accounts', label: 'Accounts', icon: 'Calculator', perm: 'accounts',
+        section: 'Accounts', nav: 'backoffice',
+        keywords: 'accounting ledger gl books finance bookkeeping accountant',
+    },
+    {
+        href: '/accounts/chart', label: 'Chart of Accounts', icon: 'BookOpen', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'chart of accounts account list gl accounts coa account numbers',
+    },
+    {
+        href: '/accounts/ledger', label: 'General Ledger', icon: 'ScrollText', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'gl transaction general ledger entries postings journal lines debit credit',
+    },
+    {
+        href: '/accounts/journals', label: 'Voucher List', icon: 'Files', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'vouchers journal vouchers jv list transactions',
+    },
+    {
+        href: '/accounts/journals/new', label: 'Add Transaction', icon: 'FilePlus2', perm: 'accounts_admin',
+        section: 'Accounts',
+        keywords: 'add transaction new journal voucher jv manual entry post journal',
+    },
+    {
+        href: '/accounts/expense-vouchers', label: 'Expense Voucher List', icon: 'ReceiptText', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'expense vouchers list draft posted payables',
+    },
+    {
+        href: '/accounts/expense-vouchers/new', label: 'Add Expense Voucher', icon: 'FilePlus2', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'add expense voucher new expense record spending pay bill',
+    },
+    {
+        href: '/accounts/expense-categories', label: 'Expense Categories', icon: 'FolderOpen', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'expense category list add expense category groups utilities salaries',
+    },
+    {
+        href: '/accounts/expense-codes', label: 'Expense Codes', icon: 'Hash', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'expense code list add expense code posting pivot account mapping',
+    },
+    {
+        href: '/accounts/reports', label: 'Account Reports', icon: 'FileSpreadsheet', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'account reports financial statements accounting reports',
+    },
+    {
+        href: '/accounts/reports/expenses', label: 'Expense Report', icon: 'FileSpreadsheet', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'expense report spending report by category xls pdf export',
+    },
+    {
+        href: '/accounts/reports/payables', label: 'Expense Payables Report', icon: 'FileSpreadsheet', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'payables unpaid expenses owed outstanding vouchers creditors',
+    },
+    {
+        href: '/accounts/reports/trial-balance', label: 'Trial Balance', icon: 'Scale', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'trial balance tb balances debit credit closing opening',
+    },
+    {
+        href: '/accounts/reports/income-statement', label: 'Income Statement', icon: 'TrendingUp', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'income statement profit and loss p&l pnl net profit gross profit revenue',
+    },
+    {
+        href: '/accounts/reports/balance-sheet', label: 'Balance Sheet', icon: 'Landmark', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'balance sheet assets liabilities equity financial position',
+    },
+    {
+        href: '/accounts/reports/cash-register', label: 'Cash Register', icon: 'Banknote', perm: 'accounts',
+        section: 'Accounts',
+        keywords: 'cash register cash book cash movements daily cash in out',
     },
     {
         href: '/charges', label: 'Charges', icon: 'Percent', perm: 'menu',

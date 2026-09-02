@@ -43,11 +43,17 @@ test('the roles that matter grant exactly what their names promise', () => {
 
     // 'users' is the one right that lets somebody quietly grant themselves the
     // rest, which is the whole difference between a manager and an admin.
+    // 'accounts_admin' is its twin on the money side: whoever can re-map
+    // revenue decides what the P&L says, so it stays with admin and the
+    // accountant.
     assert.deepEqual(
         grantedKeys(ROLE_DEFAULTS.manager),
-        PERMISSION_KEYS.filter((k) => k !== 'users'),
+        PERMISSION_KEYS.filter((k) => k !== 'users' && k !== 'accounts_admin'),
     );
     assert.equal(ROLE_DEFAULTS.manager.users, undefined);
+    assert.equal(ROLE_DEFAULTS.manager.accounts_admin, undefined);
+    assert.equal(ROLE_DEFAULTS.manager.accounts, true, 'a manager still posts vouchers and reads reports');
+    assert.equal(ROLE_DEFAULTS.accountant.accounts_admin, true);
 
     assert.deepEqual(grantedKeys(ROLE_DEFAULTS.kitchen), ['kds']);
 

@@ -24,6 +24,12 @@ export const PERMISSIONS = {
     reports: 'Reports and analytics',
     expenses: 'Expenses',
     cityledger: 'City ledger and companies',
+    accounts: 'Accounts: vouchers, ledger and reports',
+    // Editing the chart of accounts and the account mapping decides what the
+    // P&L SAYS. Held apart from `accounts` for the same reason `users` is held
+    // apart from everything else: it is the one right that lets someone quietly
+    // change the meaning of every number below it.
+    accounts_admin: 'Accounts: edit the chart of accounts and mapping',
     inventory: 'Inventory and suppliers',
     menu: 'Charges, discounts, waiters and tables',
     settings: 'Store settings',
@@ -49,13 +55,15 @@ const grant = (...keys) => Object.fromEntries(keys.map((k) => [k, true]));
 export const ROLE_DEFAULTS = {
     admin: grant(...PERMISSION_KEYS),
     // Runs the restaurant but cannot mint or delete accounts — the one
-    // right that lets someone quietly grant themselves everything else.
-    manager: grant(...PERMISSION_KEYS.filter((k) => k !== 'users')),
+    // right that lets someone quietly grant themselves everything else — and
+    // cannot restructure the books, for the matching reason.
+    manager: grant(...PERMISSION_KEYS.filter((k) => k !== 'users' && k !== 'accounts_admin')),
     cashier: grant('pos', 'orders', 'kds', 'drawer'),
     frontdesk: grant('pos', 'orders', 'kds', 'menu'),
     kitchen: grant('kds'),
     // Reads the money, never rings it: no POS, no voids.
-    accountant: grant('orders', 'reports', 'expenses', 'cityledger', 'inventory', 'dayclose', 'drawer'),
+    accountant: grant('orders', 'reports', 'expenses', 'cityledger', 'inventory', 'dayclose', 'drawer',
+        'accounts', 'accounts_admin'),
     staff: grant('pos', 'orders', 'kds', 'drawer'),
 };
 
@@ -102,6 +110,7 @@ export const ROUTE_PERMISSIONS = {
     '/expenses': 'expenses',
     '/cityledger': 'cityledger',
     '/companies': 'cityledger',
+    '/accounts': 'accounts',
     '/inventory': 'inventory',
     '/charges': 'menu',
     '/discounts': 'menu',
@@ -127,10 +136,11 @@ export const permissionForPath = (pathname) => {
  * lands on the board, an accountant on reports.
  */
 export const landingPath = (perms) => {
-    const order = ['pos', 'kds', 'orders', 'reports', 'drawer', 'expenses', 'inventory', 'cityledger', 'users', 'settings'];
+    const order = ['pos', 'kds', 'orders', 'reports', 'accounts', 'drawer', 'expenses', 'inventory', 'cityledger', 'users', 'settings'];
     const first = order.find((k) => perms?.includes?.(k) ?? perms?.[k]);
     const paths = {
         pos: '/pos', kds: '/kds', orders: '/orders', reports: '/reports',
+        accounts: '/accounts',
         drawer: '/drawer', expenses: '/expenses', inventory: '/inventory',
         cityledger: '/cityledger', users: '/users', settings: '/settings',
     };

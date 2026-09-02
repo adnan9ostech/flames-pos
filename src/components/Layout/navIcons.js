@@ -4,6 +4,8 @@ import {
     Percent, BadgePercent, Package, BookText, Armchair, Users,
     Receipt, CalendarDays, Clock, Boxes, PieChart, TrendingUp,
     Landmark, Truck, ChefHat, PackageCheck, FileStack, ClipboardCheck,
+    Calculator, BookOpen, ScrollText, Files, FilePlus2, FolderOpen, Hash,
+    FileSpreadsheet, Scale, Banknote,
     Circle,
 } from 'lucide-react';
 
@@ -22,6 +24,8 @@ const ICONS = {
     Percent, BadgePercent, Package, BookText, Armchair, Users,
     Receipt, CalendarDays, Clock, Boxes, PieChart, TrendingUp,
     Landmark, Truck, ChefHat, PackageCheck, FileStack, ClipboardCheck,
+    Calculator, BookOpen, ScrollText, Files, FilePlus2, FolderOpen, Hash,
+    FileSpreadsheet, Scale, Banknote,
 };
 
 /* A missing glyph must never take a nav row down with it. */

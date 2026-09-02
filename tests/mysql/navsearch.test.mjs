@@ -37,6 +37,10 @@ test('1. the words a restaurant actually uses reach the right screen', () => {
         ['end of day', '/dayclose'],
         ['float', '/drawer'],
         ['btc', '/cityledger'],
+        ['payables', '/accounts/reports/payables'],
+        ['expense voucher', '/accounts/expense-vouchers'],
+        ['balance sheet', '/accounts/reports/balance-sheet'],
+        ['cash register', '/accounts/reports/cash-register'],
         ['change password', '/profile'],
         // Kitchen slang: 86 means sold out, and that is done on the till.
         ['86', '/pos'],
@@ -57,6 +61,12 @@ test('3. initials and abbreviations find their screen', () => {
     assert.equal(top('grpr'), '/reports/gross-profit');
     assert.equal(top('kds'), '/kds');
     assert.equal(top('gp'), '/reports/gross-profit');
+    // The accountant's shorthand. "coa" once lost to a three-letter
+    // subsequence inside "Companies"; initials now outrank fuzzy hits.
+    assert.equal(top('coa'), '/accounts/chart');
+    assert.equal(top('tb'), '/accounts/reports/trial-balance');
+    assert.equal(top('p&l'), '/accounts/reports/income-statement');
+    assert.equal(top('gl'), '/accounts/ledger');
 });
 
 test('4. every token must match — a query is AND, not OR', () => {
