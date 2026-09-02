@@ -13,6 +13,18 @@ import { requirePermission } from '@/lib/db/auth.mjs'
 /* Matches the CHECK on supplier_payments.method. */
 const PAYMENT_METHODS = ['cash', 'bank', 'cheque']
 
+/*
+ * The general ledger, after the payment has committed — the same posture as
+ * the order hooks in orderActions.js: the money has left, so a ledger fault
+ * logs inside the poster and stops there. Idempotent on (source_type,
+ * source_id) in the database, so a repeat is harmless.
+ */
+const fireGlAfterSupplierPayment = (paymentId, userId) => {
+    import('@/lib/accounts/otherPost.mjs')
+        .then((m) => m.afterSupplierPaymentGl(paymentId, { userId }))
+        .catch(() => {})
+}
+
 /* Sums of DECIMAL(12,2) arrive as JS numbers; pin every derived figure back
  * to paise so a long receiving/payment chain can't accumulate float dust. */
 const money = (n) => Math.round(Number(n || 0) * 100) / 100
@@ -157,7 +169,7 @@ export async function getSupplierLedger(supplierId) {
  */
 export async function recordSupplierPayment({ supplierId, amount, method = 'cash', reference = '' } = {}) {
     try {
-        await requirePermission('inventory')
+        const user = await requirePermission('inventory')
         const id = Number(supplierId)
         if (!Number.isInteger(id) || id <= 0) return { error: 'Pick a supplier' }
         const amt = Number(amount)
@@ -184,6 +196,7 @@ export async function recordSupplierPayment({ supplierId, amount, method = 'cash
 
             return { id: result.insertId, amount: money(amt), method }
         })
+        fireGlAfterSupplierPayment(payment.id, user.id)
         return { data: payment }
     } catch (e) {
         return { error: e.message }

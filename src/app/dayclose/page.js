@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import styles from './dayclose.module.css';
 import { getDayCloseState, closeBusinessDay, startBusinessDay } from './actions';
 import { formatDateTime } from '@/lib/timeFormat';
@@ -58,6 +59,7 @@ export default function DayClosePage() {
 
     const pending = state?.pendingBills ?? [];
     const openDay = state?.openDay;
+    const ledgerGaps = Number(state?.ledgerGaps ?? 0);
 
     const [starting, setStarting] = useState(false);
 
@@ -159,6 +161,18 @@ export default function DayClosePage() {
                         <div className={styles.staleNote}>
                             <AlertTriangle size={14} aria-hidden="true" />
                             This day is behind today — start today&apos;s day so tonight&apos;s orders land on the right date.
+                        </div>
+                    )}
+                    {/* Soft warning only: the ledger never blocks a settle, so it
+                        never blocks a close. The accountant reposts from Health. */}
+                    {ledgerGaps > 0 && (
+                        <div className={styles.staleNote} role="status">
+                            <AlertTriangle size={14} aria-hidden="true" />
+                            <span>
+                                {ledgerGaps} settled bill{ledgerGaps === 1 ? '' : 's'} from this day{' '}
+                                {ledgerGaps === 1 ? 'has' : 'have'} not reached the ledger —{' '}
+                                see <Link href="/accounts/health">Posting Health</Link>.
+                            </span>
                         </div>
                     )}
                 </div>

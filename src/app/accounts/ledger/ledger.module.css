@@ -1,0 +1,47 @@
+/*
+ * What the General Ledger screen owns beyond the section stylesheet: the
+ * account picker in the filter row, and the strip under the table that
+ * carries "Load more".
+ */
+
+.select {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.65rem;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    min-height: 40px;
+    max-width: 22rem;
+    color-scheme: dark;
+}
+
+.select:focus { border-color: var(--primary); outline: none }
+
+.moreRow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.voucherLink {
+    color: var(--foreground);
+    font-weight: 700;
+    text-decoration: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.voucherLink:hover { color: var(--primary); text-decoration: underline }
+
+@media print {
+    .moreRow { display: none }
+    .voucherLink { color: #000 }
+}

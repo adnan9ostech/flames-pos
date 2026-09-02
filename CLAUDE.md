@@ -13,7 +13,7 @@ Hard rules for this codebase:
   tests assert). Never reword or fork them.
 - Server actions return `{data}|{error}` envelopes, never throw to the client.
 - Keep `DB_NAME=flames_pos_test node --test 'tests/mysql/*.test.mjs'` green
-  (45 tests incl. concurrency races) before any commit touching money paths.
+  (93 tests incl. concurrency races) before any commit touching money paths.
 - The deploy target is a shared cPanel box with ~150 tenant sites: nothing
   global, per-vhost only — `docs/deploy-cpanel.md` is the runbook.
 - Never commit `.env*`; FBR token and SESSION_SECRET are server-env only.

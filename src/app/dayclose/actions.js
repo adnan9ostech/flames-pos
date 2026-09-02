@@ -73,7 +73,35 @@ const loadState = async () => {
         closed_by_role: r.closed_by_role ?? null,
     }))
 
-    return { openDay, history, pendingBills: await fetchPendingBills() }
+    return {
+        openDay,
+        history,
+        pendingBills: await fetchPendingBills(),
+        ledgerGaps: await countLedgerGaps(openDay.business_date),
+    }
+}
+
+/*
+ * Settled bills on the closing day the general ledger has no sale journal
+ * for. A soft warning only: the ledger posts itself after the settle and
+ * never holds up the till, so it must not hold up the close either — the
+ * accountant reposts from /accounts/health. Zero when posting is off or the
+ * day predates the ledger's start, because then nothing was ever expected.
+ */
+const countLedgerGaps = async (businessDate) => {
+    const [{ n }] = await query(
+        `SELECT COUNT(*) AS n
+           FROM orders o
+           LEFT JOIN gl_journals j ON j.source_type = 'order_sale' AND j.source_id = o.id
+          WHERE o.branch_id = ? AND o.business_date = ?
+            AND o.payment_status = 'paid' AND o.status <> 'cancelled'
+            AND o.invoice_number IS NOT NULL
+            AND j.id IS NULL
+            AND EXISTS (SELECT 1 FROM gl_settings s
+                         WHERE s.id = 1 AND s.posting_enabled = 1 AND o.business_date >= s.start_date)`,
+        [BRANCH_ID, businessDate],
+    )
+    return Number(n)
 }
 
 export async function getDayCloseState() {

@@ -274,8 +274,11 @@ const settleOrderTx = async (conn, orderId, {
     );
 
     // Tax at the rate this payment method carries — the ICT differential.
+    // The rate is stamped on the row below, next to the method, so the
+    // ledger and the tax report can say which rate produced `tax`.
     const rates = await getTaxRates(conn);
-    order = await recomputeOrder(conn, orderId, { taxRate: rateForMethod(rates, method) });
+    const taxRate = rateForMethod(rates, method);
+    order = await recomputeOrder(conn, orderId, { taxRate });
 
     if (expectedTotal != null && Number(expectedTotal) !== Number(order.total)) {
         throw new Error(
@@ -316,11 +319,12 @@ const settleOrderTx = async (conn, orderId, {
         `UPDATE orders SET
            payment_status = 'paid',
            payment_mode = ?,
+           tax_rate = ?,
            paid_at = UTC_TIMESTAMP(3),
            status = CASE WHEN status = 'ready' THEN 'completed' ELSE status END,
            updated_at = UTC_TIMESTAMP(3)
          WHERE id = ?`,
-        [method, orderId],
+        [method, taxRate, orderId],
     );
     order = await fetchOrder(conn, orderId);
 

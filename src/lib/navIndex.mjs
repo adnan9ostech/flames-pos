@@ -191,6 +191,11 @@ export const NAV_INDEX = [
         keywords: 'cash register cash book cash movements daily cash in out',
     },
     {
+        href: '/accounts/health', label: 'Posting Health', icon: 'HeartPulse', perm: 'accounts_admin',
+        section: 'Accounts',
+        keywords: 'posting health unposted bills repost ledger gaps missing journals reconcile',
+    },
+    {
         href: '/charges', label: 'Charges', icon: 'Percent', perm: 'menu',
         section: 'Back office', nav: 'backoffice',
         keywords: 'service charge delivery fee surcharge extra charges',

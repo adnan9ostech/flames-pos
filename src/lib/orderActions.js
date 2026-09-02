@@ -53,6 +53,19 @@ const fireInventoryAfterVoid = (order) => {
 };
 
 /*
+ * And the general ledger. Same posture again: the journals are the
+ * accountant's record of a sale that has already happened, so a ledger
+ * fault logs and stops there. Idempotent on (source_type, source_id) in
+ * the database, because the replay path fires this twice for one order.
+ */
+const fireGlAfterSettle = (order) => {
+    import('@/lib/accounts/post.mjs').then(m => m.afterSettleGl(order)).catch(() => {});
+};
+const fireGlAfterVoid = (order) => {
+    import('@/lib/accounts/post.mjs').then(m => m.afterVoidGl(order)).catch(() => {});
+};
+
+/*
  * One order object in, one stored order out — pay-now sales settle inside
  * the same call. The object is the till's own shape; it is unpacked into
  * verb arguments here so the pages did not have to change.
@@ -100,6 +113,7 @@ export const addOrder = async (order) => {
         if (data?.payment_status === 'paid') {
             fireFbrAfterSettle(data);
             fireInventoryAfterSettle(data);
+            fireGlAfterSettle(data);
         }
         return { data };
     } catch (e) {
@@ -144,6 +158,7 @@ export const settleOrder = async (orderId, {
         if (data?.payment_status === 'paid') {
             fireFbrAfterSettle(data);
             fireInventoryAfterSettle(data);
+            fireGlAfterSettle(data);
         }
         return { data };
     } catch (e) {
@@ -177,7 +192,7 @@ export const cancelOrder = async (orderId, { reason, by } = {}) => {
         }
 
         const data = await voidOrder(orderId, reason.trim(), by || null);
-        if (data) fireInventoryAfterVoid(data);
+        if (data) { fireInventoryAfterVoid(data); fireGlAfterVoid(data); }
         return { data };
     } catch (e) {
         return { error: e.message };

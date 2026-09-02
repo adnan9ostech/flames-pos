@@ -1,0 +1,14 @@
+-- The tax rate a bill was settled at. settleOrderTx has always picked the
+-- rate by payment method (rateForMethod: cash 16%, card 5% under ICT) and
+-- then discarded it, keeping only the resulting `tax` amount — so nothing
+-- downstream could say WHICH rate produced a GST figure without re-deriving
+-- it. The ledger's GST line and the tax report want the fact, not a guess.
+--
+-- NULL on an open tab (it displays at the cash rate until settled) and on
+-- every bill settled before this column existed; stamped alongside
+-- payment_mode by the same UPDATE that marks the order paid.
+--
+-- One ALTER in its own file: MySQL 8 has no ADD COLUMN IF NOT EXISTS, so
+-- this file is NOT re-runnable and must not share a file with anything
+-- that is (the rule 007 already follows).
+ALTER TABLE orders ADD COLUMN tax_rate DECIMAL(5,4) NULL;

@@ -25,6 +25,19 @@ import { serializeRow, serializeRows } from '@/lib/db/serialize.mjs'
 
 const BRANCH_ID = 1
 
+/*
+ * The general ledger, after the close has committed: a short or an over is
+ * booked against Cash Over and Short; a drawer that counted right posts
+ * nothing. Same posture as the order hooks in orderActions.js — the count
+ * is frozen on the row, so a ledger fault logs inside the poster and stops
+ * there. Idempotent on (source_type, source_id) in the database.
+ */
+const fireGlAfterDrawerClose = (sessionId, userId) => {
+    import('@/lib/accounts/otherPost.mjs')
+        .then((m) => m.afterDrawerCloseGl(sessionId, { userId }))
+        .catch(() => {})
+}
+
 // Rupee sums at (12,2) survive JS doubles, but the additions here can leave
 // float dust — freeze clean paisa on the row, not 1204.6999999999998.
 const round2 = (n) => Math.round(Number(n) * 100) / 100
@@ -250,6 +263,7 @@ export async function closeDrawer({ counted_amount, notes } = {}) {
             const rows = await run('SELECT * FROM drawer_sessions WHERE id = ?', [session.id])
             return rows[0]
         })
+        fireGlAfterDrawerClose(closed.id, user.id)
         return { data: serializeRow('drawer_sessions', closed) }
     } catch (e) {
         return { error: e.message }

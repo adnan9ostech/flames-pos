@@ -51,6 +51,40 @@ const fetchVoucher = async (conn, id) => {
     return rows[0] ?? null
 }
 
+/*
+ * A row a posted expense voucher projected here (voucher_line_id set) is a
+ * PROJECTION of that document — 007_expense_links.sql promises it is never
+ * marked paid or deleted from this screen on its own, or the drawer and the
+ * ledger would tell two stories about the same money. It is paid or
+ * reversed on the voucher, which rewrites the projection itself.
+ */
+const refuseProjected = async (conn, expense) => {
+    if (!expense.voucher_line_id) return
+    const [rows] = await conn.query(
+        `SELECT v.id, v.voucher_no
+           FROM expense_voucher_lines l
+           JOIN expense_vouchers v ON v.id = l.voucher_id
+          WHERE l.id = ?`,
+        [expense.voucher_line_id],
+    )
+    const v = rows[0]
+    throw new Error(
+        `This expense comes from voucher ${v?.voucher_no ?? 'an expense voucher'} — pay or reverse it under `
+        + `Accounts › Expense Vouchers${v ? ` (/accounts/expense-vouchers/${v.id})` : ''}`,
+    )
+}
+
+/* The trading day this screen opens on: the open business day, which the
+ * rows book to, rather than the calendar day. */
+export async function getOpenBusinessDay() {
+    try {
+        await requirePermission('expenses')
+        return { data: await openBusinessDate() }
+    } catch (e) {
+        return { error: e.message }
+    }
+}
+
 export async function listExpenses({ from, to, status } = {}) {
     try {
         await requirePermission('expenses')
@@ -59,10 +93,15 @@ export async function listExpenses({ from, to, status } = {}) {
         if (from && DATE_RE.test(from)) { where.push('e.business_date >= ?'); params.push(from) }
         if (to && DATE_RE.test(to)) { where.push('e.business_date <= ?'); params.push(to) }
         if (status && STATUSES.includes(status)) { where.push('e.status = ?'); params.push(status) }
+        // voucher_id / voucher_no name the document a projected row came
+        // from, so the screen can send a person to it instead of offering
+        // Mark paid / Delete on a row it must not change.
         const rows = await query(
-            `SELECT e.*, c.name AS category_name
+            `SELECT e.*, c.name AS category_name, l.voucher_id, v.voucher_no
              FROM expenses e
              LEFT JOIN expense_categories c ON c.id = e.category_id
+             LEFT JOIN expense_voucher_lines l ON l.id = e.voucher_line_id
+             LEFT JOIN expense_vouchers v ON v.id = l.voucher_id
              ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
              ORDER BY e.business_date DESC, e.id DESC`,
             params,
@@ -142,6 +181,7 @@ export async function markPaid(id) {
             const [rows] = await conn.query('SELECT * FROM expenses WHERE id = ? FOR UPDATE', [expenseId])
             const expense = rows[0]
             if (!expense) throw new Error('Expense not found')
+            await refuseProjected(conn, expense)
             if (expense.status === 'paid') throw new Error('This voucher is already marked paid')
 
             await conn.query(
@@ -176,6 +216,7 @@ export async function deleteExpense(id) {
             const [rows] = await conn.query('SELECT * FROM expenses WHERE id = ? FOR UPDATE', [expenseId])
             const expense = rows[0]
             if (!expense) throw new Error('Expense not found')
+            await refuseProjected(conn, expense)
 
             let categoryName = null
             if (expense.category_id) {

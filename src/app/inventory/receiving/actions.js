@@ -5,6 +5,18 @@ import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { receiveStock } from '@/lib/db/inventory.mjs'
 
+/*
+ * The general ledger, after the GRN has committed — the same posture as the
+ * order hooks in orderActions.js: the stock is already in and the payable
+ * already owed, so a ledger fault logs inside the poster and stops there.
+ * Idempotent on (source_type, source_id) in the database.
+ */
+const fireGlAfterReceiving = (receivingId, userId) => {
+    import('@/lib/accounts/otherPost.mjs')
+        .then((m) => m.afterReceivingGl(receivingId, { userId }))
+        .catch(() => {})
+}
+
 /* The calendar day in Asia/Karachi (fixed UTC+5, no DST). */
 const karachiDay = () =>
     new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
@@ -113,8 +125,9 @@ export async function getReceivingData() {
  */
 export async function createReceiving({ supplierId, warehouseId, draftId, supplierInvoice, lines, notes } = {}) {
     try {
-        await requirePermission('inventory')
+        const user = await requirePermission('inventory')
         const data = await receiveStock({ supplierId, warehouseId, draftId, supplierInvoice, lines, notes })
+        fireGlAfterReceiving(data.id, user.id)
         return { data }
     } catch (e) {
         return { error: e.message }

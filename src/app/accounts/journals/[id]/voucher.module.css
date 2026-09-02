@@ -1,0 +1,66 @@
+/*
+ * What the voucher document owns beyond the section stylesheet: the header
+ * field grid, and the relation line ("Reversed by …" / "Reverses …").
+ */
+
+.meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.9rem 1.25rem;
+}
+
+.metaLabel {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-bottom: 0.2rem;
+}
+
+.metaValue {
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.metaMono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+}
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.relation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    flex-wrap: wrap;
+}
+
+.relation a {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.relation a:hover { text-decoration: underline }
+
+.doc {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+@media print {
+    .relation a { color: #000 }
+}

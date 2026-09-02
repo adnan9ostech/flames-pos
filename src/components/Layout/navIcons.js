@@ -5,7 +5,7 @@ import {
     Receipt, CalendarDays, Clock, Boxes, PieChart, TrendingUp,
     Landmark, Truck, ChefHat, PackageCheck, FileStack, ClipboardCheck,
     Calculator, BookOpen, ScrollText, Files, FilePlus2, FolderOpen, Hash,
-    FileSpreadsheet, Scale, Banknote,
+    FileSpreadsheet, Scale, Banknote, HeartPulse,
     Circle,
 } from 'lucide-react';
 
@@ -25,7 +25,7 @@ const ICONS = {
     Receipt, CalendarDays, Clock, Boxes, PieChart, TrendingUp,
     Landmark, Truck, ChefHat, PackageCheck, FileStack, ClipboardCheck,
     Calculator, BookOpen, ScrollText, Files, FilePlus2, FolderOpen, Hash,
-    FileSpreadsheet, Scale, Banknote,
+    FileSpreadsheet, Scale, Banknote, HeartPulse,
 };
 
 /* A missing glyph must never take a nav row down with it. */

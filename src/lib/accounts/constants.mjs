@@ -84,14 +84,6 @@ export const LINK_GROUPS = [
 
 export const LINK_CODES = LINK_GROUPS.flatMap((g) => g.codes.map((c) => c.code));
 
-export const linkLabel = (code) => {
-    for (const g of LINK_GROUPS) {
-        const hit = g.codes.find((c) => c.code === code);
-        if (hit) return hit.label;
-    }
-    return code;
-};
-
 /* Voucher types the ledger writes, with the words a person sees. */
 export const VOUCHER_TYPES = {
     SV: 'Sale',

@@ -13,6 +13,18 @@ import { requirePermission } from '@/lib/db/auth.mjs'
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const RECEIPT_METHODS = ['cash', 'card', 'bank', 'cheque']
 
+/*
+ * The general ledger, after the receipt has committed. Same posture as the
+ * order hooks in orderActions.js: the money is already in, so a ledger
+ * fault logs inside the poster and stops there. Idempotent on
+ * (source_type, source_id) in the database, so a repeat is harmless.
+ */
+const fireGlAfterReceipt = (receiptId, userId) => {
+    import('@/lib/accounts/otherPost.mjs')
+        .then((m) => m.afterReceiptGl(receiptId, { userId }))
+        .catch(() => {})
+}
+
 /* Sums of DECIMAL(12,2) arrive as JS numbers; pin every derived figure back
  * to paise so a long charge/receipt chain can't accumulate float dust. */
 const money = (n) => Math.round(Number(n || 0) * 100) / 100
@@ -130,7 +142,7 @@ export async function recordReceipt({
     companyId, invoiceId = null, amount, method = 'bank', reference = '', memo = '',
 } = {}) {
     try {
-        await requirePermission('cityledger')
+        const user = await requirePermission('cityledger')
         if (!companyId) return { error: 'Pick a company' }
         const amt = Number(amount)
         if (!Number.isFinite(amt) || amt <= 0) return { error: 'The amount must be more than zero' }
@@ -168,6 +180,7 @@ export async function recordReceipt({
 
             return { id: result.insertId, amount: money(amt), method }
         })
+        fireGlAfterReceipt(receipt.id, user.id)
         return { data: receipt }
     } catch (e) {
         return { error: e.message }

@@ -30,7 +30,7 @@ touch global config; full runbook in `docs/deploy-cpanel.md`).
   `src/lib/orderActions.js`. Realtime = 4s version polling
   (`useRealtimeTable` → `/api/orders/version`).
 - Tests: `DB_NAME=flames_pos_test node --test 'tests/mysql/*.test.mjs'`
-  (45 tests incl. concurrency races — keep green).
+  (93 tests incl. concurrency races — keep green).
 - Run locally: `ALLOW_HTTP_COOKIES=true npx next start -p 3210`
   (LAN devices: http://<mac-ip>:3210; Secure-cookie override is LAN-only).
 - FBR Digital Invoicing: module `src/lib/fbr/*` + `scripts/fbr-worker.mjs`;
@@ -236,16 +236,68 @@ Built so far:
       accounts can be renamed, never switched off. No delete, ever.
       Server-validated; every write audited with staff_id.
 
-Next steps (each shippable, suite green): 4 posting engine
-(`src/lib/accounts/post.mjs`, 4 lines in orderActions.js, stamp
-`orders.tax_rate` at settle, tests incl. concurrent double-fire) → 5 GL
-Transaction list + Trial Balance (+CSV/print) → 6 xlsx export
-(`src/lib/reports/xlsx.mjs`, zero deps) → 7 Income Statement, Balance
-Sheet, Cash Register → 8 Posting Health + repost + day-close soft warning →
-9 manual JV → 10 expense codes/categories screens + expense vouchers
-(draft/post/pay, projecting into `expenses`) + expense/payables reports →
-11 city-ledger receipts + supplier payments posting → 12 opening balances +
-drawer variance journal. Shared stylesheet: `src/app/accounts/accounts.module.css`.
+Steps 4–12 — ALL BUILT (2 Sep, one orchestrated pass: 7 build agents with
+disjoint file ownership, then build + suite, two browser smoke agents, three
+adversarial reviewers, a fix pass; then my own consolidation + review):
+- [x] Posting engine `src/lib/accounts/post.mjs`: after-commit hooks in
+      orderActions.js (4 lines, same posture as FBR/inventory). SV per order
+      at its business_date; SM per payments row; voids write contras from the
+      STORED lines on the current open day. Idempotent on UNIQUE
+      (source_type, source_id) — mysql2 reports affectedRows=1 on a duplicate
+      ODKU, so the twin signal is `insertId === 0` (probed). Orders now stamp
+      `tax_rate` at settle (migration 008) so the FBR return can split by rate.
+      Refuses (logs, no journal) if Σ line_total ≠ subtotal.
+- [x] Fix-pass hardening the reviewers forced: counter locks always taken
+      SV-then-SM (a void previously deadlocked a concurrent settle 39/40
+      runs); `orders FOR UPDATE` first so a void racing its own settle hook
+      cannot lose the reversal; a void SM reverses the STORED SM lines, not a
+      live re-resolve of the payment mapping; the screen "Reverse" refuses
+      engine journals (void the bill / reverse the voucher instead) so a sale
+      can never be un-booked twice; a PV debits the payable the EV actually
+      credited; expense documents cannot be future-dated; split/part-paid
+      voucher lines are refused at post (a projection must be whole-line so
+      the drawer sum is exact).
+- [x] General Ledger `/accounts/ledger`, Voucher List `/accounts/journals`,
+      voucher document `/accounts/journals/[id]` (Print, Reverse for manual
+      JVs only), manual JV `/accounts/journals/new` (balanced client+server+
+      CHECK; "Opening balance" mode pre-lines Opening Balance Equity).
+- [x] Statements: Trial Balance (Balanced chip, Print/CSV/Excel), Income
+      Statement (ChowPOS shape), Balance Sheet (with current-period earnings
+      so A = L + E and it says so), Cash Register (running balance). Excel via
+      `src/lib/reports/xlsx.mjs` — zero-dependency .xlsx writer (deflateRaw +
+      crc32 from the existing `crc` dep), route `/api/accounts/export`.
+- [x] Expense Categories + Codes screens; migration 009 seeds 8 categories
+      and 23 codes mapped onto the chart (payable = 20100 Sundry).
+- [x] Expense Vouchers (ChowPOS document: DRAFT → Save & Post → Add payment →
+      Reverse), EV/PV journals, PROJECTION into `expenses` (voucher_line_id;
+      paid_from matches what the drawer filters on; created_at inside the
+      drawer window). The OLD /expenses screen now refuses Mark-paid/Delete on
+      projected rows and links to the voucher; its default range covers the
+      open business day. Expense Report (Summarize toggle) + Expense Payables.
+- [x] Posting Health `/accounts/health` (accounts_admin): settled bills with
+      no SV, payments with no SM, unbalanced headers, and legacy chits typed
+      on the old Expenses screen (never reach the GL — re-enter as vouchers);
+      Repost / Repost all. Day Close shows "N bills not in the ledger" as an
+      amber note, never a blocker.
+- [x] Other postings `src/lib/accounts/otherPost.mjs`: RV on city-ledger
+      receipts, PV on supplier payments + Dr Inventory/Cr AP on stock
+      receivings (both or AP runs negative), drawer-close variance to Cash
+      Over/Short. Nothing posts from company_invoices (double-count trap).
+- [x] `src/lib/accounts/kit.mjs`: the one copy of money/ymd/nextVoucherNo/
+      audit/currentBusinessDate (plain Node, relative imports); helpers.mjs
+      is now `server-only` + re-exports. The agents had restated these in 7
+      files because helpers.mjs cannot load in `node --test`.
+
+Deferred, deliberately (follow-ups, not defects): a client_request_id on
+expense vouchers / receipts / supplier payments (needs a migration + UI
+keys; the editors' busy flag blocks double submits today); the legacy
+add-expense path posts nothing (surfaced on Health with its rupee total).
+
+DEV DATA STATE: smoke agents moved gl_settings.start_date on flames_pos_dev
+to 2026-09-01 (the still-open business day) and left 4 expense vouchers,
+~10 journals and 2 extra POS sales behind; the 25 pre-engine seeded bills
+show on Posting Health until "Repost all" or a data wipe. Wipe with the 22
+seeded orders when Adnan wants a clean slate.
 
 ## Future scope — agreed with the owner, deliberately not built
 

@@ -1,9 +1,10 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import styles from './expenses.module.css';
 import {
     listExpenses, addExpense, markPaid, deleteExpense,
-    listCategories, addCategory, toggleCategory,
+    listCategories, addCategory, toggleCategory, getOpenBusinessDay,
 } from './actions';
 import { useRole } from '@/components/Layout/AppLayout';
 import { formatWeekdayDate } from '@/lib/timeFormat';
@@ -89,6 +90,19 @@ export default function ExpensesPage() {
 
     useEffect(() => { load(); }, [load]);
     useEffect(() => { loadCategories(); }, [loadCategories]);
+
+    // Rows book to the open trading day, which after midnight and before
+    // day close is still yesterday's date — so the range opens on that day
+    // (through the calendar day), not on the calendar day alone.
+    useEffect(() => {
+        let cancelled = false;
+        getOpenBusinessDay().then((res) => {
+            if (cancelled || !res.data) return;
+            setFrom((f) => (res.data < f ? res.data : f));
+            setTo((t) => (res.data > t ? res.data : t));
+        });
+        return () => { cancelled = true; };
+    }, []);
 
     // Clear a success note on its own; errors stay until the next attempt.
     useEffect(() => {
@@ -528,30 +542,42 @@ export default function ExpensesPage() {
                                                     {rs(r.amount)}
                                                 </td>
                                                 <td className={styles.alignRight}>
-                                                    <div className={styles.rowActions}>
-                                                        {tab === 'payables' && (
+                                                    {/* A row an expense voucher projected here is paid or
+                                                        reversed on the voucher, never changed from this side. */}
+                                                    {r.voucher_line_id ? (
+                                                        <Link
+                                                            href={`/accounts/expense-vouchers/${r.voucher_id}`}
+                                                            className={styles.cellMuted}
+                                                            title="Entered as an expense voucher — pay or reverse it there"
+                                                        >
+                                                            {r.voucher_no || 'voucher'}
+                                                        </Link>
+                                                    ) : (
+                                                        <div className={styles.rowActions}>
+                                                            {tab === 'payables' && (
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.markPaidBtn}
+                                                                    disabled={markingId === r.id}
+                                                                    onClick={() => settle(r.id)}
+                                                                >
+                                                                    {markingId === r.id
+                                                                        ? <Loader2 size={13} className={styles.inlineSpinner} />
+                                                                        : <Check size={13} aria-hidden="true" />}
+                                                                    Mark paid
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 type="button"
-                                                                className={styles.markPaidBtn}
-                                                                disabled={markingId === r.id}
-                                                                onClick={() => settle(r.id)}
+                                                                className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                                                                title="Delete voucher"
+                                                                aria-label="Delete voucher"
+                                                                onClick={() => { setDeleteTarget(r); setDeleteError(''); }}
                                                             >
-                                                                {markingId === r.id
-                                                                    ? <Loader2 size={13} className={styles.inlineSpinner} />
-                                                                    : <Check size={13} aria-hidden="true" />}
-                                                                Mark paid
+                                                                <Trash2 size={15} />
                                                             </button>
-                                                        )}
-                                                        <button
-                                                            type="button"
-                                                            className={`${styles.iconBtn} ${styles.deleteBtn}`}
-                                                            title="Delete voucher"
-                                                            aria-label="Delete voucher"
-                                                            onClick={() => { setDeleteTarget(r); setDeleteError(''); }}
-                                                        >
-                                                            <Trash2 size={15} />
-                                                        </button>
-                                                    </div>
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}

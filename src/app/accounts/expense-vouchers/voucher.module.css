@@ -1,0 +1,124 @@
+/*
+ * What the expense voucher document owns beyond the section stylesheet:
+ * the two repeating-row grids (an expense line and a payment line have
+ * different columns), the header meta grid, and the totals strip.
+ */
+
+.doc {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.head {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.9rem 1.25rem;
+}
+
+.metaLabel {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-bottom: 0.2rem;
+}
+
+.metaValue {
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.metaMono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+}
+
+.sectionHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Code | Description | Amount | remove */
+.lineExpense {
+    grid-template-columns: minmax(12rem, 2fr) minmax(10rem, 3fr) 9rem 36px;
+}
+
+/* Account | Amount | Paid on | Reference | remove */
+.linePayment {
+    grid-template-columns: minmax(12rem, 2fr) 9rem 10.5rem minmax(8rem, 1.5fr) 36px;
+}
+
+@media (max-width: 860px) {
+    .lineExpense, .linePayment { grid-template-columns: 1fr 1fr }
+    .lineHeadRow { display: none }
+}
+
+.removeCell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.summaryCell {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius);
+    padding: 0.7rem 0.9rem;
+}
+
+.summaryValue {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.journalLink {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.journalLink:hover { text-decoration: underline }
+
+.voucherLink {
+    color: inherit;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.voucherLink:hover { color: var(--primary) }
+
+@media print {
+    .summaryCell { background: #f4f4f4; border: 1px solid #ccc }
+    .journalLink, .voucherLink { color: #000 }
+}
