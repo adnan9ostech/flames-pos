@@ -227,14 +227,26 @@ const unusedCssModules = cssFiles
 
 const publicDir = join(ROOT, 'public');
 const allSrc = [...codeFiles, ...cssFiles].map(read).join('\n');
-const unusedPublic = existsSync(publicDir)
+/*
+ * The third trap this script fell into: menu photos. Nothing in src/ names a
+ * file under public/menu-images/ — the DATABASE does, one path per
+ * menu_items.image row — so a static scan reported all 125 as unreferenced.
+ * They are counted separately below rather than hidden, so a photo that is
+ * genuinely orphaned still has somewhere to show up: compare this count with
+ * `SELECT COUNT(*) FROM menu_items WHERE image LIKE '/menu-images/%'`.
+ */
+const DB_REFERENCED_PREFIXES = ['menu-images/'];
+const publicFiles = existsSync(publicDir)
     ? walk(publicDir)
         .map(f => relative(publicDir, f))
         .filter(f => !f.startsWith('.'))
         // sw.js and the manifest are referenced by the browser, not the bundle
         .filter(f => !['sw.js', 'manifest.webmanifest', 'offline.html'].includes(f))
-        .filter(f => !allSrc.includes(f) && !allSrc.includes(f.split('/').pop()))
     : [];
+const dbReferencedPublic = publicFiles.filter(f => DB_REFERENCED_PREFIXES.some(p => f.startsWith(p)));
+const unusedPublic = publicFiles
+    .filter(f => !DB_REFERENCED_PREFIXES.some(p => f.startsWith(p)))
+    .filter(f => !allSrc.includes(f) && !allSrc.includes(f.split('/').pop()));
 
 // ------------------------------------------------------------------ output --
 
@@ -266,5 +278,6 @@ if (process.argv.includes('--json')) {
     section('Runtime deps only scripts use (candidates for devDependencies)', devOnlyDeps);
     section('CSS modules nothing imports', unusedCssModules);
     section('public/ files nothing references', unusedPublic);
+    console.log(`\npublic/ files referenced from the database, not the bundle  (${dbReferencedPublic.length})  — menu_items.image; compare with the row count`);
     console.log('\nCandidates, not verdicts — confirm each before deleting.');
 }
