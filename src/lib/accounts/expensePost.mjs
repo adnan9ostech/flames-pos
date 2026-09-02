@@ -40,8 +40,7 @@
  * payment line, gl_links or gl_settings.
  */
 import { VOUCHER_TYPES } from './constants.mjs';
-import { money, ymd, todayKarachi, clip, requireDate, requireId, currentBusinessDate, audit } from './kit.mjs';
-export { money };
+import { money, ymd, todayKarachi, clip, requireDate, requireId, currentBusinessDate, audit, nextVoucherNo } from './kit.mjs';
 
 /* The business events a voucher produces, as gl_journals.source_type. */
 export const EXPENSE_SOURCE_TYPES = Object.freeze({
@@ -87,20 +86,6 @@ const nextExpenseVoucherNo = async (conn, bd, branchId = 1) => {
     return `EV-${bd.slice(2).replace(/-/g, '')}-${String(rows[0].last_no).padStart(4, '0')}`;
 };
 
-const nextJournalNo = async (conn, voucherType, bd, branchId = 1) => {
-    await conn.query(
-        `INSERT INTO gl_voucher_counters (branch_id, day, voucher_type, last_no)
-         VALUES (?, ?, ?, 1)
-         ON DUPLICATE KEY UPDATE last_no = last_no + 1`,
-        [branchId, bd, voucherType],
-    );
-    const [rows] = await conn.query(
-        'SELECT last_no FROM gl_voucher_counters WHERE branch_id = ? AND day = ? AND voucher_type = ?',
-        [branchId, bd, voucherType],
-    );
-    return `${voucherType}-${bd.slice(2).replace(/-/g, '')}-${String(rows[0].last_no).padStart(4, '0')}`;
-};
-
 /*
  * One balanced journal under a savepoint: the post.mjs idiom restated.
  * Zero lines dropped, Dr === Cr asserted before anything is written, and a
@@ -129,7 +114,7 @@ const writeJournal = async (conn, j) => {
     }
 
     await conn.query('SAVEPOINT expense_journal');
-    const voucherNo = await nextJournalNo(conn, j.voucherType, j.businessDate, j.branchId);
+    const voucherNo = await nextVoucherNo(conn, j.voucherType, j.businessDate, j.branchId);
     const [result] = await conn.query(
         `INSERT INTO gl_journals
            (branch_id, business_date, voucher_type, voucher_no, source_type, source_id,

@@ -59,15 +59,3 @@ export const requirePermission = async (key) => {
     return user;
 };
 
-/*
- * Kept for the screens that were written against it. "Admin" now means the
- * `users` right — the one an admin has and a manager does not — so an
- * account given that right explicitly passes too.
- */
-export const requireAdmin = async () => {
-    const user = await requireUser();
-    if (user.role !== 'admin' && !user.permissions.users) {
-        throw new AuthError('Only an admin can do this');
-    }
-    return user;
-};

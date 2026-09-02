@@ -30,7 +30,7 @@ touch global config; full runbook in `docs/deploy-cpanel.md`).
   `src/lib/orderActions.js`. Realtime = 4s version polling
   (`useRealtimeTable` → `/api/orders/version`).
 - Tests: `DB_NAME=flames_pos_test node --test 'tests/mysql/*.test.mjs'`
-  (93 tests incl. concurrency races — keep green).
+  (92 tests incl. concurrency races — keep green).
 - Run locally: `ALLOW_HTTP_COOKIES=true npx next start -p 3210`
   (LAN devices: http://<mac-ip>:3210; Secure-cookie override is LAN-only).
 - FBR Digital Invoicing: module `src/lib/fbr/*` + `scripts/fbr-worker.mjs`;

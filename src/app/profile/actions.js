@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers'
 import bcrypt from 'bcryptjs'
 import { query } from '@/lib/db/pool.mjs'
-import { requireUser, readSession } from '@/lib/db/auth.mjs'
+import { requireUser } from '@/lib/db/auth.mjs'
 import { signSession, COOKIE_NAME, cookieOptions } from '@/lib/auth/session.mjs'
 import { effectivePermissions, grantedKeys, PERMISSIONS, ROLES } from '@/lib/auth/permissions.mjs'
 

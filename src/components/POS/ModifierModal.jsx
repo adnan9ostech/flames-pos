@@ -89,7 +89,6 @@ const ModifierModal = ({ item, modifiersData, onClose, onConfirm }) => {
             selectedVariant,
             selectedModifiers: selections,
             price: calculateTotal(),
-            basePrice: calculateTotal(), // Store for qty calc
             name: `${item.name} ${selectedVariant ? `(${selectedVariant.name})` : ''}`
         });
     };

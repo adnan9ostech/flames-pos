@@ -23,9 +23,8 @@ import {
 import { getSettings } from '@/app/settings/actions';
 import { DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 
-// Mirrored as literals: the server-side definitions live in a module that
+// Mirrored as a literal: the server-side definition lives in a module that
 // drags the MySQL driver with it, which has no place in a browser bundle.
-export const KITCHEN_STATUSES = ['new', 'preparing', 'ready'];
 export const ORDERS_PAGE_SIZES = [25, 50, 100];
 
 const fetchJson = async (path) => {

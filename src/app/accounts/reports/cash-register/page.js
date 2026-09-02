@@ -141,7 +141,7 @@ export default function CashRegisterPage() {
                                 <tr key={r.line_id}>
                                     <td className={styles.cellMuted}>{fmtDay(r.business_date)}</td>
                                     <td className={styles.cellCode}>
-                                        <Link href={`/accounts/journals?voucher=${encodeURIComponent(r.voucher_no)}`} title={VOUCHER_TYPES[r.voucher_type] || r.voucher_type}>
+                                        <Link href={`/accounts/journals/${r.journal_id}`} title={VOUCHER_TYPES[r.voucher_type] || r.voucher_type}>
                                             {r.voucher_no}
                                         </Link>
                                     </td>

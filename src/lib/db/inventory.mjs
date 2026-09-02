@@ -6,7 +6,7 @@
  * SUM(delta) per item per warehouse, with nothing cached to drift.
  *
  * Like orders.mjs, these verbs trust their caller for the permission gate
- * (the server actions hold requireAdmin); what they never trust is the
+ * (the server actions hold requirePermission('inventory')); what they never trust is the
  * arithmetic — quantities are validated, averages recomputed, and every
  * document commits with its ledger rows and audit entry or not at all.
  */

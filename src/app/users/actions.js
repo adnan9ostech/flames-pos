@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
 import { query } from '@/lib/db/pool.mjs'
-import { requireAdmin } from '@/lib/db/auth.mjs'
+import { requirePermission } from '@/lib/db/auth.mjs'
 import {
     ROLES, PERMISSION_KEYS, ROLE_DEFAULTS, effectivePermissions,
 } from '@/lib/auth/permissions.mjs'
@@ -107,7 +107,7 @@ const OWN_ACCOUNT = 'You cannot do that to your own account.'
 
 export async function listUsers() {
     try {
-        const actor = await requireAdmin()
+        const actor = await requirePermission('users')
         const rows = await query(
             `SELECT id, email, username, full_name, role, is_active,
                     must_change_password, last_login_at, permissions
@@ -145,7 +145,7 @@ export async function listUsers() {
  */
 export async function createUser({ email, username, full_name, role, password }) {
     try {
-        const actor = await requireAdmin()
+        const actor = await requirePermission('users')
         const { error, values } = readIdentity({ email, username, full_name, role })
         if (error) return { error }
         if (String(password || '').length < MIN_PASSWORD) {
@@ -177,7 +177,7 @@ export async function createUser({ email, username, full_name, role, password })
 
 export async function updateUser({ id, email, username, full_name, role }) {
     try {
-        const actor = await requireAdmin()
+        const actor = await requirePermission('users')
         const { error, values } = readIdentity({ email, username, full_name, role })
         if (error) return { error }
 
@@ -233,7 +233,7 @@ export async function updateUser({ id, email, username, full_name, role }) {
  */
 export async function setPermissions({ id, overrides }) {
     try {
-        const actor = await requireAdmin()
+        const actor = await requirePermission('users')
         const [row] = await query('SELECT id, role, username, email FROM users WHERE id = ?', [id])
         if (!row) return { error: 'That account no longer exists' }
         // An admin holds everything by definition; there is nothing here to
@@ -279,7 +279,7 @@ export async function setPermissions({ id, overrides }) {
  */
 export async function resetPassword({ id, password }) {
     try {
-        const actor = await requireAdmin()
+        const actor = await requirePermission('users')
         if (String(password || '').length < MIN_PASSWORD) {
             return { error: `The password needs at least ${MIN_PASSWORD} characters` }
         }
@@ -309,7 +309,7 @@ export async function resetPassword({ id, password }) {
  */
 export async function toggleActive(id) {
     try {
-        const actor = await requireAdmin()
+        const actor = await requirePermission('users')
         if (id === actor.id) return { error: OWN_ACCOUNT }
 
         const [row] = await query('SELECT id, username, email, is_active FROM users WHERE id = ?', [id])
@@ -344,7 +344,7 @@ export async function toggleActive(id) {
  */
 export async function deleteUser(id) {
     try {
-        const actor = await requireAdmin()
+        const actor = await requirePermission('users')
         if (id === actor.id) return { error: OWN_ACCOUNT }
 
         const [row] = await query(

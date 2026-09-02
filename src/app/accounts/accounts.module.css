@@ -108,6 +108,9 @@
     flex-shrink: 0;
 }
 
+.statLink { color: inherit; text-decoration: none; transition: border-color 0.2s }
+.statLink:hover { border-color: var(--primary) }
+
 .warnIcon {
     background: rgba(239, 68, 68, 0.15);
     color: var(--destructive);

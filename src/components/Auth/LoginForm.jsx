@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { login } from '@/app/login/actions'
 import CookingLoader from '@/components/Layout/CookingLoader'
-import { Utensils, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import { Utensils, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import styles from './login.module.css'
 
 /*
@@ -132,10 +132,7 @@ export default function LoginForm() {
                         className={styles.submit}
                         disabled={loading || !identifier.trim() || !password}
                     >
-                        {loading
-                            ? <Loader2 size={18} className={styles.spinner} aria-hidden="true" />
-                            : null}
-                        {loading ? 'Signing in…' : 'Sign In'}
+                        Sign In
                     </button>
                 </form>
 

@@ -9,11 +9,7 @@ import {
     Wallet, AlertTriangle, PackageSearch, Loader2, ChevronRight,
 } from 'lucide-react'
 
-/*
- * Every inventory surface hangs off this hub. Receiving, stock docs and
- * reports are linked even before those pages exist — a dead link during the
- * build-out beats a hub that has to be revisited to add each one.
- */
+/* Every inventory surface hangs off this hub. */
 const SURFACES = [
     {
         href: '/inventory/masters', Icon: Boxes, title: 'Masters',

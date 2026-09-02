@@ -392,7 +392,17 @@ being true; this file starts fresh.
 - **Fixed since / during this run:** seven restated copies of the voucher
   counter consolidated into `kit.mjs` (`d7398d7`); two API routes that skipped
   their permission gate (`160a3df`); the audit script taught that menu photos
-  are database-referenced (this commit).
+  are database-referenced (`7d1ab50`). Then the whole of §1.2 and §1.3 in one
+  pass: the `/icons/` cache branch, the unused `readSession` import, the
+  unimported `KITCHEN_STATUSES`, `/logout` in the proxy allow-list, `.spacer`,
+  `basePrice`, `has_postings` ×3, the hub's two unrendered queries,
+  `nextJournalNo` and the orphan `money` re-export, `can()` and its test,
+  `requireAdmin` (7 callers → `requirePermission('users')`), the settings
+  comment and blank lines, the inventory hub comment, the invisible login
+  spinner; and the three dead affordances made live — the reprint now hands
+  the receipt its order, the Cash Register links to the voucher, the hub's
+  "Bills not in the ledger" card opens Posting Health. 92 tests (the `can()`
+  test went with its function), build green, audit at the two seams.
 - **Newly found:** everything above. The two that are defects rather than
   debt — the receipt's tax label (§2.1) and its device-locale money formatting
   (§2.2) — go first.

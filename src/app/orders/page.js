@@ -765,6 +765,7 @@ export default function OrdersPage() {
                 invoice number, rather than minting a new document. */}
             {receiptOrder && (
                 <ReceiptPreview
+                    order={receiptOrder}
                     cart={receiptOrder.items || []}
                     totals={receiptTotals}
                     includeTax={receiptOrder.include_tax ?? true}

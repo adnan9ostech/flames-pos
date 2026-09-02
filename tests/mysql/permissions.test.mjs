@@ -12,7 +12,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
     PERMISSIONS, PERMISSION_KEYS, ROLES, ROLE_DEFAULTS,
-    effectivePermissions, grantedKeys, can,
+    effectivePermissions, grantedKeys,
     ROUTE_PERMISSIONS, permissionForPath, landingPath,
 } from '../../src/lib/auth/permissions.mjs';
 
@@ -125,16 +125,6 @@ test('grantedKeys round-trips every role in a stable order', () => {
     }
     assert.deepEqual(grantedKeys({}), []);
     assert.deepEqual(grantedKeys({ pos: false, orders: true }), ['orders']);
-});
-
-test('can() reads the cookie shape and nothing else', () => {
-    const session = { sub: 'x', role: 'cashier', perms: ['pos', 'orders'] };
-    assert.equal(can(session, 'pos'), true);
-    assert.equal(can(session, 'void'), false);
-    assert.equal(can(null, 'pos'), false);
-    assert.equal(can(undefined, 'pos'), false);
-    assert.equal(can({}, 'pos'), false);
-    assert.equal(can({ perms: [] }, 'pos'), false);
 });
 
 test('permissionForPath covers a section without listing its every page', () => {

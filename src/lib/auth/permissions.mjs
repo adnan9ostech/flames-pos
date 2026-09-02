@@ -93,7 +93,6 @@ export const effectivePermissions = (role, overrides) => {
 /* The compact form the cookie carries: just the granted keys. */
 export const grantedKeys = (perms) => PERMISSION_KEYS.filter((k) => perms[k]);
 
-export const can = (session, key) => Boolean(session?.perms?.includes(key));
 
 /*
  * Which right a path needs. Longest match wins, so /reports/handover is

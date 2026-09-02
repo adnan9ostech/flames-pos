@@ -11,7 +11,7 @@ import { permissionForPath, landingPath } from './lib/auth/permissions.mjs'
 
 // Reachable with any valid session, whatever the account may otherwise do:
 // everyone can read and change their own profile.
-const ALWAYS_ALLOWED = ['/profile', '/logout']
+const ALWAYS_ALLOWED = ['/profile']
 
 export async function proxy(request) {
     const pathname = request.nextUrl.pathname

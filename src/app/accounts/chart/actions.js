@@ -25,8 +25,6 @@ const toRow = (r) => ({
     link_codes: Array.isArray(r.link_codes) ? r.link_codes : [],
     is_system: Boolean(r.is_system),
     is_active: Boolean(r.is_active),
-    // Set by the list query: whether any journal line has ever touched it.
-    has_postings: Boolean(r.has_postings),
 })
 
 /*
@@ -72,10 +70,7 @@ export async function listAccounts() {
     try {
         await requirePermission('accounts')
         const rows = await query(
-            `SELECT a.*,
-                    EXISTS (SELECT 1 FROM gl_journal_lines l WHERE l.account_id = a.id) AS has_postings
-               FROM accounts a
-              ORDER BY a.account_number`,
+            'SELECT * FROM accounts ORDER BY account_number',
         )
         return { data: rows.map(toRow) }
     } catch (e) {
@@ -127,11 +122,7 @@ export async function saveAccount(input) {
                 account_id: accountId, mode: id ? 'update' : 'create', ...clean,
             }, user.id)
 
-            const [rows] = await conn.query(
-                `SELECT a.*, EXISTS (SELECT 1 FROM gl_journal_lines l WHERE l.account_id = a.id) AS has_postings
-                   FROM accounts a WHERE a.id = ?`,
-                [accountId],
-            )
+            const [rows] = await conn.query('SELECT * FROM accounts WHERE id = ?', [accountId])
             return rows[0]
         })
         return { data: toRow(row) }
@@ -156,11 +147,7 @@ export async function toggleAccount(id) {
                 'UPDATE accounts SET is_active = 1 - is_active, updated_at = UTC_TIMESTAMP(3) WHERE id = ?',
                 [accountId],
             )
-            const [after] = await conn.query(
-                `SELECT a.*, EXISTS (SELECT 1 FROM gl_journal_lines l WHERE l.account_id = a.id) AS has_postings
-                   FROM accounts a WHERE a.id = ?`,
-                [accountId],
-            )
+            const [after] = await conn.query('SELECT * FROM accounts WHERE id = ?', [accountId])
             await audit(conn, bd, 'toggle_account', {
                 account_id: accountId, account_number: after[0].account_number,
                 name: after[0].name, is_active: Boolean(after[0].is_active),

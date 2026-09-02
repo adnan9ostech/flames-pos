@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePermissions } from '@/components/Layout/AppLayout'
 import styles from './accounts.module.css'
 import { getAccountsOverview } from './actions'
 import {
@@ -55,11 +56,17 @@ const GROUPS = [
     },
 ]
 
+/* A stat card that is also a link when there is somewhere to go. */
+const HealthCard = ({ href, children }) => (href
+    ? <Link href={href} className={`${styles.statCard} ${styles.statLink}`}>{children}</Link>
+    : <div className={styles.statCard}>{children}</div>)
+
 const rupees = (n) => `Rs. ${Number(n).toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
 
 export default function AccountsHub() {
     const [stats, setStats] = useState(null)
     const [error, setError] = useState('')
+    const { can } = usePermissions()
 
     useEffect(() => {
         getAccountsOverview().then((res) => {
@@ -103,7 +110,8 @@ export default function AccountsHub() {
                     </div>
                 </div>
 
-                <div className={styles.statCard}>
+                {/* The one card that is a question: the count Posting Health answers. */}
+                <HealthCard href={can('accounts_admin') ? '/accounts/health' : null}>
                     <div className={`${styles.statIcon} ${stats && !healthy ? styles.warnIcon : ''}`}>
                         {healthy ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
                     </div>
@@ -116,7 +124,7 @@ export default function AccountsHub() {
                             {healthy ? 'Every settled bill has posted' : 'Settled bills with no sale journal yet'}
                         </div>
                     </div>
-                </div>
+                </HealthCard>
 
                 <div className={styles.statCard}>
                     <div className={styles.statIcon}><Wallet size={20} /></div>

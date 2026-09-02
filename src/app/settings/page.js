@@ -190,7 +190,6 @@ export default function SettingsPage() {
                         the action can't tell apart from a missing field. */}
                     <input type="hidden" name="qr_enabled" value={settings.qr_enabled ? 'true' : 'false'} />
                     <input type="hidden" name="auto_print" value={settings.auto_print ? 'true' : 'false'} />
-                    {/* The visible fields are percentages; the stored values are the fractions. */}
                     <div className="grid gap-6 md:grid-cols-2">
                         <div>
                             <div className="flex items-baseline justify-between mb-1.5">
@@ -243,14 +242,6 @@ export default function SettingsPage() {
                             </div>
                             <p className="mt-1.5 text-xs text-gray-500">Defaults to Islamabad if left empty.</p>
                         </div>
-
-                        
-
-                        
-
-                        
-
-                        
 
                         <div className="md:col-span-2">
                             <label htmlFor="raast_id" className="block text-sm font-medium text-gray-300 mb-1.5">

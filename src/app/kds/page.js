@@ -12,7 +12,7 @@ import LiveClock from '@/components/Layout/LiveClock';
 import { UtensilsCrossed, Volume2, VolumeX, Maximize2, UserRound, Layers } from 'lucide-react';
 
 // Kitchen lanes, in the order tickets flow across the screen. These keys are
-// the statuses getKitchenOrders() fetches (KITCHEN_STATUSES in dataClient.js) —
+// the statuses getKitchenOrders() fetches (KITCHEN_STATUSES in src/lib/db/reads.mjs) —
 // a lane added here without adding it there would render permanently empty.
 const LANES = [
     { key: 'new', label: 'New', next: 'preparing', action: 'Start' },

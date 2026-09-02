@@ -48,7 +48,6 @@ const isCacheableAsset = (url) =>
     // Content-hashed by the build, so cache-first can never serve a stale
     // version of a file that has changed.
     url.pathname.startsWith('/_next/static/')
-    || url.pathname.startsWith('/icons/')
     // /menu-images/ files match here too, and they are NOT content-hashed:
     // cache-first means new bytes under an old filename keep serving the old
     // image until VERSION bumps. The rule, therefore: a changed menu image
