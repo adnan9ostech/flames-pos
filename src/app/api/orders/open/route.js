@@ -1,14 +1,14 @@
 /*
  * Open tabs — orders nobody has paid for yet. Feeds the tabs rail at the till.
  */
-import { requireUser } from '@/lib/db/auth.mjs';
+import { requirePermission } from '@/lib/db/auth.mjs';
 import { getOpenTabs } from '@/lib/db/reads.mjs';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 export async function GET() {
     try {
-        await requireUser();
+        await requirePermission('pos');
     } catch (e) {
         return Response.json({ error: e.message }, { status: e.status ?? 401 });
     }

@@ -2,7 +2,7 @@
  * Paged, filtered order history for the orders screen. Filtering and slicing
  * stay in the database — the till must not get slower every week it runs.
  */
-import { requireUser } from '@/lib/db/auth.mjs';
+import { requirePermission } from '@/lib/db/auth.mjs';
 import { getOrdersPage, ORDERS_PAGE_SIZES } from '@/lib/db/reads.mjs';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
@@ -11,7 +11,7 @@ const MAX_PAGE_SIZE = Math.max(...ORDERS_PAGE_SIZES);
 
 export async function GET(request) {
     try {
-        await requireUser();
+        await requirePermission('orders');
     } catch (e) {
         return Response.json({ error: e.message }, { status: e.status ?? 401 });
     }
