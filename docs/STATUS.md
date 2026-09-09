@@ -2,8 +2,8 @@
 
 > Update this file whenever meaningful work lands. A fresh Claude session (or
 > a human) should be able to read this top to bottom and know exactly where
-> things stand. Last update: **2 Sep 2026** (branch
-> `mysql-migration`, repo `adnan9ostech/flames-pos`).
+> things stand. Last update: **9 Sep 2026** (branch
+> `main`, repo `adnan9ostech/flames-pos`).
 
 ## What this project is
 
@@ -46,7 +46,8 @@ touch global config; full runbook in `docs/deploy-cpanel.md`).
       — commit a3e44a0; 17/17 tests; prod build green; UI-verified
 - [x] Real menu imported: 125 dishes Sanity-priced (zero diffs), 20
       categories, photos in `public/menu-images/` — commit 051344e
-- [x] GitHub: authed as adnan9ostech; main + mysql-migration pushed
+- [x] GitHub: authed as adnan9ostech; all work on `main` — `mysql-migration`
+      was fast-forwarded in and deleted 9 Sep 2026, and `main` is the default
 - [x] Card GST 5% / cash 16%; both % editable in Settings
 - [x] Service charge: charges-engine row seeded 5% dine-in taxable
       (migration 003) + Settings quick-edit field

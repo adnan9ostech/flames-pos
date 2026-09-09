@@ -7,7 +7,10 @@ that file is how context survives session ends.
 
 Hard rules for this codebase:
 
-- Branch `mysql-migration`; push to `origin` = github.com/adnan9ostech/flames-pos.
+- Branch `main`; push to `origin` = github.com/adnan9ostech/flames-pos.
+  (`mysql-migration` was fast-forwarded into `main` and deleted on 9 Sep
+  2026 — it had become a second name for the same commit. The `legacy`
+  remote, github.com/adnan-ost/pos, must never be pushed to.)
 - Error strings in `src/lib/db/orders.mjs` and money math in
   `src/lib/orderTotals.mjs` are cross-checked contracts (till string-matches;
   tests assert). Never reword or fork them.
