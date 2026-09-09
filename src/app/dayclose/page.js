@@ -9,6 +9,10 @@ import {
     Lock, Receipt, ShoppingBag, UtensilsCrossed, Wallet, ArrowRightLeft,
 } from 'lucide-react';
 import { formatRupees } from '@/lib/money';
+// The same arithmetic the close itself runs, not a mirror of it — the confirm
+// dialog names tomorrow before the close mints it, and a copy that drifted
+// would promise a date the server then did not open.
+import { nextCalendarDay } from '@/lib/day/karachi.mjs';
 
 const money = (n) => (n === null || n === undefined ? '—' : formatRupees(n, 0));
 
@@ -29,14 +33,6 @@ const formatBusinessDay = (ymd) =>
     new Date(`${ymd}T00:00:00`).toLocaleDateString('en-PK', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     });
-
-// Mirrors the server's next-day arithmetic so the confirm dialog can say what
-// tomorrow will be before the close actually mints it.
-const nextCalendarDay = (ymd) => {
-    const d = new Date(`${ymd}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + 1);
-    return d.toISOString().slice(0, 10);
-};
 
 export default function DayClosePage() {
     const [state, setState] = useState(null);

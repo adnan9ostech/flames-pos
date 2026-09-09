@@ -749,15 +749,24 @@ state mutation; and the discount reason dropped when a tab is opened. **The
 till pair still want a manual pay-now / open-tab-and-round / settle pass —
 there is no Playwright harness in this tree.**
 
-Still open and worth knowing without opening the file:
+**Day close: settled 9 Sep — manual only.** The owner's decision: the day closes
+when someone presses the button, never on a schedule. Acted on the same day:
+`src/lib/day/rollover.mjs` (the transitions extracted for a worker that was
+never written) is gone, and with it `dueToClose` and eight tests that were
+passing against logic the app did not run. The four date helpers survive as
+`src/lib/day/karachi.mjs`, now imported by the day-close action and its screen
+instead of being restated in three places — so those tests guard production.
 
-- **`src/lib/day/rollover.mjs` is imported only by its own test.** It was
-  extracted so `scripts/day-worker.mjs` could share one definition of closing a
-  day — that file was never written, `dayclose/actions.js` still runs its own
-  copy, and 11 tests pass against logic the app never executes. The live copy
-  carries the bug the extracted one fixed: one forgotten unpaid tab blocks
-  every future day close, permanently. **Owner's call: does the day close on a
-  schedule, or only on the button?**
+The defect that hid behind the fork is fixed: the unpaid-bill gate asked for
+every unpaid order ever taken, so one forgotten tab blocked every future close
+permanently. It is now scoped to branch and business date, and read once inside
+the close transaction under its `FOR UPDATE`, so the gate and the audit row's
+`carried_orders` are the same list. Migration 014's `day_start_time` /
+`day_end_time` are now formally a vestige — see `docs/cash-handling.md`.
+
+Suite 131/131 (was 139), build green. **Still owed: a manual pass** — close a
+day, and ring/settle a bill on the till — since the day-close verbs sit behind
+`requirePermission` in a `'use server'` file and have no automated coverage.
 
 ## Known cautions
 

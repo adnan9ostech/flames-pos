@@ -2,8 +2,11 @@
  * The local print agent: a small service on the till's own machine that takes
  * a bill and writes it to a thermal printer as ESC/POS.
  *
- *   node scripts/print-agent.mjs
+ *   node scripts/print-agent.mjs --queue PrinterCMD_ESCPO_POS80_Printer_USB
  *   node scripts/print-agent.mjs --device /dev/cu.XXX --width 58 --port 9110
+ *
+ * A USB printer is a CUPS queue and needs --queue; a Bluetooth serial one is a
+ * device file and needs --device. See "TWO TRANSPORTS" below.
  *
  * WHY THE TILL CANNOT JUST PRINT
  *
@@ -25,6 +28,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { open } from 'node:fs/promises';
 import http from 'node:http';
+import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import mysql from 'mysql2/promise';
@@ -51,6 +55,32 @@ const PORT = Number(arg('port', process.env.PRINT_AGENT_PORT || 9110));
 const HOST = arg('host', process.env.PRINT_AGENT_HOST || '127.0.0.1');
 const WIDTH = Number(arg('width', process.env.PRINTER_WIDTH_MM || 0)) || null;
 
+/*
+ * TWO TRANSPORTS, because two kinds of thermal printer attach two ways.
+ *
+ * A Bluetooth serial unit appears as a character device and is written to
+ * directly — that is what this agent was built for. A USB printer does not:
+ * macOS claims it for CUPS and it appears as a PRINT QUEUE with no /dev entry
+ * at all, so `open(DEVICE)` can only ever fail. Sending raw ESC/POS to a queue
+ * is `lp -o raw`, which hands the bytes over unfiltered.
+ *
+ *   --queue 'PrinterCMD_ESCPO_POS80_Printer_USB'   (or PRINTER_QUEUE=)
+ *   `lpstat -p` lists the names.
+ *
+ * The queue MUST be raw, or driven by a thermal PPD. A USB receipt printer
+ * that macOS has bound to a generic laser driver will offer Letter and duplex,
+ * and `-o raw` is what steps around that.
+ */
+const QUEUE = arg('queue', process.env.PRINTER_QUEUE || '') || null;
+const TRANSPORT = QUEUE ? 'cups' : 'device';
+
+/* Is the named queue actually installed? `lpstat -p <q>` exits non-zero if not. */
+const queueExists = () => {
+    if (!QUEUE) return false;
+    const r = spawnSync('lpstat', ['-p', QUEUE], { encoding: 'utf8' });
+    return r.status === 0;
+};
+
 const { DB_NAME, DB_USER = 'root', DB_PASSWORD = '', DB_HOST = '127.0.0.1', DB_PORT = '3306', DB_SOCKET } = process.env;
 if (!DB_NAME) { console.error('DB_NAME is not set.'); process.exit(1); }
 
@@ -75,6 +105,35 @@ const q = async (sql, params = []) => (await pool.query(sql, params))[0];
  * turns that into an error the till can fall back from.
  */
 const WRITE_DEADLINE_MS = Number(process.env.PRINT_WRITE_TIMEOUT_MS || 15000);
+
+/*
+ * The CUPS path. `lp -o raw` passes the bytes through unfiltered, so the ESC/POS
+ * the renderer produced is what the printer receives. Same deadline as the
+ * serial write: a printer out of paper holds the job and lp waits on it.
+ */
+const spoolToQueue = async (payload) => await new Promise((resolve, reject) => {
+    const child = spawn('lp', ['-d', QUEUE, '-o', 'raw'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let err = '';
+    const timer = setTimeout(() => {
+        child.kill('SIGKILL');
+        const e = new Error('The printer stopped accepting data — check paper, power and the queue');
+        e.status = 504;
+        reject(e);
+    }, WRITE_DEADLINE_MS);
+
+    child.stderr.on('data', (d) => { err += d; });
+    child.on('error', (e) => { clearTimeout(timer); reject(e); });
+    child.on('close', (code) => {
+        clearTimeout(timer);
+        if (code === 0) return resolve();
+        const e = new Error(`lp exited ${code}${err.trim() ? `: ${err.trim()}` : ''}`);
+        e.status = 502;
+        reject(e);
+    });
+    // ESC/POS is bytes, not text: latin1 keeps every code point below 256
+    // exactly as the renderer emitted it.
+    child.stdin.end(Buffer.from(payload, 'binary'));
+});
 
 const writeWithDeadline = async (payload) => {
     const handle = await open(DEVICE, 'w');
@@ -120,9 +179,16 @@ const printBill = async (orderRef, { reprint = false } = {}) => {
     const widthMm = WIDTH || Number(settings.receipt_width_mm) || 58;
     const payload = renderReceipt({ order, items, settings, widthMm, reprint });
 
-    if (!existsSync(DEVICE)) { const e = new Error(`No printer at ${DEVICE}`); e.status = 503; throw e; }
-    await writeWithDeadline(payload);
-    return { order: order.order_number, total: Number(order.total), widthMm, bytes: payload.length };
+    if (TRANSPORT === 'cups') {
+        await spoolToQueue(payload);
+    } else {
+        if (!existsSync(DEVICE)) { const e = new Error(`No printer at ${DEVICE}`); e.status = 503; throw e; }
+        await writeWithDeadline(payload);
+    }
+    return {
+        order: order.order_number, total: Number(order.total),
+        widthMm, bytes: payload.length, via: TRANSPORT,
+    };
 };
 
 // Only the till's own pages may ask for a print. A page from anywhere else
@@ -143,7 +209,9 @@ const server = http.createServer(async (req, res) => {
     try {
         if (url.pathname === '/health') {
             res.writeHead(200, headers);
-            return res.end(JSON.stringify({ ok: true, device: DEVICE, present: existsSync(DEVICE) }));
+            return res.end(JSON.stringify(TRANSPORT === 'cups'
+                ? { ok: true, transport: 'cups', queue: QUEUE, present: queueExists() }
+                : { ok: true, transport: 'device', device: DEVICE, present: existsSync(DEVICE) }));
         }
         if (url.pathname === '/receipt' && req.method === 'POST') {
             const body = await new Promise((resolve, reject) => {
@@ -172,8 +240,14 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-    console.log(`print agent on http://${HOST}:${PORT}  ->  ${DEVICE}`);
-    console.log(existsSync(DEVICE) ? 'printer is present' : `WARNING: nothing at ${DEVICE} yet`);
+    const target = TRANSPORT === 'cups' ? `cups queue "${QUEUE}"` : DEVICE;
+    const present = TRANSPORT === 'cups' ? queueExists() : existsSync(DEVICE);
+    console.log(`print agent on http://${HOST}:${PORT}  ->  ${target}`);
+    console.log(present
+        ? 'printer is present'
+        : TRANSPORT === 'cups'
+            ? `WARNING: no queue named ${QUEUE} — \`lpstat -p\` lists them`
+            : `WARNING: nothing at ${DEVICE} yet`);
     console.log('  GET  /health');
     console.log('  POST /receipt   {"orderId": "<id or order number>", "reprint": false}');
 });

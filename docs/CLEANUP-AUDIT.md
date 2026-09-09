@@ -42,7 +42,7 @@ explains each:
 | 4 | **The till's Pay Now / Settle buttons print the pre-discount total** one row under the discounted Total. | §2.3 |
 | 5 | ~~Opening a tab throws away the discount reason~~ — **FIXED 9 Sep.** It was the only path in the till where money came off a bill with no stored reason. | §2.3 |
 | 6 | ~~`addToCart` mutates React state in place~~ — **FIXED 9 Sep.** On the most-tapped handler on the money screen. | §2.3 |
-| 7 | **Day Close can be permanently blocked**: the pending-bill gate reads every unpaid order ever taken, with no branch and no business date. | §2.5 |
+| 7 | ~~Day Close can be permanently blocked~~ — **FIXED 9 Sep.** The pending-bill gate read every unpaid order ever taken, with no branch and no business date. | §2.5 |
 | 8 | **KOT slips ask for an 80mm page on a 58mm till** — `SLIP_WIDTH_MM` is a constant where the receipt measures. | §2.6 |
 | 9 | **FBR invoices are POSTed without claiming the queue row** — one sale can be filed twice. Latent until `FBR_ENABLED=true`; fix before cutover. | §2.4 |
 | 10 | **The Reports hub's Gross Profit card costs recipes variant-blind**, so its margin contradicts the report the card links to. | §2.7 |
@@ -83,6 +83,45 @@ is unchanged at 37 — none of those rules were in scope).
   same `discount_reason` expression `handlePayNow` uses. Verified through the
   kernel: `orderActions.js:85` forwards it and `orders.mjs:384,401` persists it
   on the create path, so it lands on an unpaid tab, not only at settle.
+
+### §2.5 resolved — the day closes on the button
+
+The owner's answer was *manual only*, so the half-built worker went and the live
+path was fixed rather than replaced.
+
+- **The defect.** `fetchPendingBills` asked for every unpaid order in the table,
+  with no branch and no business date, so one forgotten tab from any past night
+  refused every close from then on. It is now `pendingBillsOn(businessDate,
+  conn)`, scoped to branch and day. Proven against `flames_pos_test`: an unpaid
+  1 Aug tab no longer blocks a 9 Sep close, and a genuine unpaid bill *on* the
+  closing day still does.
+- **Read once, under the lock.** The gate ran on the pool before the
+  transaction, and the closing date is only known inside it — so the read moved
+  in, after `closedDate` is resolved and before anything is written. The list
+  that refuses the close and the list the audit row records as `carried_orders`
+  are now the same list. This also closes the "reads pending bills twice, once
+  outside the lock" finding.
+- **Deleted:** `openDayTx`, `pendingBillsTx`, `closeDayTx` (no caller, no test),
+  and `dueToClose` + `minutesOfDay` (the scheduling predicate). Eight tests went
+  with them — they asserted arithmetic for a feature that will not be built.
+- **Kept and wired up:** the four date helpers `karachiDay`, `karachiTime`,
+  `ymd`, `nextCalendarDay`. `src/lib/day/rollover.mjs` is renamed
+  `src/lib/day/karachi.mjs`, and the day-close action and its screen now import
+  it instead of keeping three private copies. **The surviving tests guard
+  production for the first time.** `ymd`'s string branch truncates, which the
+  copy in `actions.js` did not — the improvement rides along.
+- **`docs/cash-handling.md` corrected.** It described the scheduled close as
+  shipped. It now records the decision and notes that migration 014's
+  `day_start_time` / `day_end_time` are a vestige no screen offers.
+
+Suite **131/131** (was 139; the 8 deleted tests covered the deleted functions),
+build green, lint unchanged.
+
+**Not covered by a test:** the day-close verbs live in a `'use server'` file
+behind `requirePermission`, which is why they were never testable — and
+extracting them for testability is precisely what produced the fork this
+decision just removed. The gate fix was proven by query, not by a suite test;
+closing a day end to end still wants a manual pass.
 
 **Still owed on these:** the till pair have no automated coverage — there is no
 Playwright harness in this tree — so pay-now, open-tab-and-round and settle
@@ -881,9 +920,10 @@ open-tab-and-round and settle, and one real receipt print.
 
 ## 4. Do not touch — owner's decisions
 
-### 4.1 Does the trading day close on a schedule?
-§2.5 cannot be resolved by an engineer. Finish the worker, or abandon it. The
-current half-state is the only wrong answer.
+### 4.1 Does the trading day close on a schedule? — **ANSWERED 9 Sep: no**
+The owner settled it: **the day closes when someone presses the button.** §2.5
+is resolved accordingly — the extracted worker half is deleted, the live gate is
+fixed in place. See "Fixed in this run".
 
 ### 4.2 The Raast payment QR is not parked
 The memory says the QR work is on hold pending merchant onboarding. The code

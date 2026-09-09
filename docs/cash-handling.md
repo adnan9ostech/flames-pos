@@ -85,10 +85,18 @@ the takings were never counted and tomorrow opens on a float nobody declared,
 which is the hole this all exists to shut. There is an override tick for a
 genuine end-of-night decision, and using it is recorded in the audit trail.
 
-The one deliberate exception is the *scheduled* close (`scripts/day-worker.mjs`,
-when day start/end times are set): a machine must never invent a count, and must
-never stall the calendar because somebody left a till unlocked. It warns and
-rolls on.
+**There is no scheduled close.** An earlier draft of this document described one
+(`scripts/day-worker.mjs`, driven by the `day_start_time` / `day_end_time`
+columns migration 014 added); it was never built, and on 9 Sep 2026 the owner
+settled the question: **the day closes when someone presses the button.** A
+machine that rolls the calendar past an uncounted drawer is exactly the hole
+this document exists to shut, and nobody wanted it.
+
+So the two columns on `store_settings` are read by nothing. They stay — every
+migration here is additive and never edited — but they are not a setting, they
+are a vestige, and no screen offers them. If a scheduled close is ever wanted,
+that is where it would start, and it would need its own answer to the open
+drawer before it could be allowed to run.
 
 ## The nightly routine
 

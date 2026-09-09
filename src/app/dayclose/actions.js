@@ -4,33 +4,40 @@ import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { round2 } from '@/lib/cash/drawer.mjs'
+// The date arithmetic is shared with the screen and covered by
+// tests/mysql/karachi.test.mjs. It used to be restated here, three helpers
+// deep, beside a second copy in src/lib/day/rollover.mjs that only the tests
+// imported.
+import { karachiDay, ymd, nextCalendarDay } from '@/lib/day/karachi.mjs'
 
 const BRANCH_ID = 1
 
-// The calendar day in Asia/Karachi (fixed UTC+5, no DST) — what acts as the
-// business day until the first close creates real business_days rows.
-const karachiDay = () =>
-    new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
-
-// DATE columns come back as midnight-UTC Dates; the calendar day is the value.
-const ymd = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v))
-
-// The next calendar date after a 'YYYY-MM-DD'. UTC arithmetic on the string,
-// so the box's own timezone can never shift the answer.
-const nextCalendarDay = (day) => {
-    const d = new Date(`${day}T00:00:00Z`)
-    d.setUTCDate(d.getUTCDate() + 1)
-    return d.toISOString().slice(0, 10)
+/*
+ * Orders still owed money ON A GIVEN DAY — the gate a close has to pass or be
+ * forced through.
+ *
+ * The business date is not optional. This asked for every unpaid bill in the
+ * table, with no branch and no date, so one forgotten tab from any past night
+ * refused every close from then on: the operator could settle tonight's bills
+ * in full and still be told to settle them. The only way out was to force every
+ * close from that day forward, and each of those wrote a `carried_orders` audit
+ * list naming bills that had nothing to do with the day being closed.
+ *
+ * Scoping it also lets the query use the business_date index instead of
+ * scanning for unpaid rows across all of history.
+ */
+const pendingBillsOn = async (businessDate, conn = null) => {
+    const sql = `SELECT order_number, table_number, order_type, total, created_at
+                 FROM orders
+                 WHERE branch_id = ? AND business_date = ?
+                   AND payment_status = 'unpaid' AND status <> 'cancelled'
+                 ORDER BY created_at`
+    const params = [BRANCH_ID, businessDate]
+    // Inside the close transaction the caller passes its connection, so the
+    // gate and the audit row read the same list under the same lock.
+    const rows = conn ? (await conn.query(sql, params))[0] : await query(sql, params)
+    return serializeRows('orders', rows)
 }
-
-/* Orders still owed money — the gate a close has to pass or be forced through. */
-const fetchPendingBills = async () =>
-    serializeRows('orders', await query(
-        `SELECT order_number, table_number, order_type, total, created_at
-         FROM orders
-         WHERE payment_status = 'unpaid' AND status <> 'cancelled'
-         ORDER BY created_at`,
-    ))
 
 /*
  * The day's cash position: what the till opened on, what every drawer closed
@@ -132,7 +139,7 @@ const loadState = async () => {
     return {
         openDay,
         history,
-        pendingBills: await fetchPendingBills(),
+        pendingBills: await pendingBillsOn(openDay.business_date),
         ledgerGaps: await countLedgerGaps(openDay.business_date),
         cash: await loadDayCash(openDay.business_date),
     }
@@ -268,17 +275,6 @@ export async function closeBusinessDay({ force = false } = {}) {
     try {
         const user = await requirePermission('dayclose')
 
-        // The gate. An unpaid bill left behind either settles onto the wrong
-        // day's books or never settles at all, so the operator must settle or
-        // void — force exists for a genuine end-of-night decision, and the
-        // audit row says it was used.
-        const pending = await fetchPendingBills()
-        if (pending.length > 0 && !force) {
-            return {
-                error: `${pending.length} unpaid bill${pending.length === 1 ? ' is' : 's are'} still open — settle or void ${pending.length === 1 ? 'it' : 'them'} before closing the day.`,
-            }
-        }
-
         /*
          * The cash gate. Closing the day over an open drawer means the day's
          * takings were never counted and tomorrow opens on a float nobody
@@ -317,27 +313,47 @@ export async function closeBusinessDay({ force = false } = {}) {
                 [BRANCH_ID],
             )
 
-            let closedDate
-            if (openRows.length > 0) {
-                closedDate = ymd(openRows[0].business_date)
+            // Which day is being closed. Resolved before anything is written,
+            // because the unpaid-bill gate below needs it and a gate that
+            // refuses after the UPDATE has already refused too late.
+            const hasOpenDay = openRows.length > 0
+            const closedDate = hasOpenDay ? ymd(openRows[0].business_date) : karachiDay()
 
-                /*
-                 * Closing a day that has not happened yet walks the calendar
-                 * forward one press at a time — three stray clicks and the
-                 * till is stamping orders a week out. A day ahead of today
-                 * with nothing on it has not been traded, so there is
-                 * nothing to close. (Tomorrow's row after tonight's close is
-                 * normal; it just cannot be closed until it has run.)
-                 */
-                if (closedDate > karachiDay()) {
-                    const [[{ n }]] = await conn.query(
-                        'SELECT COUNT(*) AS n FROM orders WHERE branch_id = ? AND business_date = ?',
-                        [BRANCH_ID, closedDate],
-                    )
-                    if (n === 0) {
-                        return { error: `${closedDate} has not started yet — there is nothing to close.` }
-                    }
+            /*
+             * Closing a day that has not happened yet walks the calendar
+             * forward one press at a time — three stray clicks and the till is
+             * stamping orders a week out. A day ahead of today with nothing on
+             * it has not been traded, so there is nothing to close. (Tomorrow's
+             * row after tonight's close is normal; it just cannot be closed
+             * until it has run.)
+             */
+            if (hasOpenDay && closedDate > karachiDay()) {
+                const [[{ n }]] = await conn.query(
+                    'SELECT COUNT(*) AS n FROM orders WHERE branch_id = ? AND business_date = ?',
+                    [BRANCH_ID, closedDate],
+                )
+                if (n === 0) {
+                    return { error: `${closedDate} has not started yet — there is nothing to close.` }
                 }
+            }
+
+            /*
+             * The unpaid-bill gate, read ONCE, inside the transaction, under
+             * the FOR UPDATE above — so the list that refuses the close and the
+             * list the audit row records as carried are the same list, and a
+             * bill settled while the operator was reading the screen cannot
+             * still block it. An unpaid bill left behind either settles onto
+             * the wrong day's books or never settles at all; `force` is the
+             * genuine end-of-night override and the audit row says it was used.
+             */
+            const pending = await pendingBillsOn(closedDate, conn)
+            if (pending.length > 0 && !force) {
+                return {
+                    error: `${pending.length} unpaid bill${pending.length === 1 ? ' is' : 's are'} still open on ${closedDate} — settle or void ${pending.length === 1 ? 'it' : 'them'} before closing the day.`,
+                }
+            }
+
+            if (hasOpenDay) {
                 await conn.query(
                     `UPDATE business_days
                      SET closed_at = UTC_TIMESTAMP(3), closed_by = ?
@@ -347,7 +363,6 @@ export async function closeBusinessDay({ force = false } = {}) {
             } else {
                 // First ever close: the implicit Karachi day becomes a real
                 // row, created already closed, so history starts tonight.
-                closedDate = karachiDay()
                 await conn.query(
                     `INSERT INTO business_days (branch_id, business_date, opened_at, closed_at, closed_by)
                      VALUES (?, ?, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), ?)`,
