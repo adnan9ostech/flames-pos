@@ -7,17 +7,14 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { CalendarRange, Loader2, Clock3, AlertTriangle } from 'lucide-react'
-
 /*
- * Chart ink. These live as literals rather than CSS custom properties because
- * recharts writes them into SVG presentation attributes, where a var() is not
- * reliably resolved. They are the same values as --foreground / --border /
- * --muted-foreground, and #d95926 is the palette slot a single-series chart
- * takes so the data does not read as brand chrome.
+ * Chart ink, themed. Recharts writes these into SVG presentation attributes
+ * (fill, stroke), which resolve CSS custom properties — so the chart follows
+ * the light/dark switch on the same repaint as the rest of the page. SERIES is
+ * the palette slot a single-series chart takes, so the data does not read as
+ * brand chrome.
  */
-const SERIES = '#d95926'
-const GRID = '#332c27'
-const AXIS_TEXT = '#a39a92'
+import { SERIES, GRID, AXIS_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs'
 
 // Money renders like the orders page: en-PK grouping, no decimals on screen.
 const rs = (x) => Math.round(Number(x) || 0).toLocaleString('en-PK')
@@ -214,7 +211,7 @@ export default function HourlySalesPage() {
                                         tickLine={false}
                                     />
                                     <Tooltip
-                                        cursor={{ fill: 'rgba(248, 244, 238, 0.06)' }}
+                                        cursor={CURSOR_FILL}
                                         content={<HourTooltip />}
                                     />
                                     <Bar
@@ -258,7 +255,7 @@ export default function HourlySalesPage() {
                                     tickLine={false}
                                 />
                                 <Tooltip
-                                    cursor={{ fill: 'rgba(248, 244, 238, 0.06)' }}
+                                    cursor={CURSOR_FILL}
                                     content={<HourTooltip />}
                                 />
                                 <Bar

@@ -14,7 +14,6 @@
     font-size: 0.85rem;
     min-height: 40px;
     max-width: 22rem;
-    color-scheme: dark;
 }
 
 .select:focus { border-color: var(--primary); outline: none }

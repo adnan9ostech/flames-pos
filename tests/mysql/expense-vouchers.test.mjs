@@ -93,13 +93,13 @@ before(async () => {
         cash: await link('payment_method', 'cash'),
         drawer: await link('expense_paid_from', 'drawer'),
         bank: await link('expense_paid_from', 'bank'),
-        elec: await byNumber('41110'),
-        gas: await byNumber('41120'),
-        payable: await byNumber('20100'),
+        elec: await byNumber('7010'),
+        gas: await byNumber('7020'),
+        payable: await byNumber('2005'),
         // Two more payable accounts, for the test that moves a code's payable
         // under a posted voucher.
-        accrued: await byNumber('20200'),
-        wages: await byNumber('21100'),
+        accrued: await byNumber('2010'),
+        wages: await byNumber('2020'),
     };
     for (const [k, v] of Object.entries(acct)) assert.ok(v, `no account resolved for ${k} — is the 006 seed present?`);
     assert.equal(acct.drawer, acct.cash, 'the seed pays drawer expenses from the account the till settles cash into');

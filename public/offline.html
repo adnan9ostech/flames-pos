@@ -4,10 +4,53 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Offline · Flames by the Indus</title>
+    <!--
+      Theme, before paint. This page cannot import globals.css — it is what loads
+      when nothing else can — so it carries its own copy of the two palettes and
+      its own copy of the boot script. The storage key MUST stay in step with
+      src/lib/theme.mjs; if it drifts, a light-themed till drops to a black
+      screen at exactly the moment something has already gone wrong.
+    -->
+    <script>
+        (function () {
+            try {
+                var p = localStorage.getItem("fbi.theme");
+                if (p !== "light" && p !== "dark" && p !== "system") p = "dark";
+                var t = p === "system"
+                    ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+                    : p;
+                document.documentElement.setAttribute("data-theme", t);
+            } catch (e) {
+                document.documentElement.setAttribute("data-theme", "dark");
+            }
+        })();
+    </script>
     <style>
         /* Self-contained on purpose: this page is what loads when nothing else
-           can, so it can't depend on a stylesheet being cached. */
-        :root { color-scheme: dark; }
+           can, so it can't depend on a stylesheet being cached. The values are
+           copies of the --background / --foreground / --muted-foreground /
+           --primary tokens from src/app/globals.css. */
+        :root {
+            color-scheme: dark;
+            --bg: #000000;
+            --fg: #f8f4ee;
+            --muted: #a39a92;
+            --brand: #F26513;
+            --brand-hover: #D95511;
+            /* White on the brand orange, matching the app's buttons. */
+            --brand-ink: #ffffff;
+        }
+
+        :root[data-theme="light"] {
+            color-scheme: light;
+            --bg: #f6f2ec;
+            --fg: #1b1613;
+            --muted: #5d564f;
+            --brand: #b34309;
+            --brand-hover: #933507;
+            --brand-ink: #ffffff;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
@@ -15,8 +58,8 @@
             align-items: center;
             justify-content: center;
             padding: 1.5rem;
-            background: #000000;
-            color: #f8f4ee;
+            background: var(--bg);
+            color: var(--fg);
             font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
             text-align: center;
         }
@@ -28,25 +71,31 @@
             height: 4rem;
             margin: 0 auto 1.5rem;
             border-radius: 50%;
-            background: linear-gradient(135deg, #f97316, #ea580c);
+            background: linear-gradient(135deg, var(--brand), var(--brand-hover));
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.75rem;
         }
         h1 { margin: 0 0 0.75rem; font-size: 1.5rem; }
-        p { margin: 0 0 1.5rem; color: #a39a92; line-height: 1.55; }
+        p { margin: 0 0 1.5rem; color: var(--muted); line-height: 1.55; }
         button {
             padding: 0.7rem 1.4rem;
             border: none;
             border-radius: 0.5rem;
-            background: #ea580c;
-            color: #fff;
+            background: var(--brand);
+            /* White on the brand orange in both themes (owner decision); the
+               label is bold and large, clearing the 3:1 large-text bar. */
+            color: var(--brand-ink);
             font: inherit;
             font-weight: 600;
             cursor: pointer;
         }
-        button:hover { background: #c2410c; }
+        button:hover { background: var(--brand-hover); }
+        button:focus-visible {
+            outline: 2px solid var(--brand);
+            outline-offset: 2px;
+        }
     </style>
 </head>
 <body>

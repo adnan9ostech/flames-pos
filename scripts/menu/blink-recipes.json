@@ -1,0 +1,8381 @@
+{
+ "source": "Blink POS (pos.blinkco.io), account Flames by The Indus, read-only export 3 Sep 2026",
+ "ingredients": [
+  {
+   "name": "Drink",
+   "unit": "Litre",
+   "category": "Beverages"
+  },
+  {
+   "name": "Ice Cubes",
+   "unit": "Kilogram",
+   "category": "Beverages"
+  },
+  {
+   "name": "Honey",
+   "unit": "Kilogram",
+   "category": "Sweeteners"
+  },
+  {
+   "name": "Kesar",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Green ilaichi Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Zefran",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Lemon",
+   "unit": "Piece",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Green Tea",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Sabaz Patti",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Baad e Khatai",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Pink Color",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Malai Cream",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Tea",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Bread",
+   "unit": "Piece",
+   "category": null
+  },
+  {
+   "name": "Milk for Service",
+   "unit": "Litre",
+   "category": "Dairy"
+  },
+  {
+   "name": "Rang Card",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Maida",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Rice Tota",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Lazeeza Kheer",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Anmonium",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Ras Gulaa",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Orange Juice",
+   "unit": "Piece",
+   "category": "Beverages"
+  },
+  {
+   "name": "Phoona",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Ghiri Khoya",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Kaju",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Pista",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Milk Cream",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Condensed Milk",
+   "unit": "Litre",
+   "category": "Dairy"
+  },
+  {
+   "name": "Milk Rabri",
+   "unit": "Litre",
+   "category": "Dairy"
+  },
+  {
+   "name": "Paneer",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Vanilla Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Corn Flour",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Khoya",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Water",
+   "unit": "Litre",
+   "category": "Beverages"
+  },
+  {
+   "name": "Suji",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Knorr Cubes",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Dry Coriander Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Desi Ghee",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Crush Chilli",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Mixed Pickle",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Charry Tomato",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Gurking",
+   "unit": "Piece",
+   "category": "Sweeteners"
+  },
+  {
+   "name": "Mustard",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Bezal",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Zetoon",
+   "unit": "Piece",
+   "category": null
+  },
+  {
+   "name": "Oregano",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Pasta",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "White Sirka",
+   "unit": "Litre",
+   "category": null
+  },
+  {
+   "name": "Dry Fruit",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Fruit Coctal",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Angoor",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Boil Egg",
+   "unit": "Piece",
+   "category": "Oils"
+  },
+  {
+   "name": "SM Sugar",
+   "unit": "Kilogram",
+   "category": "Sweeteners"
+  },
+  {
+   "name": "Charise",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Mayonnaise",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Apple",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Kheera",
+   "unit": "Piece",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Salad Pata",
+   "unit": "Piece",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Muraba",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Meda",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Flour",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Red Flour",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Chicken Qeema",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Dalda Ghee",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "White Till",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Baking Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Fine Flour",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Kadu",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Bengan",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Palak",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Bhindi",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Sabaz Matar",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Channy",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Sabit Zeera",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Gajar",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Kishmish",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Almond",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Sugar",
+   "unit": "Kilogram",
+   "category": "Sweeteners"
+  },
+  {
+   "name": "Chicken Powder",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Pulao Masala",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Dra Mirch",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Nimboo",
+   "unit": "Piece",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Podina",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Mix Sabit Masala",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Biryani Masala",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Rice",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Chat Masala",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Daal Mash",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Dalia",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Daal Mong",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Daal Masoor",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Daal Chana",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Maghaz",
+   "unit": "Piece",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Mutton Paye",
+   "unit": "Piece",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Besan",
+   "unit": "Kilogram",
+   "category": "Grains & Pulses"
+  },
+  {
+   "name": "Nihari Masala",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Beef Boneless",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Beef",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Aloo",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Tez Patta",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Green Chili",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Mutton Seena",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Mutton Boneless",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Olive Oil",
+   "unit": "Litre",
+   "category": "Oils"
+  },
+  {
+   "name": "Dar Chini",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Qorma Masala",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Motii Ilaichi",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Long",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Sabaz Ilaichi",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Sabit Masala",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Sabaz Dhania",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Bair Mirch",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Milk",
+   "unit": "Litre",
+   "category": "Dairy"
+  },
+  {
+   "name": "Zeera Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Mutton",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Charcoal",
+   "unit": "Kilogram",
+   "category": "Fuel"
+  },
+  {
+   "name": "Kalwanji",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Methry",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Achar",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Butter",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Curd",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Kasoori Methi",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Adrak",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Lehsan",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Saunf",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Dhania Sauce",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Dhania Fresh",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Milk Powder",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Chicken Boneless",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Mustard Paste",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Chest Chicken With Bone",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Pizza Sauce",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Tomato",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Shimla Mirch",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Ajwain",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Ketchup",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Foil Pepper",
+   "unit": "Piece",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Yogurt",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Eggs",
+   "unit": "Piece",
+   "category": null
+  },
+  {
+   "name": "Cheese",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Meetha Soda",
+   "unit": "Kilogram",
+   "category": "Beverages"
+  },
+  {
+   "name": "Charbi Mutton",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Coconut Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Qusari Meethi",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Suhaga",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Onion",
+   "unit": "Kilogram",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Chest Boneless",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Oil",
+   "unit": "Litre",
+   "category": "Oils"
+  },
+  {
+   "name": "Lemon Juice",
+   "unit": "Litre",
+   "category": "Fruit & Vegetables"
+  },
+  {
+   "name": "Green Pepper",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Cream",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Thai Boneless",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  },
+  {
+   "name": "Haldi",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "White Pepper",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Black Pepper",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Ghee",
+   "unit": "Kilogram",
+   "category": "Dairy"
+  },
+  {
+   "name": "Salt",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Red Pepper Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Food Color",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Vinegar",
+   "unit": "Litre",
+   "category": null
+  },
+  {
+   "name": "Zeera",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Garam Masala",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Kachri",
+   "unit": "Kilogram",
+   "category": null
+  },
+  {
+   "name": "Ginger Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Garlic Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Dhania Powder",
+   "unit": "Kilogram",
+   "category": "Spices & Seasoning"
+  },
+  {
+   "name": "Chicken",
+   "unit": "Kilogram",
+   "category": "Meat & Poultry"
+  }
+ ],
+ "recipes": [
+  {
+   "dish": "Chicken Tikka",
+   "blinkName": "Chicken Tikka",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Cheese Seekh Kebab",
+   "blinkName": "Chicken Cheese Seekh Kebab",
+   "lines": [
+    {
+     "ingredient": "Chicken Qeema",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cheese",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Tandoori Chicken",
+   "blinkName": "Tandoori Chicken",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.45,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.054,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Sajji",
+   "blinkName": "Chicken Sajji",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.45,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.054,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Sajji",
+   "blinkName": "Mutton Sajji",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.45,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.054,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Khaddi Kebab",
+   "blinkName": "Khaddi Kebab",
+   "lines": [
+    {
+     "ingredient": "Chicken Qeema",
+     "qty": 0.45,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.054,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Shami Kebab",
+   "blinkName": "Shami Kebab",
+   "lines": [
+    {
+     "ingredient": "Chicken Qeema",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Beef Nihari",
+   "blinkName": "Beef Nihari",
+   "lines": [
+    {
+     "ingredient": "Beef",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.175,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nihari Masala",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Flour",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Paye",
+   "blinkName": "Paye",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.175,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.125,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Mutton Paye",
+     "qty": 4,
+     "unit": "Piece"
+    }
+   ]
+  },
+  {
+   "dish": "Maghaz Masala",
+   "blinkName": "Maghaz Masala",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.175,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.125,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Maghaz",
+     "qty": 2,
+     "unit": "Piece"
+    }
+   ]
+  },
+  {
+   "dish": "Haleem",
+   "blinkName": "Haleem",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.175,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.125,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Daal Chana",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Daal Mash",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Flour",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Biryani",
+   "blinkName": "Chicken Biryani",
+   "lines": [
+    {
+     "ingredient": "Rice",
+     "qty": 0.32,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.26,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Biryani Masala",
+     "qty": 0.022,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Biryani",
+   "blinkName": "Mutton Biryani",
+   "lines": [
+    {
+     "ingredient": "Rice",
+     "qty": 0.32,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Mutton",
+     "qty": 0.26,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Biryani Masala",
+     "qty": 0.022,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Bannu Beef Pulao",
+   "blinkName": "Bannu Beef Pulao",
+   "lines": [
+    {
+     "ingredient": "Rice",
+     "qty": 0.32,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Beef",
+     "qty": 0.26,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pulao Masala",
+     "qty": 0.022,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Pulao",
+   "blinkName": "Chicken Pulao",
+   "lines": [
+    {
+     "ingredient": "Rice",
+     "qty": 0.32,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.26,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pulao Masala",
+     "qty": 0.022,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Kabuli Pulao",
+   "blinkName": "Mutton Kabuli Pulao",
+   "lines": [
+    {
+     "ingredient": "Rice",
+     "qty": 0.32,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Mutton",
+     "qty": 0.26,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pulao Masala",
+     "qty": 0.022,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.02,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Kishmish",
+     "qty": 0.02,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Kashmiri Pulao",
+   "blinkName": "Kashmiri Pulao",
+   "lines": [
+    {
+     "ingredient": "Rice",
+     "qty": 0.32,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.26,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pulao Masala",
+     "qty": 0.022,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.02,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Kishmish",
+     "qty": 0.02,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Shahi Daal Makhni",
+   "blinkName": "Shahi Daal Makhni",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Daal Chana",
+     "qty": 0.18,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Shahi Daal Mash",
+   "blinkName": "Shahi Daal Mash",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Daal Mash",
+     "qty": 0.18,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Daal Mash Fry",
+   "blinkName": "Daal Mash Fry",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Daal Mash",
+     "qty": 0.18,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Daal Channa Fry",
+   "blinkName": "Daal Channa Fry",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Channy",
+     "qty": 0.18,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Tarka Daal",
+   "blinkName": "Tarka Daal",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Daal Chana",
+     "qty": 0.18,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Dal Pakwan",
+   "blinkName": "Dal Pakwan",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Channay",
+   "blinkName": "Channay",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Channy",
+     "qty": 0.18,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Achari Mix Sabzi",
+   "blinkName": "Achari Mix Sabzi",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Gajar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Sabaz Matar",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Aloo",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Sada Mix Sabzi",
+   "blinkName": "Sada Mix Sabzi",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Gajar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Sabaz Matar",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Aloo",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Bhindi",
+   "blinkName": "Bhindi",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Bhindi",
+     "qty": 0.26,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Dum Aloo",
+   "blinkName": "Dum Aloo",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Aloo",
+     "qty": 0.24,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Sai Bhaji",
+   "blinkName": "Sai Bhaji",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Besan Curry",
+   "blinkName": "Besan Curry",
+   "lines": [
+    {
+     "ingredient": "Onion",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.11,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.055,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Plain Naan",
+   "blinkName": "Plain Naan",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Baking Powder",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Roghni Naan",
+   "blinkName": "Roghni Naan",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.16,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Baking Powder",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.035,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Garlic Naan",
+   "blinkName": "Garlic Naan",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Baking Powder",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Cheese Naan",
+   "blinkName": "Cheese Naan",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Baking Powder",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cheese",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Kalonji Naan",
+   "blinkName": "Kalonji Naan",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Baking Powder",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Aloo Naan",
+   "blinkName": "Aloo Naan",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Baking Powder",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Qeema Naan",
+   "blinkName": "Qeema Naan",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Baking Powder",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Rumali Roti",
+   "blinkName": "Rumali Roti",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.16,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    }
+   ]
+  },
+  {
+   "dish": "Plain Roti / Chapati",
+   "blinkName": "Plain Roti / Chapati",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    }
+   ]
+  },
+  {
+   "dish": "Sheermal",
+   "blinkName": "Sheermal",
+   "lines": [
+    {
+     "ingredient": "Flour",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.07,
+     "unit": "Litre"
+    }
+   ]
+  },
+  {
+   "dish": "Fresh Green Salad",
+   "blinkName": "Fresh Green Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Kachumar Salad",
+   "blinkName": "Kachumar Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Russian Salad",
+   "blinkName": "Russian Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Fruit Salad",
+   "blinkName": "Fruit Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "BBQ Chicken Salad",
+   "blinkName": "BBQ Chicken Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Pasta Salad",
+   "blinkName": "Chicken Pasta Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Italian Salad",
+   "blinkName": "Chicken Italian Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Sesame Salad",
+   "blinkName": "Chicken Sesame Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Kalonji Salad",
+   "blinkName": "Chicken Kalonji Salad",
+   "lines": [
+    {
+     "ingredient": "Salad Pata",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Kheera",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nimboo",
+     "qty": 1,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Chat Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Halwa Puri",
+   "blinkName": "Halwa Puri",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Suji",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.13,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.09,
+     "unit": "Litre"
+    }
+   ]
+  },
+  {
+   "dish": "Suji Halwa",
+   "blinkName": "Suji Halwa",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Suji",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Aloo Bhujia",
+   "blinkName": "Aloo Bhujia",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Murgh Cholay",
+   "blinkName": "Murgh Cholay",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Channy",
+     "qty": 0.2,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Omelette",
+   "blinkName": "Omelette",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Eggs",
+     "qty": 3,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Egg Fry",
+   "blinkName": "Egg Fry",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Eggs",
+     "qty": 3,
+     "unit": "Piece"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Paratha",
+   "blinkName": "Paratha",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.045,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Flour",
+     "qty": 0.15,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Koki",
+   "blinkName": "Koki",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Flour",
+     "qty": 0.15,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Nihari & Paya",
+   "blinkName": "Nihari & Paya",
+   "lines": [
+    {
+     "ingredient": "Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Beef",
+     "qty": 0.4,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Nihari Masala",
+     "qty": 0.022,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Doodh Patti",
+   "blinkName": "Doodh Patti",
+   "lines": [
+    {
+     "ingredient": "Milk",
+     "qty": 0.25,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.018,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tea",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.04,
+     "unit": "Litre"
+    }
+   ]
+  },
+  {
+   "dish": "Karak Chai",
+   "blinkName": "Karak Chai",
+   "lines": [
+    {
+     "ingredient": "Milk",
+     "qty": 0.25,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.018,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tea",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.04,
+     "unit": "Litre"
+    }
+   ]
+  },
+  {
+   "dish": "Elaichi Chai",
+   "blinkName": "Elaichi Chai",
+   "lines": [
+    {
+     "ingredient": "Milk",
+     "qty": 0.2,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.018,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tea",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.09,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Green ilaichi Powder",
+     "qty": 0.002,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Adrak Chai",
+   "blinkName": "Adrak Chai",
+   "lines": [
+    {
+     "ingredient": "Milk",
+     "qty": 0.2,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.018,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tea",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.09,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Masala Chai",
+   "blinkName": "Masala Chai",
+   "lines": [
+    {
+     "ingredient": "Milk",
+     "qty": 0.2,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.018,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tea",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.09,
+     "unit": "Litre"
+    }
+   ]
+  },
+  {
+   "dish": "Kashmiri Pink Chai",
+   "blinkName": "Kashmiri Pink Chai",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Peshawari Qehwa",
+   "blinkName": "Peshawari Qehwa",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Sulemani Chai",
+   "blinkName": "Sulemani Chai",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Flames Signature Karak",
+   "blinkName": "Flames Signature Karak",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Kesar Doodh Patti",
+   "blinkName": "Kesar Doodh Patti",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Honey Pine Nut Kahwa",
+   "blinkName": "Honey Pine Nut Kahwa",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Iced Karak",
+   "blinkName": "Iced Karak",
+   "lines": [
+    {
+     "ingredient": "Milk",
+     "qty": 0.25,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.018,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Water",
+     "qty": 0.04,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Ice Cubes",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Doodh Soda",
+   "blinkName": "Doodh Soda",
+   "lines": [
+    {
+     "ingredient": "Milk",
+     "qty": 0.25,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Sugar",
+     "qty": 0.018,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ice Cubes",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Gulab Jamun",
+   "blinkName": "Gulab Jamun",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.12,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Khoya",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Meda",
+     "qty": 0.03,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Ras Malai",
+   "blinkName": "Ras Malai",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.22,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Khoya",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Kheer",
+   "blinkName": "Kheer",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.3,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Rice",
+     "qty": 0.045,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Gajar ka Halwa",
+   "blinkName": "Gajar ka Halwa",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.12,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Gajar",
+     "qty": 0.25,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Khoya",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Shahi Tukda",
+   "blinkName": "Shahi Tukda",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.12,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Zarda",
+   "blinkName": "Zarda",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.12,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Rice",
+     "qty": 0.15,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Kesar",
+     "qty": 0.001,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Jalebi",
+   "blinkName": "Jalebi",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.12,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Kulfi",
+   "blinkName": "Kulfi",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.12,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Falooda",
+   "blinkName": "Falooda",
+   "lines": [
+    {
+     "ingredient": "Sugar",
+     "qty": 0.09,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Milk",
+     "qty": 0.12,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Desi Ghee",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Almond",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Pista",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Boti",
+   "blinkName": "Chicken Boti",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Malai Boti",
+   "blinkName": "Chicken Malai Boti",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Seekh Kebab",
+   "blinkName": "Chicken Seekh Kebab",
+   "lines": [
+    {
+     "ingredient": "Chicken Qeema",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Cheese Boti",
+   "blinkName": "Chicken Cheese Boti",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cheese",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Green Chicken Chilli Boti",
+   "blinkName": "Green Chicken Chilli Boti",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.025,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Reshmi Kebab",
+   "blinkName": "Reshmi Kebab",
+   "lines": [
+    {
+     "ingredient": "Chicken Qeema",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.05,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Seekh Kebab",
+   "blinkName": "Mutton Seekh Kebab",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Beef Seekh Kebab",
+   "blinkName": "Beef Seekh Kebab",
+   "lines": [
+    {
+     "ingredient": "Beef",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Bihari Kebab",
+   "blinkName": "Bihari Kebab",
+   "lines": [
+    {
+     "ingredient": "Beef",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Behari Boti",
+   "blinkName": "Behari Boti",
+   "lines": [
+    {
+     "ingredient": "Beef",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Gola Kebab",
+   "blinkName": "Gola Kebab",
+   "lines": [
+    {
+     "ingredient": "Chicken Qeema",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chapli Kebab",
+   "blinkName": "Chapli Kebab",
+   "lines": [
+    {
+     "ingredient": "Chicken Qeema",
+     "qty": 0.36,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.043,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Fish Tikka",
+   "blinkName": "Fish Tikka",
+   "lines": [
+    {
+     "ingredient": "Chicken",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Palla Fish",
+   "blinkName": "Palla Fish",
+   "lines": [
+    {
+     "ingredient": "Chicken",
+     "qty": 0.28,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.034,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ginger Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garlic Powder",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lemon Juice",
+     "qty": 0.01,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Oil",
+     "qty": 0.02,
+     "unit": "Litre"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Karahi",
+   "blinkName": "Chicken Karahi",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken White Karahi",
+   "blinkName": "Chicken White Karahi",
+   "lines": [
+    {
+     "ingredient": "Chicken Boneless",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Butter",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Shinwari Karahi",
+   "blinkName": "Chicken Shinwari Karahi",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Achari Karahi",
+   "blinkName": "Chicken Achari Karahi",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Achar",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Smoke Karahi",
+   "blinkName": "Chicken Smoke Karahi",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Karahi",
+   "blinkName": "Mutton Karahi",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.25,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Shinwari",
+   "blinkName": "Mutton Shinwari",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Smoke Karahi",
+   "blinkName": "Mutton Smoke Karahi",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.25,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Namkeen Gosht",
+   "blinkName": "Namkeen Gosht",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Charcoal",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Boneless Handi",
+   "blinkName": "Chicken Boneless Handi",
+   "lines": [
+    {
+     "ingredient": "Chicken Boneless",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken White Makhani Handi",
+   "blinkName": "Chicken White Makhani Handi",
+   "lines": [
+    {
+     "ingredient": "Chicken Boneless",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Butter",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Achari Handi",
+   "blinkName": "Chicken Achari Handi",
+   "lines": [
+    {
+     "ingredient": "Chicken Boneless",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Achar",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Jalfrezi Handi",
+   "blinkName": "Chicken Jalfrezi Handi",
+   "lines": [
+    {
+     "ingredient": "Chicken Boneless",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Shimla Mirch",
+     "qty": 0.06,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Green Chilli Handi",
+   "blinkName": "Chicken Green Chilli Handi",
+   "lines": [
+    {
+     "ingredient": "Chicken Boneless",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.015,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Ginger Handi",
+   "blinkName": "Chicken Ginger Handi",
+   "lines": [
+    {
+     "ingredient": "Chicken Boneless",
+     "qty": 0.55,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Tomato",
+     "qty": 0.275,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Green Chili",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Fresh",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.04,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Korma",
+   "blinkName": "Chicken Korma",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.175,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.125,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Chicken Makhani",
+   "blinkName": "Chicken Makhani",
+   "lines": [
+    {
+     "ingredient": "Chest Chicken With Bone",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.175,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.125,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Butter",
+     "qty": 0.045,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Cream",
+     "qty": 0.07,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton Qorma",
+   "blinkName": "Mutton Qorma",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Mutton White Qorma",
+   "blinkName": "Mutton White Qorma",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Aloo Gosht",
+   "blinkName": "Aloo Gosht",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Aloo",
+     "qty": 0.22,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Rogan Josh",
+   "blinkName": "Rogan Josh",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Yakhni",
+   "blinkName": "Yakhni",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Gushtaba",
+   "blinkName": "Gushtaba",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Tabak Maaz",
+   "blinkName": "Tabak Maaz",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Seyal Gosht",
+   "blinkName": "Seyal Gosht",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Dampukht",
+   "blinkName": "Dampukht",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Balochi Rosh",
+   "blinkName": "Balochi Rosh",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Landhi",
+   "blinkName": "Landhi",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Beef Korma",
+   "blinkName": "Beef Korma",
+   "lines": [
+    {
+     "ingredient": "Beef",
+     "qty": 0.5,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.175,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.125,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.08,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    }
+   ]
+  },
+  {
+   "dish": "Aloo Gosht (Beef)",
+   "blinkName": "Aloo Gosht (Beef)",
+   "lines": [
+    {
+     "ingredient": "Mutton",
+     "qty": 0.48,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Onion",
+     "qty": 0.168,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Yogurt",
+     "qty": 0.12,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Ghee",
+     "qty": 0.077,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Adrak",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Lehsan",
+     "qty": 0.01,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Qorma Masala",
+     "qty": 0.012,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Salt",
+     "qty": 0.008,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Red Pepper Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Haldi",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Dhania Powder",
+     "qty": 0.006,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Zeera",
+     "qty": 0.003,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Garam Masala",
+     "qty": 0.004,
+     "unit": "Kilogram"
+    },
+    {
+     "ingredient": "Aloo",
+     "qty": 0.22,
+     "unit": "Kilogram"
+    }
+   ]
+  }
+ ]
+}

@@ -14,6 +14,22 @@ import { updateTaxSettings, getFbrStatus } from './actions'
  * raw text lives in state while they type so "1" on the way to "16" isn't
  * normalised under the cursor.
  */
+
+/*
+ * A typed percentage as the fraction the column stores, or '' when the box is
+ * empty. Empty must stay empty: `Number('') || 0` posted a hard 0, which the
+ * server could not tell from a deliberate 0% and which set the store's tax
+ * rate to nothing. Blank means "unchanged" and only updateTaxSettings decides
+ * what that is.
+ */
+const percentField = (text) => {
+    const raw = String(text ?? '').trim()
+    if (raw === '') return ''
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return ''
+    return Math.min(Math.max(n, 0), 100) / 100
+}
+
 export default function TaxSettingsPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -56,8 +72,8 @@ export default function TaxSettingsPage() {
     }
 
     const fieldClass =
-        'w-full rounded-lg bg-gray-900/70 border border-gray-700/70 px-4 py-2.5 text-gray-100 ' +
-        'placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-600/60'
+        'w-full rounded-lg bg-surface-raise border border-input px-4 py-2.5 text-foreground ' +
+        'placeholder-muted focus:outline-none focus:ring-2 focus:ring-focus focus:border-primary'
 
     if (loading) {
         return (
@@ -70,43 +86,43 @@ export default function TaxSettingsPage() {
 
     const pct = (v) => `${Number(v) || 0}%`
     const ok = (flag) => flag
-        ? <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-        : <XCircle className="h-4 w-4 text-gray-500" aria-hidden="true" />
+        ? <CheckCircle2 className="h-4 w-4 text-success-text" aria-hidden="true" />
+        : <XCircle className="h-4 w-4 text-neutral-text" aria-hidden="true" />
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6 text-gray-100">
+        <div className="max-w-4xl mx-auto p-6 space-y-6 text-foreground">
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">Settings</h1>
-                <p className="text-gray-400 mt-1">Tax rates and FBR Digital Invoicing.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Settings</h1>
+                <p className="text-muted-foreground mt-1">Tax rates and FBR Digital Invoicing.</p>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-2">
-                <Link href="/settings" className="px-4 py-2 rounded-lg text-sm bg-gray-900/70 border border-gray-800 text-gray-300 hover:text-white">
+                <Link href="/settings" className="px-4 py-2 rounded-lg text-sm bg-surface border border-border text-foreground hover:text-card-foreground">
                     General
                 </Link>
-                <span className="px-4 py-2 rounded-lg text-sm bg-orange-600 text-white font-semibold">
+                <span className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground font-semibold">
                     Tax &amp; FBR
                 </span>
             </div>
 
             {message.text && (
                 <div className={`rounded-lg px-4 py-3 text-sm border ${message.type === 'error'
-                    ? 'bg-red-950/60 border-red-800 text-red-300'
-                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300'}`}>
+                    ? 'bg-danger-soft border-danger-border text-danger-text'
+                    : 'bg-success-soft border-success-border text-success-text'}`}>
                     {message.text}
                 </div>
             )}
 
-            <form action={handleSubmit} className="rounded-2xl bg-gray-900/60 border border-gray-800/70 p-6 space-y-6">
-                <div className="flex items-center gap-2 text-white font-semibold">
-                    <Percent className="h-5 w-5 text-orange-500" aria-hidden="true" />
+            <form action={handleSubmit} className="rounded-2xl bg-surface border border-border p-6 space-y-6">
+                <div className="flex items-center gap-2 text-card-foreground font-semibold">
+                    <Percent className="h-5 w-5 text-primary" aria-hidden="true" />
                     Rates
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label htmlFor="tax_rate_cash_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
+                        <label htmlFor="tax_rate_cash_percent" className="block text-sm font-medium text-foreground mb-1.5">
                             GST — cash
                         </label>
                         <input
@@ -116,15 +132,18 @@ export default function TaxSettingsPage() {
                             onChange={(e) => setTaxCash(e.target.value)}
                             className={fieldClass}
                             placeholder="16"
+                            required
                         />
-                        <input type="hidden" name="tax_rate_cash" value={(Math.min(Math.max(Number(taxCash) || 0, 0), 100)) / 100} />
-                        <p className="mt-1.5 text-xs text-gray-500">
+                        {/* Blank posts blank, so the server keeps the current rate
+                            instead of reading an empty box as 0%. */}
+                        <input type="hidden" name="tax_rate_cash" value={percentField(taxCash)} />
+                        <p className="mt-1.5 text-xs text-muted">
                             Percent charged on cash bills. Applies to new orders only — past bills keep the tax they were charged.
                         </p>
                     </div>
 
                     <div>
-                        <label htmlFor="tax_rate_card_percent" className="block text-sm font-medium text-gray-300 mb-1.5">
+                        <label htmlFor="tax_rate_card_percent" className="block text-sm font-medium text-foreground mb-1.5">
                             GST — card/digital
                         </label>
                         <input
@@ -134,15 +153,16 @@ export default function TaxSettingsPage() {
                             onChange={(e) => setTaxCard(e.target.value)}
                             className={fieldClass}
                             placeholder="5"
+                            required
                         />
-                        <input type="hidden" name="tax_rate_card" value={(Math.min(Math.max(Number(taxCard) || 0, 0), 100)) / 100} />
-                        <p className="mt-1.5 text-xs text-gray-500">
+                        <input type="hidden" name="tax_rate_card" value={percentField(taxCard)} />
+                        <p className="mt-1.5 text-xs text-muted">
                             The ICT differential rate for card and digital payments — resolved when the bill settles.
                         </p>
                     </div>
 
                     <div>
-                        <label htmlFor="tax_label" className="block text-sm font-medium text-gray-300 mb-1.5">
+                        <label htmlFor="tax_label" className="block text-sm font-medium text-foreground mb-1.5">
                             Tax name
                         </label>
                         <input
@@ -153,14 +173,14 @@ export default function TaxSettingsPage() {
                             className={fieldClass}
                             placeholder="GST"
                         />
-                        <p className="mt-1.5 text-xs text-gray-500">Shown on the receipt tax line.</p>
+                        <p className="mt-1.5 text-xs text-muted">Shown on the receipt tax line.</p>
                     </div>
                 </div>
 
                 <button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:opacity-60 px-5 py-2.5 font-semibold text-white"
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary hover:bg-primary-hover disabled:opacity-60 px-5 py-2.5 font-semibold text-primary-foreground"
                 >
                     {saving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                     Save tax settings
@@ -170,23 +190,23 @@ export default function TaxSettingsPage() {
             {/* Charges are shown, not edited, here: the Charges screen owns
                 them, and one row with two editors is how the two screens
                 start disagreeing. */}
-            <div className="rounded-2xl bg-gray-900/60 border border-gray-800/70 p-6 space-y-4">
+            <div className="rounded-2xl bg-surface border border-border p-6 space-y-4">
                 <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-white font-semibold">
-                        <Percent className="h-5 w-5 text-orange-500" aria-hidden="true" />
+                    <div className="flex items-center gap-2 text-card-foreground font-semibold">
+                        <Percent className="h-5 w-5 text-primary" aria-hidden="true" />
                         Charges on a bill
                     </div>
-                    <Link href="/charges" className="text-sm text-orange-400 hover:text-orange-300">
+                    <Link href="/charges" className="text-sm text-primary hover:text-primary-hover">
                         Manage charges →
                     </Link>
                 </div>
 
                 {charges.length > 0 ? (
-                    <ul className="divide-y divide-gray-800/70">
+                    <ul className="divide-y divide-border">
                         {charges.map((c) => (
                             <li key={c.name} className="py-2.5 flex items-center justify-between gap-4 text-sm">
-                                <span className="text-gray-200">{c.name}</span>
-                                <span className="text-gray-400">
+                                <span className="text-foreground">{c.name}</span>
+                                <span className="text-muted-foreground">
                                     {c.value_type === 'percent' ? `${Number(c.value)}%` : `Rs. ${Number(c.value).toLocaleString('en-PK')}`}
                                     {' · '}
                                     {(Array.isArray(c.order_types) && c.order_types.length > 0)
@@ -199,16 +219,16 @@ export default function TaxSettingsPage() {
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-sm text-gray-400">No charges are applied automatically.</p>
+                    <p className="text-sm text-muted-foreground">No charges are applied automatically.</p>
                 )}
             </div>
 
             {/* FBR Digital Invoicing — status only. The token can file
                 invoices with the tax authority, so it lives in the server
                 environment, never in a form. */}
-            <div className="rounded-2xl bg-gray-900/60 border border-gray-800/70 p-6 space-y-4">
-                <div className="flex items-center gap-2 text-white font-semibold">
-                    <Landmark className="h-5 w-5 text-orange-500" aria-hidden="true" />
+            <div className="rounded-2xl bg-surface border border-border p-6 space-y-4">
+                <div className="flex items-center gap-2 text-card-foreground font-semibold">
+                    <Landmark className="h-5 w-5 text-primary" aria-hidden="true" />
                     FBR Digital Invoicing
                 </div>
 
@@ -226,14 +246,14 @@ export default function TaxSettingsPage() {
 
                         <div className="grid grid-cols-3 gap-4 text-center">
                             {[['Pending', fbr.queue.pending], ['Sent', fbr.queue.sent], ['Failed', fbr.queue.failed]].map(([label, n]) => (
-                                <div key={label} className="rounded-xl bg-gray-950/60 border border-gray-800/60 py-3">
-                                    <div className="text-xl font-bold text-white">{n}</div>
-                                    <div className="text-xs text-gray-400">{label}</div>
+                                <div key={label} className="rounded-xl bg-surface-sunken border border-border py-3">
+                                    <div className="text-xl font-bold text-card-foreground">{n}</div>
+                                    <div className="text-xs text-muted-foreground">{label}</div>
                                 </div>
                             ))}
                         </div>
 
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted">
                             {fbr.last_sent
                                 ? `Last accepted invoice: ${fbr.last_sent.number}`
                                 : 'No invoices accepted by FBR yet.'}
@@ -242,7 +262,7 @@ export default function TaxSettingsPage() {
                         </p>
                     </>
                 ) : (
-                    <p className="text-sm text-gray-400">FBR status unavailable.</p>
+                    <p className="text-sm text-muted-foreground">FBR status unavailable.</p>
                 )}
             </div>
         </div>

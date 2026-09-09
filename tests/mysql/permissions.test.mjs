@@ -57,6 +57,11 @@ test('the roles that matter grant exactly what their names promise', () => {
 
     assert.deepEqual(grantedKeys(ROLE_DEFAULTS.kitchen), ['kds']);
 
+    // The front desk keeps the till-setup lists and never gets the menu.
+    assert.equal(ROLE_DEFAULTS.frontdesk.setup, true);
+    assert.equal(ROLE_DEFAULTS.frontdesk.menu, undefined);
+    assert.equal(ROLE_DEFAULTS.manager.menu, true);
+
     // Reads the money, never rings it.
     assert.equal(ROLE_DEFAULTS.accountant.pos, undefined);
     assert.equal(ROLE_DEFAULTS.accountant.void, undefined);
@@ -135,8 +140,11 @@ test('permissionForPath covers a section without listing its every page', () => 
 
     // Two screens, one right.
     assert.equal(permissionForPath('/companies'), 'cityledger');
-    assert.equal(permissionForPath('/floor'), 'menu');
-    assert.equal(permissionForPath('/discounts'), 'menu');
+    assert.equal(permissionForPath('/floor'), 'setup');
+    assert.equal(permissionForPath('/discounts'), 'setup');
+    // The menu is its own right: pricing a karahi is not retiring a waiter.
+    assert.equal(permissionForPath('/menu/items/new'), 'menu');
+    assert.equal(permissionForPath('/menu'), 'menu');
 
     // Unlisted is unguarded: the customer screen is public and the root is the
     // shell's own redirect.
@@ -192,9 +200,9 @@ test('landingPath falls back to the profile when nothing is reachable', () => {
     assert.equal(landingPath(undefined), '/profile');
     assert.equal(landingPath(null), '/profile');
     // Rights that gate an action rather than a screen of their own have no
-    // landing: 'menu' opens /floor, but nothing routes you there on sign-in.
+    // landing: 'setup' opens /floor, but nothing routes you there on sign-in.
     assert.equal(landingPath(['void']), '/profile');
-    assert.equal(landingPath(['menu']), '/profile');
+    assert.equal(landingPath(['setup']), '/profile');
     assert.equal(landingPath(['dayclose']), '/profile');
 });
 

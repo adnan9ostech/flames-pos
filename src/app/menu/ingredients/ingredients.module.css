@@ -1,0 +1,44 @@
+/*
+ * Ingredients-only classes. Everything else on this screen comes from
+ * ../menu.module.css — these two exist because the section stylesheet has
+ * transient notices, and the cost rule is neither transient nor a warning:
+ * it is the standing explanation of who owns the number in the cost column.
+ */
+
+.explain {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    border-radius: var(--radius);
+    background: var(--card);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+    max-width: 78ch;
+}
+
+.explain strong { color: var(--foreground); font-weight: 700 }
+
+.explainIcon { color: var(--primary); flex-shrink: 0; margin-top: 0.1rem }
+
+/* An action inside a sentence — the "overwrite anyway" that only appears
+   once the server has refused, so it reads as the next word, not a button
+   sitting there inviting a press. */
+.linkBtn {
+    display: inline;
+    margin-left: 0.35rem;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.linkBtn:disabled { opacity: var(--disabled-opacity); cursor: not-allowed }

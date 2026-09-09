@@ -1,0 +1,86 @@
+/*
+ * Only what menu.module.css does not already carry. The shared .lineRow sets
+ * up a grid but leaves the columns to the screen that owns the row, because
+ * a size row and a recipe line are not the same shape.
+ */
+
+.tap {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* name · up · down · remove — the buttons hold their width so the inputs
+ * line up down the column no matter how long a size name is. */
+.optionRow {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+/* A notice sitting inside the editor card, where the card's own gap already
+ * provides the spacing the page-level .note reserves below itself. */
+.inlineNote {
+    margin-bottom: 0;
+    align-items: flex-start;
+}
+
+.optionRank {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The rename impact, one consequence per line — the sentence about bills
+ * being left alone is the one that must not get lost in a paragraph. */
+.impact {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+}
+
+.impact strong { color: var(--foreground) }
+
+.renameLine {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.renameLine:last-child { border-bottom: none }
+.renameFrom { color: var(--muted-foreground); text-decoration: line-through }
+.renameTo { font-weight: 700 }
+
+/* Dishes waiting on a price for a new size. */
+.dishList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 45vh;
+    overflow-y: auto;
+}
+
+.dishLink {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.55rem 0.7rem;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+
+.dishLink:hover { border-color: var(--primary); color: var(--primary) }
+
+/* The shared .stateBtn is a 30px pill, right in a dense accounts table and
+ * too small for a thumb on a till. */
+.tapPill { min-height: 44px; padding-inline: 0.9rem }

@@ -6,8 +6,16 @@ import { getDayCloseState, closeBusinessDay, startBusinessDay } from './actions'
 import { formatDateTime } from '@/lib/timeFormat';
 import {
     AlertTriangle, Bike, CalendarDays, CheckCircle2, History, Loader2,
-    Lock, Receipt, ShoppingBag, UtensilsCrossed,
+    Lock, Receipt, ShoppingBag, UtensilsCrossed, Wallet, ArrowRightLeft,
 } from 'lucide-react';
+import { formatRupees } from '@/lib/money';
+
+const money = (n) => (n === null || n === undefined ? '—' : formatRupees(n, 0));
+
+const signedMoney = (n) => {
+    const v = Number(n || 0);
+    return `${v < 0 ? '-' : '+'}${formatRupees(Math.abs(v), 0)}`;
+};
 
 const ORDER_TYPE = {
     'dine-in': { label: 'Dine-in', Icon: UtensilsCrossed },
@@ -60,6 +68,11 @@ export default function DayClosePage() {
     const pending = state?.pendingBills ?? [];
     const openDay = state?.openDay;
     const ledgerGaps = Number(state?.ledgerGaps ?? 0);
+    const cash = state?.cash ?? null;
+    const openDrawer = cash?.openSession ?? null;
+    // Either gate can hold the close; one tick overrides whichever applies,
+    // and the audit row records which.
+    const needsForce = pending.length > 0 || Boolean(openDrawer);
 
     const [starting, setStarting] = useState(false);
 
@@ -85,7 +98,7 @@ export default function DayClosePage() {
     const submitClose = async () => {
         setClosing(true);
         setCloseError('');
-        const res = await closeBusinessDay({ force: pending.length > 0 && forceAck });
+        const res = await closeBusinessDay({ force: needsForce && forceAck });
         if (res.error) {
             setCloseError(res.error);
         } else {
@@ -192,6 +205,89 @@ export default function DayClosePage() {
                 </div>
             </div>
 
+            {/* The day's cash, read from the frozen drawer rows: what the till
+                opened on, what was counted out of it, and what is being left
+                for tomorrow. This is the chain — yesterday's carry forward is
+                today's opening float — so a break in it shows here first. */}
+            <div className={styles.cashCard}>
+                <div className={styles.cashHead}>
+                    <h2 className={styles.cardTitle}>
+                        <Wallet size={16} aria-hidden="true" />
+                        Cash for this day
+                    </h2>
+                    <Link href="/drawer" className={styles.cashLink}>Open the drawer screen</Link>
+                </div>
+
+                {!cash || cash.sessions === 0 ? (
+                    <p className={styles.cashEmpty}>
+                        No drawer has been opened on this day, so there is no cash to reconcile.
+                        Card-only trading is a legitimate reason; a till nobody opened is not.
+                    </p>
+                ) : (
+                    <>
+                        <div className={styles.cashGrid}>
+                            <div className={styles.cashStat}>
+                                <span className={styles.cashLabel}>Opened with</span>
+                                <span className={styles.cashValue}>{money(cash.opening)}</span>
+                            </div>
+                            <div className={styles.cashStat}>
+                                <span className={styles.cashLabel}>Expected at close</span>
+                                <span className={styles.cashValue}>
+                                    {cash.closedSessions > 0 ? money(cash.expected) : '—'}
+                                </span>
+                            </div>
+                            <div className={styles.cashStat}>
+                                <span className={styles.cashLabel}>Counted</span>
+                                <span className={styles.cashValue}>
+                                    {cash.closedSessions > 0 ? money(cash.counted) : '—'}
+                                </span>
+                            </div>
+                            <div className={styles.cashStat}>
+                                <span className={styles.cashLabel}>Over / short</span>
+                                <span className={`${styles.cashValue} ${
+                                    cash.closedSessions === 0 ? ''
+                                        : cash.variance < 0 ? styles.short
+                                            : cash.variance > 0 ? styles.over : styles.balanced}`}
+                                >
+                                    {cash.closedSessions > 0 ? signedMoney(cash.variance) : '—'}
+                                </span>
+                            </div>
+                            <div className={styles.cashStat}>
+                                <span className={styles.cashLabel}>Handed over</span>
+                                <span className={styles.cashValue}>
+                                    {cash.closedSessions > 0 ? money(cash.handover) : '—'}
+                                </span>
+                            </div>
+                            <div className={`${styles.cashStat} ${styles.cashStatAccent}`}>
+                                <span className={styles.cashLabel}>Left for tomorrow</span>
+                                <span className={styles.cashValue}>{money(cash.carryForward)}</span>
+                            </div>
+                        </div>
+
+                        {cash.carryForward !== null && (
+                            <p className={styles.cashChain}>
+                                <ArrowRightLeft size={14} aria-hidden="true" />
+                                <span>
+                                    <strong>{money(cash.carryForward)}</strong> stays in the till, and
+                                    that is the opening balance the next drawer will propose.
+                                </span>
+                            </p>
+                        )}
+                    </>
+                )}
+
+                {openDrawer && (
+                    <div className={styles.cashWarn} role="status">
+                        <AlertTriangle size={16} aria-hidden="true" />
+                        <span>
+                            The <strong>{openDrawer.cashier_role}</strong> drawer is still open
+                            (since {formatDateTime(new Date(openDrawer.opened_at))}). Count and close
+                            it so this day&apos;s cash is recorded before you close the day.
+                        </span>
+                    </div>
+                )}
+            </div>
+
             <div className={styles.grid2}>
                 {/* The gate: what stands between now and a clean close */}
                 <div className={styles.card}>
@@ -260,9 +356,10 @@ export default function DayClosePage() {
                                 <thead>
                                     <tr>
                                         <th>Business day</th>
-                                        <th>Opened</th>
                                         <th>Closed</th>
                                         <th>By</th>
+                                        <th className={styles.alignRight}>Opened with</th>
+                                        <th className={styles.alignRight}>Left in till</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -270,15 +367,18 @@ export default function DayClosePage() {
                                         <tr key={row.business_date}>
                                             <td className={styles.cellStrong}>{row.business_date}</td>
                                             <td className={styles.cellMuted}>
-                                                {row.opened_at ? formatDateTime(new Date(row.opened_at)) : '—'}
-                                            </td>
-                                            <td className={styles.cellMuted}>
                                                 {row.closed_at ? formatDateTime(new Date(row.closed_at)) : '—'}
                                             </td>
                                             <td className={styles.cellMuted}>
                                                 {row.closed_by_role
                                                     ? row.closed_by_role.charAt(0).toUpperCase() + row.closed_by_role.slice(1)
                                                     : '—'}
+                                            </td>
+                                            <td className={`${styles.cellMuted} ${styles.alignRight}`}>
+                                                {money(row.opening_cash)}
+                                            </td>
+                                            <td className={`${styles.cellMuted} ${styles.alignRight}`}>
+                                                {money(row.closing_cash)}
                                             </td>
                                         </tr>
                                     ))}
@@ -304,7 +404,17 @@ export default function DayClosePage() {
                             business day. Every order taken from then on lands on the new day. A close cannot be undone.
                         </p>
 
-                        {pending.length > 0 ? (
+                        {cash?.carryForward !== null && cash?.carryForward !== undefined && (
+                            <div className={styles.clearNote}>
+                                <ArrowRightLeft size={16} aria-hidden="true" />
+                                <span>
+                                    {money(cash.carryForward)} stays in the till as tomorrow&apos;s
+                                    opening balance.
+                                </span>
+                            </div>
+                        )}
+
+                        {needsForce ? (
                             <label className={styles.forceRow}>
                                 <input
                                     type="checkbox"
@@ -313,15 +423,26 @@ export default function DayClosePage() {
                                     disabled={closing}
                                 />
                                 <span>
-                                    <strong>{pending.length} unpaid bill{pending.length === 1 ? '' : 's'}</strong>{' '}
-                                    still open. Settle or void them first — or tick here to close anyway and
-                                    carry them, which is recorded in the audit trail.
+                                    {pending.length > 0 && (
+                                        <>
+                                            <strong>{pending.length} unpaid bill{pending.length === 1 ? '' : 's'}</strong>{' '}
+                                            still open.{' '}
+                                        </>
+                                    )}
+                                    {openDrawer && (
+                                        <>
+                                            The <strong>{openDrawer.cashier_role} drawer is still open</strong>,
+                                            so this day&apos;s cash was never counted.{' '}
+                                        </>
+                                    )}
+                                    Deal with that first — or tick here to close anyway, which is
+                                    recorded in the audit trail.
                                 </span>
                             </label>
                         ) : (
                             <div className={styles.clearNote}>
                                 <CheckCircle2 size={16} aria-hidden="true" />
-                                No unpaid bills — clear to close.
+                                No unpaid bills, drawer counted — clear to close.
                             </div>
                         )}
 

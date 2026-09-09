@@ -73,7 +73,7 @@
 
 .tab.activeTab {
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
 }
 
 .addBtn {
@@ -81,7 +81,7 @@
     align-items: center;
     gap: 0.4rem;
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
     border: none;
     padding: 0.55rem 1rem;
     border-radius: 8px;
@@ -104,7 +104,7 @@
     padding: 0.75rem 1rem;
     border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
     border-radius: var(--radius);
-    background: rgba(239, 68, 68, 0.08);
+    background: var(--danger-soft);
     color: var(--destructive);
     font-size: 0.85rem;
 }
@@ -151,7 +151,7 @@
 }
 
 .table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-raise);
 }
 
 /* The row being edited (or added) sits on a tinted ground so the inputs
@@ -203,7 +203,7 @@
     margin-left: 0.45rem;
     padding: 0.1rem 0.45rem;
     border-radius: 999px;
-    background: rgba(245, 158, 11, 0.12);
+    background: var(--warning-soft);
     border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
     color: var(--accent);
     font-size: 0.68rem;
@@ -294,7 +294,7 @@
 }
 
 .iconBtn:disabled {
-    opacity: 0.5;
+    opacity: var(--disabled-opacity);
     cursor: not-allowed;
 }
 
@@ -306,7 +306,7 @@
     background: var(--primary);
     border: 1px solid var(--primary);
     border-radius: var(--radius);
-    color: white;
+    color: var(--primary-foreground);
     cursor: pointer;
     transition: background 0.15s;
 }
@@ -316,7 +316,9 @@
 }
 
 .saveBtn:disabled {
-    opacity: 0.55;
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
     cursor: not-allowed;
 }
 
@@ -347,3 +349,12 @@
         transition: none;
     }
 }
+
+/*
+ * An alignment class must win on a HEADER, not just on a cell. `.table th` sets
+ * text-align and outranks a bare `.alignRight`, so every money column printed its
+ * figures hard right under a title sitting hard left — the misalignment the owner
+ * reported on 3 Sep 2026, on 29 screens. Repeating the table selector settles it.
+ */
+.table th.alignRight, .table th.num { text-align: right }
+.table th.alignCenter { text-align: center }

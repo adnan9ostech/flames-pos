@@ -66,10 +66,23 @@ process.on('SIGINT', () => stop('SIGINT'));
 
 const pass = async () => {
     const rows = await query(
-        `SELECT id, order_id, usin, payload, attempts
-         FROM fbr_invoices
-         WHERE status = 'pending' AND attempts < ?
-         ORDER BY created_at
+        /*
+         * The join is the point. This selected pending invoices with no
+         * reference to the order at all, so a bill voided between one pass and
+         * the next was still reported to FBR as a sale — a fiscal record of
+         * something that did not happen, which the restaurant answers for.
+         *
+         * It narrows the window to the sub-second case where a void commits
+         * between this SELECT and the POST below. Closing that too would mean
+         * holding a row lock across a network call, which is worse. Stated
+         * rather than implied.
+         */
+        `SELECT f.id, f.order_id, f.usin, f.payload, f.attempts
+         FROM fbr_invoices f
+         JOIN orders o ON o.id = f.order_id
+         WHERE f.status = 'pending' AND f.attempts < ?
+           AND o.status <> 'cancelled'
+         ORDER BY f.created_at
          LIMIT ?`,
         [MAX_ATTEMPTS, BATCH],
     );

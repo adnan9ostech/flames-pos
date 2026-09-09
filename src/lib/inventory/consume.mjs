@@ -13,6 +13,7 @@
  */
 import { withTransaction } from '../db/pool.mjs';
 import { postLedger } from '../db/inventory.mjs';
+import { RECIPE_VARIANT_FOR_LINE } from '../menu/rules.mjs';
 
 // 'Main Store', seeded by migration 002. The till has no warehouse concept,
 // so everything a sale consumes comes out of the main store until it does.
@@ -62,10 +63,18 @@ export const consumeForOrder = async (order) => {
             // consumes its recipe quantities, summed per ingredient. Lines
             // whose dish lost its menu link (or has no recipe) fall out of
             // the join, which is the "skip silently" the menu build-out needs.
+            //
+            // The join is on the RESOLVED size: a Full portion takes the Full
+            // recipe's chicken when Full has its own lines, and the dish's
+            // base recipe when it does not. Without that, a Full karahi
+            // consumed a Half's quantities and the shelf count drifted every
+            // service.
             const [used] = await conn.query(
                 `SELECT rl.inventory_item_id AS item_id, SUM(oi.qty * rl.qty) AS qty
                  FROM order_items oi
-                 JOIN recipe_lines rl ON rl.menu_item_id = oi.menu_item_id
+                 JOIN recipe_lines rl
+                   ON rl.menu_item_id = oi.menu_item_id
+                  AND rl.variant_name = (${RECIPE_VARIANT_FOR_LINE})
                  WHERE oi.order_id = ?
                  GROUP BY rl.inventory_item_id`,
                 [order.id],

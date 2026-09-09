@@ -60,21 +60,21 @@
 }
 
 .noteError {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-soft);
     border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
     color: var(--destructive);
 }
 
 .noteSuccess {
-    background: rgba(16, 185, 129, 0.1);
+    background: var(--success-soft);
     border-color: color-mix(in srgb, var(--success) 45%, transparent);
     color: var(--success);
 }
 
 .noteWarn {
-    background: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.45);
-    color: #f5b041;
+    background: var(--warning-soft);
+    border-color: var(--warning-border);
+    color: var(--warning-text);
 }
 
 /* ---- Hub: stats and tiles ---- */
@@ -112,7 +112,7 @@
 .statLink:hover { border-color: var(--primary) }
 
 .warnIcon {
-    background: rgba(239, 68, 68, 0.15);
+    background: var(--danger-soft-strong);
     color: var(--destructive);
 }
 
@@ -173,7 +173,7 @@
 
 .tile:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--shadow-md);
     border-color: var(--primary);
 }
 
@@ -313,7 +313,6 @@
     font-family: inherit;
     font-size: 0.85rem;
     min-height: 40px;
-    color-scheme: dark;
 }
 
 .dateSep { color: var(--muted-foreground); font-size: 0.8rem }
@@ -343,7 +342,7 @@
     color: var(--muted-foreground);
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--surface-sunken);
 }
 
 .table td {
@@ -353,11 +352,11 @@
 }
 
 .table tbody tr:last-child td { border-bottom: none }
-.table tbody tr:hover td { background: rgba(255, 255, 255, 0.025) }
+.table tbody tr:hover td { background: var(--surface-raise) }
 
 .tfoot td {
     font-weight: 700;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-sunken);
     border-top: 2px solid var(--border);
 }
 
@@ -396,7 +395,7 @@
 .rowIndent td:first-child { padding-left: 2rem }
 .rowSection td {
     font-weight: 700;
-    background: rgba(0, 0, 0, 0.12);
+    background: var(--surface-sunken);
     text-transform: uppercase;
     font-size: 0.72rem;
     letter-spacing: 0.06em;
@@ -407,7 +406,7 @@
     font-weight: 800;
     font-size: 0.95rem;
     border-top: 2px solid var(--primary);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-sunken);
 }
 
 .negative { color: var(--destructive) }
@@ -434,20 +433,20 @@
 }
 
 .chipSuccess {
-    background: rgba(16, 185, 129, 0.12);
-    border-color: rgba(16, 185, 129, 0.4);
+    background: var(--success-soft);
+    border-color: var(--success-border);
     color: var(--success);
 }
 
 .chipWarn {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #f5b041;
+    background: var(--warning-soft);
+    border-color: var(--warning-border);
+    color: var(--warning-text);
 }
 
 .chipDanger {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.4);
+    background: var(--danger-soft);
+    border-color: var(--danger-border);
     color: var(--destructive);
 }
 
@@ -486,7 +485,7 @@
 }
 
 .iconBtn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary) }
-.iconBtn:disabled { opacity: 0.4; cursor: not-allowed }
+.iconBtn:disabled { opacity: var(--disabled-opacity); cursor: not-allowed }
 .dangerBtn:hover:not(:disabled) { border-color: var(--destructive); color: var(--destructive) }
 
 .stateBtn {
@@ -502,8 +501,8 @@
     transition: opacity 0.15s;
 }
 
-.stateBtn:disabled { cursor: not-allowed; opacity: 0.6 }
-.stateOn { border-color: rgba(16, 185, 129, 0.5); color: var(--success) }
+.stateBtn:disabled { cursor: not-allowed; opacity: var(--disabled-opacity) }
+.stateOn { border-color: var(--success-border); color: var(--success) }
 .stateOff { border-color: var(--border); color: var(--muted-foreground) }
 
 .stateBlock {
@@ -579,11 +578,10 @@
     font-size: 0.88rem;
     outline: none;
     min-height: 42px;
-    color-scheme: dark;
 }
 
 .input:focus { border-color: var(--primary) }
-.input:disabled { opacity: 0.55; cursor: not-allowed }
+.input:disabled { opacity: var(--disabled-opacity); cursor: not-allowed }
 .inputNum { text-align: right; font-variant-numeric: tabular-nums }
 .inputMono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace }
 textarea.input { min-height: 64px; resize: vertical }
@@ -661,7 +659,12 @@ textarea.input { min-height: 64px; resize: vertical }
 }
 
 .primaryBtn:hover:not(:disabled) { background: var(--primary-hover) }
-.primaryBtn:disabled { opacity: 0.5; cursor: not-allowed }
+.primaryBtn:disabled {
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
+    cursor: not-allowed;
+}
 
 .secondaryBtn {
     display: inline-flex;
@@ -682,7 +685,7 @@ textarea.input { min-height: 64px; resize: vertical }
 }
 
 .secondaryBtn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary) }
-.secondaryBtn:disabled { opacity: 0.5; cursor: not-allowed }
+.secondaryBtn:disabled { opacity: var(--disabled-opacity); cursor: not-allowed }
 
 .dangerOutline { color: var(--destructive) }
 .dangerOutline:hover:not(:disabled) { border-color: var(--destructive); color: var(--destructive) }
@@ -715,7 +718,7 @@ textarea.input { min-height: 64px; resize: vertical }
     gap: 1.5rem;
     padding: 0.6rem 0.75rem;
     border-radius: var(--radius);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-sunken);
     font-variant-numeric: tabular-nums;
     font-size: 0.88rem;
 }
@@ -741,9 +744,9 @@ textarea.input { min-height: 64px; resize: vertical }
     text-transform: uppercase;
 }
 
-.statusDraft { background: rgba(245, 158, 11, 0.15); color: #f5b041 }
-.statusPosted { background: rgba(16, 185, 129, 0.15); color: var(--success) }
-.statusVoid { background: rgba(239, 68, 68, 0.15); color: var(--destructive) }
+.statusDraft { background: var(--warning-soft-strong); color: var(--warning-text) }
+.statusPosted { background: var(--success-soft-strong); color: var(--success) }
+.statusVoid { background: var(--danger-soft-strong); color: var(--destructive) }
 
 /* ---- Modal ---- */
 
@@ -751,7 +754,7 @@ textarea.input { min-height: 64px; resize: vertical }
     position: fixed;
     inset: 0;
     z-index: 150;
-    background: rgba(0, 0, 0, 0.62);
+    background: var(--overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -812,3 +815,11 @@ textarea.input { min-height: 64px; resize: vertical }
     .table thead { display: table-header-group }
     .table tr { break-inside: avoid }
 }
+
+/*
+ * An alignment class must win on a HEADER, not just on a cell. `.table th` sets
+ * text-align and outranks a bare `.alignRight`, so every money column printed its
+ * figures hard right under a title sitting hard left — the misalignment the owner
+ * reported on 3 Sep 2026, on 29 screens. Repeating the table selector settles it.
+ */
+.table th.alignRight, .table th.cellNum { text-align: right }

@@ -193,6 +193,30 @@ test('9. a stale KDS bump loses instead of overwriting', async () => {
     );
 });
 
+test('9b. a bump cannot bring a voided order back to life', async () => {
+    /*
+     * bumpOrder validated only the status it was moving TO, so a caller passing
+     * from='cancelled' matched the voided row and silently revived it — the
+     * order back on the board as live, with cancelled_at and cancel_reason still
+     * set and its payments netted to zero. The action gates on requireUser()
+     * alone, so any signed-in account could reach it.
+     */
+    let r = await createOrder([{ name: 'Un-void test', price: 10, qty: 1 }], { payment_status: 'unpaid' });
+    r = await voidOrder(r.id, 'walked out', 'test');
+    assert.equal(r.status, 'cancelled');
+
+    for (const to of ['preparing', 'ready', 'completed']) {
+        const after = await bumpOrder(r.id, 'cancelled', to);
+        assert.equal(after.status, 'cancelled', `a bump to ${to} must not revive a void`);
+    }
+
+    // The void's own record is intact, not half-overwritten.
+    const row = await one('SELECT status, cancelled_at, cancel_reason FROM orders WHERE id = ?', [r.id]);
+    assert.equal(row.status, 'cancelled');
+    assert.ok(row.cancelled_at, 'cancelled_at survives');
+    assert.equal(row.cancel_reason, 'walked out');
+});
+
 test('10. line validation and method contract strings', async () => {
     const unpaid = { payment_status: 'unpaid' };
     await assert.rejects(createOrder([], unpaid),

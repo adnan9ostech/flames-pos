@@ -1,0 +1,123 @@
+/*
+ * Recipes-only classes. The frame, the tables, the cost cards and the size
+ * segments all come from ../menu.module.css; what lives here is the dish
+ * picker, which is a scrolling list of buttons rather than a table — it is a
+ * work list you run down with a finger, not a grid you read across — plus
+ * the standing statement of the size-fallback rule.
+ */
+
+.picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 0.9rem;
+    position: sticky;
+    top: 1rem;
+}
+
+@media (max-width: 1100px) {
+    .picker { position: static }
+}
+
+.pickerList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    /* Tall enough to scan, short enough that the editor beside it stays on
+       screen; the list scrolls, the page does not. */
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 0 -0.3rem;
+    padding: 0 0.3rem;
+}
+
+.dishRow {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--foreground);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    min-height: 48px;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.dishRow:hover { background: var(--surface-raise) }
+
+.dishActive {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+/* Filled = costed, hollow = the work list. */
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted-foreground);
+    flex-shrink: 0;
+}
+
+.dotOn { background: var(--success); border-color: var(--success) }
+
+.dishMain { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; flex: 1 }
+
+.dishName {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.dishMeta {
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+    line-height: 1.25;
+}
+
+.dishState {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.emptyList {
+    padding: 2rem 0.5rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--muted-foreground);
+}
+
+/* The size-fallback rule, kept on screen rather than in a tooltip: it is the
+   one thing about this editor that is not obvious from looking at it. */
+.rule {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    border-radius: var(--radius);
+    background: var(--background);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+}
+
+.rule strong { color: var(--foreground); font-weight: 700 }
+.ruleIcon { color: var(--primary); flex-shrink: 0; margin-top: 0.1rem }
+
+.inlineLink { color: inherit; font-weight: 700; text-decoration: underline }
+
+/* A quantity field never needs the width a dish name does. */
+.qtyCell { width: 7rem }

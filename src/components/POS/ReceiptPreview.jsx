@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { generateEMVCoPayload } from '@/lib/emvco';
-import { DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
+import { formatNumber as money } from '@/lib/money';
+import { applyPaperWidth } from '@/lib/printReceipt';
 import { getSettings } from '@/app/settings/actions';
 import { formatDateTime } from '@/lib/timeFormat';
 import styles from './ReceiptPreview.module.css';
@@ -10,6 +11,17 @@ const ROLE_LABEL = { admin: 'Admin', staff: 'Staff' };
 
 const ReceiptPreview = ({
     cart, totals, includeTax, invoiceNumber, meta, printLabel, role, busy, onClose, onPrint,
+    /*
+     * The rate this bill's tax was actually worked out at, as a fraction
+     * (0.05 or 0.16). It has to be passed in, because it is a fact about the
+     * BILL, not about the store: cash is taxed at 16% and card at 5% under
+     * ICT, so a single store-wide number would misstate one of them. The till
+     * passes the rate of the payment mode selected; a reprint passes the rate
+     * stamped on the order at settle. Null when it genuinely isn't known —
+     * a bill settled before that column existed — and the receipt then prints
+     * the tax line with no percentage rather than asserting a wrong one.
+     */
+    taxRate = null,
     /*
      * The settled order row, when the caller has one. Only read for
      * fbr_invoice_number — the number FBR itself issued, backfilled after
@@ -55,7 +67,12 @@ const ReceiptPreview = ({
 
     useEffect(() => {
         getSettings()
-            .then(setSettings)
+            .then((s) => {
+                setSettings(s);
+                // Before the paper is measured, not after: the preview lays out
+                // at the paper's width, and printReceipt() measures the preview.
+                applyPaperWidth(s?.receipt_width_mm);
+            })
             .finally(() => setSettingsLoaded(true));
     }, []);
 
@@ -67,7 +84,16 @@ const ReceiptPreview = ({
     // Settings may not have loaded on first paint, so both fall back rather than
     // rendering "undefined" on a document a customer keeps.
     const taxLabel = settings?.tax_label || 'GST';
-    const taxPercent = `${Number(((settings?.tax_rate ?? DEFAULT_TAX_RATE) * 100).toFixed(2))}%`;
+    /*
+     * `settings.tax_rate` has not existed since the rates were split into
+     * tax_rate_cash / tax_rate_card, so this silently fell back to 16% and
+     * every card bill printed "GST (16%)" over a 5% amount — on a document an
+     * FBR inspection may read. The rate now arrives with the bill.
+     */
+    const rate = Number(taxRate);
+    const taxPercent = Number.isFinite(rate) && rate > 0
+        ? `${Number((rate * 100).toFixed(2))}%`
+        : null;
 
     // Built inside a try because the encoder rejects values it cannot express in
     // a two-digit length rather than silently truncating an account id. This runs
@@ -154,7 +180,7 @@ const ReceiptPreview = ({
                                     <tr key={idx}>
                                         <td>{item.name}</td>
                                         <td>{item.qty}</td>
-                                        <td className={styles.right}>{(item.price * item.qty).toLocaleString()}</td>
+                                        <td className={styles.right}>{money(item.price * item.qty)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -165,12 +191,12 @@ const ReceiptPreview = ({
                     <div className={styles.totals}>
                         <div className={styles.row}>
                             <span>Sub Total:</span>
-                            <span>Rs. {totals.subtotal.toLocaleString()}</span>
+                            <span>Rs. {money(totals.subtotal)}</span>
                         </div>
                         {totals.discount > 0 && (
                             <div className={styles.row}>
                                 <span>Discount:</span>
-                                <span>− Rs. {totals.discount.toLocaleString()}</span>
+                                <span>− Rs. {money(totals.discount)}</span>
                             </div>
                         )}
                         {/* Auto-applied charges (service charge, delivery fee),
@@ -179,20 +205,22 @@ const ReceiptPreview = ({
                         {(totals.charges || []).map((c) => (
                             <div className={styles.row} key={c.name}>
                                 <span>{c.name}:</span>
-                                <span>Rs. {c.amount.toLocaleString()}</span>
+                                <span>Rs. {money(c.amount)}</span>
                             </div>
                         ))}
                         {includeTax && (
                             <div className={styles.row}>
                                 {/* Label and rate come from settings, so a rate change
                                     doesn't leave the receipt asserting the old one. */}
-                                <span className="font-bold">{taxLabel} ({taxPercent}):</span>
-                                <span>Rs. {totals.tax.toLocaleString()}</span>
+                                <span className="font-bold">
+                                    {taxLabel}{taxPercent ? ` (${taxPercent})` : ''}:
+                                </span>
+                                <span>Rs. {money(totals.tax)}</span>
                             </div>
                         )}
                         <div className={`${styles.row} ${styles.grandTotal}`}>
                             <span>Total:</span>
-                            <span>Rs. {totals.total.toLocaleString()}</span>
+                            <span>Rs. {money(totals.total)}</span>
                         </div>
                     </div>
 
@@ -203,7 +231,7 @@ const ReceiptPreview = ({
                                 earn nothing on paper, so both are gone. */}
                             <QRCodeSVG value={qrPayload} size={104} level="M" />
                             <p className={styles.qrCaption}>Scan to Pay with Raast / JazzCash</p>
-                            <p>Amount: Rs. {totals.total.toLocaleString()}</p>
+                            <p>Amount: Rs. {money(totals.total)}</p>
                         </div>
                     )}
 

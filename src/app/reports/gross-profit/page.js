@@ -8,6 +8,9 @@ import {
 import {
     UtensilsCrossed, CalendarRange, Loader2, AlertTriangle,
 } from 'lucide-react';
+/* Chart tokens. Single series, so slot 2 of the categorical palette — the
+   brand orange is chrome, and a chart drawn in it reads as a button. */
+import { SERIES, AXIS_TEXT, GRID, LABEL_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs';
 
 /*
  * Business dates on the Karachi calendar, matching orders.business_date —
@@ -46,13 +49,6 @@ const money = (n) => `Rs. ${Number(n || 0).toLocaleString('en-PK')}`;
 // Recipe costs carry paisa; whole rupees would round a Rs. 12.40 naan to 12.
 const cost = (n) => `Rs. ${Number(n || 0).toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
 const pct = (n) => `${Number(n || 0).toFixed(1)}%`;
-
-/* Chart tokens. Single series, so slot 2 of the categorical palette — the
-   brand orange is chrome, and a chart drawn in it reads as a button. */
-const SERIES = '#d95926';
-const AXIS_TEXT = '#a39a92';
-const GRID = '#332c27';
-const LABEL_TEXT = '#f8f4ee';
 
 // The owner acts on a handful of dishes, not on a hundred.
 const CHART_ROWS = 10;
@@ -285,7 +281,7 @@ export default function GrossProfitPage() {
                                             axisLine={false}
                                             tickLine={false}
                                         />
-                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={<MarginTooltip />} />
+                                        <Tooltip cursor={CURSOR_FILL} content={<MarginTooltip />} />
                                         {/* No entry animation: recharts holds the value
                                             labels back until it finishes, and this chart is
                                             re-rendered on every change of period. */}

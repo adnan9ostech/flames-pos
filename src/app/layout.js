@@ -5,6 +5,7 @@ import ConnectionStatus from "@/components/Layout/ConnectionStatus";
 import ServiceWorkerRegistrar from "@/components/Layout/ServiceWorkerRegistrar";
 import { readSession } from "@/lib/db/auth.mjs";
 import { query } from "@/lib/db/pool.mjs";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme.mjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,14 @@ export const metadata = {
   manifest: "/manifest.webmanifest",
 };
 
-// Matches the app background so an installed till has no light flash on launch
+/*
+ * Browser chrome — the mobile address bar and the installed PWA's status bar.
+ * A single default (dark) meta that the boot script overwrites to the RESOLVED
+ * theme before paint, and ThemeProvider keeps in step. It is deliberately NOT a
+ * prefers-color-scheme media array: the app paints from the stored preference,
+ * so tying the chrome to the OS would mismatch the page whenever the two differ
+ * (a 'light' pref on a dark-OS till, or the dark default on a light-OS one).
+ */
 export const viewport = {
   themeColor: "#000000",
 };
@@ -56,8 +64,20 @@ export default async function RootLayout({ children }) {
   };
 
   return (
-    <html lang="en">
+    /*
+     * suppressHydrationWarning is REQUIRED, not cosmetic: the script below sets
+     * data-theme on <html> before React hydrates, so the server markup and the
+     * client DOM differ by exactly that attribute. Scoped to this element, so
+     * it never hides a real mismatch anywhere inside the app.
+     */
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        {/*
+          * Paints the stored theme before the first frame. Has to be inline and
+          * synchronous — a deferred or bundled script runs after paint, which
+          * is precisely the flash it exists to prevent.
+          */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <AppLayout session={viewer}>
           {children}
         </AppLayout>

@@ -90,7 +90,7 @@
     flex-shrink: 0;
     border-radius: 0.5rem;
     /* Chrome orange, deliberately: the icon is furniture, not a data mark. */
-    background: rgba(242, 101, 19, 0.12);
+    background: var(--primary-soft);
     color: var(--primary);
 }
 

@@ -22,7 +22,7 @@
 }
 
 .chip:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    background: var(--primary-soft);
     border-color: var(--primary);
 }
 

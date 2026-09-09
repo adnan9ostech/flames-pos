@@ -123,7 +123,11 @@ before(async () => {
         receiptCash: await link('receipt_method', 'cash'),
         receiptBank: await link('receipt_method', 'bank'),
         receiptCheque: await link('receipt_method', 'cheque'),
-        apSuppliers: await byCode('AP', "AND category = 'ACCOUNTS PAYABLE' AND name LIKE ?", ['%Suppliers%']),
+        // Resolved exactly as resolveApSuppliers does it: the lowest-numbered
+        // AP account in the payables category. Matching the old seed's
+        // '%Suppliers%' wording is what hid the posting break when the chart
+        // moved to the accountant's names.
+        apSuppliers: await byCode('AP', "AND category = 'ACCOUNTS PAYABLE'"),
         inventory: await byCode('INVENTORY'),
         overShort: settings.cash_over_short_account_id,
     };

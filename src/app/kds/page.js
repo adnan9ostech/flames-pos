@@ -1,15 +1,20 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import Image from 'next/image';
 import styles from './kds.module.css';
-import { getKitchenOrders, bumpOrder, getMenuItems } from '@/lib/dataClient';
+import { getKitchenOrders, bumpOrder, getFullMenuData } from '@/lib/dataClient';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import {
     getOrderNumber, buildImageMap, resolveItemImage, formatModifiers
 } from '@/lib/orderDisplay';
 import { isLatestRound } from '@/lib/orderTotals.mjs';
+import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/lib/kotPrint';
+import { applyPaperWidth } from '@/lib/printReceipt';
+import KotSlips from '@/components/POS/KotSlips';
+import { getSettings } from '@/app/settings/actions';
 import LiveClock from '@/components/Layout/LiveClock';
-import { UtensilsCrossed, Volume2, VolumeX, Maximize2, UserRound, Layers } from 'lucide-react';
+import { UtensilsCrossed, Volume2, VolumeX, Maximize2, UserRound, Layers, Printer, Loader2 } from 'lucide-react';
 
 // Kitchen lanes, in the order tickets flow across the screen. These keys are
 // the statuses getKitchenOrders() fetches (KITCHEN_STATUSES in src/lib/db/reads.mjs) —
@@ -23,6 +28,45 @@ const LANES = [
 // Minutes since an order landed, used to escalate a ticket's urgency
 const WARN_AFTER = 5;
 const LATE_AFTER = 10;
+
+/*
+ * How long a primed print button stays primed.
+ *
+ * The reprint is guarded by a second tap rather than a modal: a confirm dialog
+ * on a kitchen screen is a thing to dismiss with a wet glove mid-service, and a
+ * bare button is a stack of paper away from a sleeve brushing the display. The
+ * first tap turns the button into "Print N tickets?" — which is also where the
+ * cost of per-item mode is stated — and it disarms itself if nobody follows
+ * through, so a half-press never sits waiting to fire later.
+ */
+const ARM_MS = 4000;
+
+/*
+ * Feeds one pass of slips through the printer, then unmounts the slip root
+ * whatever happened — while #kot-print-root is in the DOM its print CSS owns
+ * the paper, so a pass that died halfway would leave nothing else on the board
+ * printable. Paper is never worth breaking the board over, so nothing here is
+ * allowed to escape.
+ *
+ * At module scope rather than in the component for a mechanical reason: a
+ * try/finally inside a component makes the React Compiler bail on the whole
+ * FILE, which silently switches off the react-hooks lint rules for every effect
+ * on this page. Out here it costs nothing and the board keeps its safety net.
+ */
+const feedSlipsToPrinter = async (slips, meta, setJob) => {
+    try {
+        await runPrintQueue(slips, (slip) => {
+            // flushSync, not a queued set: printKotSlip() reads the DOM on the
+            // next line, and a queued render would print the prior slip.
+            flushSync(() => setJob({ slip, meta }));
+            printKotSlip();
+        });
+    } catch (error) {
+        console.error('Could not reprint kitchen tickets', error);
+    } finally {
+        flushSync(() => setJob(null));
+    }
+};
 
 const ORDER_TYPE_LABEL = {
     'dine-in': 'Dine-in',
@@ -41,6 +85,17 @@ const firedAt = (order) => new Date(order.last_round_at || order.created_at).get
 export default function KDSPage() {
     const [orders, setOrders] = useState([]);
     const [imageMap, setImageMap] = useState({});
+    // The menu, kept whole: the slip builder resolves a line's station through
+    // menu_items.category_id, so the board needs categories as well as photos.
+    const [menu, setMenu] = useState({ items: [], categories: [] });
+    const [kotMode, setKotMode] = useState(DEFAULT_KOT_MODE);
+    // The slip being printed right now; null keeps #kot-print-root unmounted,
+    // which is what leaves the rest of the app printable.
+    const [kotJob, setKotJob] = useState(null);
+    // {id, count} — the ticket whose print button is primed for its second tap
+    const [armed, setArmed] = useState(null);
+    const [printingId, setPrintingId] = useState(null);
+    const armTimer = useRef(null);
     const [now, setNow] = useState(null); // null until mounted, to avoid SSR drift
     const [soundOn, setSoundOn] = useState(true);
     const knownIds = useRef(null);
@@ -127,12 +182,30 @@ export default function KDSPage() {
     useRealtimeTable({ table: 'orders', channel: 'kds_channel', onChange: loadOrders });
 
     useEffect(() => {
-        getMenuItems().then(items => setImageMap(buildImageMap(items)));
+        // One request for the whole menu rather than two: /api/menu returns
+        // categories, items and modifiers together anyway.
+        getFullMenuData().then(({ items, categories }) => {
+            setImageMap(buildImageMap(items));
+            setMenu({ items: items || [], categories: categories || [] });
+        });
+        /*
+         * The board prints kitchen slips too, so it needs the same two print
+         * settings the till reads: which way to cut a round, and how wide the
+         * paper is. Neither is fatal — an unreadable settings row leaves the
+         * defaults, and the reprint still produces paper.
+         */
+        getSettings().then(settings => {
+            setKotMode(settings?.kot_mode || DEFAULT_KOT_MODE);
+            applyPaperWidth(settings?.receipt_width_mm);
+        }).catch(() => {});
         // loadOrders is async and awaits a fetch before it touches state, so
         // nothing is set synchronously here — the rule can't see past the call.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadOrders();
     }, [loadOrders]);
+
+    // A primed button must not outlive the board being closed
+    useEffect(() => () => clearTimeout(armTimer.current), []);
 
     // Ticket age drives the colour coding, so keep a ticking clock
     useEffect(() => {
@@ -161,6 +234,50 @@ export default function KDSPage() {
             console.error('Failed to bump order', error);
             loadOrders(); // resync on failure
         }
+    };
+
+    /*
+     * Reprint one order's kitchen slips, cut the way Settings says — the same
+     * builder, queue and hidden slip the till uses, so a reprinted ticket is
+     * the ticket and not a second rendering of it. It prints the whole order
+     * (every round), because a slip gets reprinted when the paper is lost or
+     * illegible and the section wants all the food it is missing.
+     *
+     * Deliberately NOT gated on the auto-print setting: this is an explicit
+     * tap, and the reason auto-print gets switched off — a jam, an empty roll —
+     * is exactly when someone comes here to print the ticket again.
+     */
+    const printTickets = async (order) => {
+        // First tap primes, second tap fires. See ARM_MS.
+        if (armed?.id !== order.id) {
+            clearTimeout(armTimer.current);
+            const count = buildKotSlips(kotMode, order.items, menu.items, menu.categories).length;
+            setArmed({ id: order.id, count });
+            armTimer.current = setTimeout(() => setArmed(null), ARM_MS);
+            return;
+        }
+
+        clearTimeout(armTimer.current);
+        setArmed(null);
+        // One queue at a time: two orders printing at once would interleave
+        // slips through the single printer and hand the runner a shuffled pile.
+        if (printingId) return;
+        setPrintingId(order.id);
+
+        const slips = buildKotSlips(kotMode, order.items, menu.items, menu.categories);
+        await feedSlipsToPrinter(slips, {
+            orderNumber: getOrderNumber(order),
+            table: order.table_number,
+            waiter: order.waiter_name,
+            orderType: order.order_type,
+            roundNo: order.round_count || 1,
+            at: new Date(),
+            // Prints the knockout band. Without it a reprint is
+            // indistinguishable from a fresh fire, and the dish is cooked a
+            // second time.
+            reprint: true,
+        }, setKotJob);
+        setPrintingId(null);
     };
 
     const elapsedMinutes = (order) =>
@@ -315,12 +432,47 @@ export default function KDSPage() {
                                         <div className={styles.notes}>{order.notes}</div>
                                     )}
 
-                                    <button
-                                        className={styles.bumpBtn}
-                                        onClick={() => handleBump(order, lane.next)}
-                                    >
-                                        {lane.action}
-                                    </button>
+                                    <div className={styles.actions}>
+                                        {/* Reprint. Icon only until it is primed,
+                                            so it never competes with the bump
+                                            button the pass actually works.
+
+                                            Disabled while ANY ticket is
+                                            printing, not just the others: one
+                                            queue owns the printer for the length
+                                            of a pass. And the aria-label is
+                                            dropped once the button carries its
+                                            own words, or it would talk over
+                                            them. */}
+                                        <button
+                                            className={`${styles.printBtn} ${armed?.id === order.id ? styles.printArmed : ''}`}
+                                            onClick={() => printTickets(order)}
+                                            disabled={printingId !== null}
+                                            aria-label={armed?.id === order.id ? undefined
+                                                : `Reprint kitchen tickets for order ${getOrderNumber(order)}`}
+                                        >
+                                            {printingId === order.id ? (
+                                                <>
+                                                    <Loader2 size={18} className={styles.spin} aria-hidden="true" />
+                                                    Printing
+                                                </>
+                                            ) : armed?.id === order.id ? (
+                                                <>
+                                                    <Printer size={18} aria-hidden="true" />
+                                                    Print {armed.count} {armed.count === 1 ? 'ticket' : 'tickets'}?
+                                                </>
+                                            ) : (
+                                                <Printer size={18} aria-hidden="true" />
+                                            )}
+                                        </button>
+
+                                        <button
+                                            className={styles.bumpBtn}
+                                            onClick={() => handleBump(order, lane.next)}
+                                        >
+                                            {lane.action}
+                                        </button>
+                                    </div>
                                 </article>
                             ))}
 
@@ -331,6 +483,12 @@ export default function KDSPage() {
                     </section>
                 ))}
             </div>
+
+            {/* The slip being printed, hidden off-screen. Mounted at the board
+                level rather than per ticket: exactly one may exist at a time,
+                because its print CSS claims the paper for whatever is inside
+                it. */}
+            <KotSlips job={kotJob} />
         </div>
     );
 }

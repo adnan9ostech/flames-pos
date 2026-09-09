@@ -89,7 +89,7 @@ const requireId = (id) => {
 
 export async function listCharges() {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const rows = await query('SELECT * FROM charges ORDER BY is_active DESC, name')
         return { data: rows.map(toRow) }
     } catch (e) {
@@ -125,7 +125,7 @@ export async function listActiveCharges() {
 
 export async function saveCharge(input) {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const clean = cleanCharge(input)
         const id = input?.id ? requireId(input.id) : null
         const bd = await businessDate()
@@ -169,7 +169,7 @@ export async function saveCharge(input) {
 
 export async function toggleCharge(id) {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const chargeId = requireId(id)
         const bd = await businessDate()
 
@@ -194,7 +194,7 @@ export async function toggleCharge(id) {
 
 export async function deleteCharge(id) {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const chargeId = requireId(id)
         const bd = await businessDate()
 

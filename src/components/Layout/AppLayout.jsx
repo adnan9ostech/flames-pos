@@ -2,6 +2,7 @@
 import { createContext, useContext, useMemo, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
+import { ThemeProvider } from './ThemeProvider';
 
 /*
  * Who is signed in — role, granted permission keys and name — read once
@@ -78,17 +79,26 @@ export default function AppLayout({ children, session }) {
 
     const toggleSidebar = () => collapseStore.set(!collapsed);
 
+    /*
+     * ThemeProvider wraps BOTH branches — the standalone screens below have no
+     * sidebar, but the kitchen display, the customer menu and the login screen
+     * still need the theme to resolve and to follow the OS when the preference
+     * is 'system'. Only the switcher UI is sidebar-bound, not the theme itself.
+     */
     if (isCustomerView || isLoginView || isKdsView) {
         return (
-            <RoleContext.Provider value={value}>
-                <main style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
-                    {children}
-                </main>
-            </RoleContext.Provider>
+            <ThemeProvider>
+                <RoleContext.Provider value={value}>
+                    <main style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
+                        {children}
+                    </main>
+                </RoleContext.Provider>
+            </ThemeProvider>
         );
     }
 
     return (
+        <ThemeProvider>
         <RoleContext.Provider value={value}>
             <div style={{ display: 'flex', '--sidebar-width': collapsed ? '84px' : '280px' }}>
                 <Sidebar
@@ -109,5 +119,6 @@ export default function AppLayout({ children, session }) {
                 </main>
             </div>
         </RoleContext.Provider>
+        </ThemeProvider>
     );
 }

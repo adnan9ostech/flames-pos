@@ -19,9 +19,27 @@
 
 const STYLE_ID = 'receipt-page-size';
 
+/*
+ * The paper the till is actually printing on, in millimetres, published as a
+ * CSS variable so the preview, the print rules and the KOT slip all lay out at
+ * the same width. Everything downstream then MEASURES what was rendered rather
+ * than being told a number twice — which is what keeps the measured height
+ * honest when the width changes.
+ *
+ * 80mm is the counter printer and the default; 58mm is the pocket Bluetooth
+ * kind. Anything outside that range is a typo, not a printer.
+ */
+export const applyPaperWidth = (mm) => {
+    if (typeof document === 'undefined') return;
+    const w = Number(mm);
+    const clean = Number.isFinite(w) && w >= 40 && w <= 120 ? Math.round(w) : 80;
+    document.documentElement.style.setProperty('--receipt-width', `${clean}mm`);
+};
+
 // CSS reference pixels are 96 per inch by definition, regardless of the display.
 const PX_PER_MM = 96 / 25.4;
 
+// The fallback when nothing has been rendered to measure.
 const RECEIPT_WIDTH_MM = 80;
 
 // A little slack past the content so the tear or auto-cut doesn't clip the last
@@ -41,6 +59,17 @@ export const printReceipt = () => {
             ? Math.ceil(root.scrollHeight / PX_PER_MM) + TAIL_MM
             : FALLBACK_HEIGHT_MM;
 
+        /*
+         * The width is MEASURED off the rendered receipt, not read from a
+         * setting a second time. The preview already lays out at the paper's
+         * width, so measuring it means the page can never disagree with what
+         * was measured for the height — the failure that would clip a 58mm
+         * bill on the right while the height looked correct.
+         */
+        const widthMm = root?.offsetWidth
+            ? Math.round(root.offsetWidth / PX_PER_MM)
+            : RECEIPT_WIDTH_MM;
+
         let style = document.getElementById(STYLE_ID);
         if (!style) {
             style = document.createElement('style');
@@ -50,7 +79,7 @@ export const printReceipt = () => {
         // The only @page in the app. It used to be a fallback over a global
         // 80mm rule, but @page can't be scoped to a selector — the global rule
         // was sizing the Reports PDF to a receipt roll too.
-        style.textContent = `@page { size: ${RECEIPT_WIDTH_MM}mm ${heightMm}mm; margin: 0; }`;
+        style.textContent = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`;
 
         window.print();
 

@@ -146,7 +146,7 @@ const requireId = (id) => {
 
 export async function listPlans() {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const rows = await query('SELECT * FROM discount_plans ORDER BY is_active DESC, name')
         return { data: rows.map(toPlan) }
     } catch (e) {
@@ -158,7 +158,7 @@ export async function listPlans() {
  * can group a 100-dish menu into something scannable. */
 export async function listScopeOptions() {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const [categories, items] = await Promise.all([
             query('SELECT id, name FROM categories ORDER BY sort_order, name'),
             query('SELECT id, name, category_id FROM menu_items ORDER BY name'),
@@ -171,7 +171,7 @@ export async function listScopeOptions() {
 
 export async function savePlan(input) {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const clean = cleanPlan(input)
         const id = input?.id ? requireId(input.id) : null
         const bd = await businessDate()
@@ -225,7 +225,7 @@ export async function savePlan(input) {
 
 export async function togglePlan(id) {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const planId = requireId(id)
         const bd = await businessDate()
 
@@ -250,7 +250,7 @@ export async function togglePlan(id) {
 
 export async function deletePlan(id) {
     try {
-        await requirePermission('menu')
+        await requirePermission('setup')
         const planId = requireId(id)
         const bd = await businessDate()
 

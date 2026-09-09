@@ -139,7 +139,7 @@ test('10. the two sidebar rails are drawn from the same index', () => {
     }
     // The inner pages are the ones search exists for: reachable, but not on a rail.
     const railHrefs = new Set(rails.map((e) => e.href));
-    for (const href of ['/reports/handover', '/inventory/recipes', '/settings/tax']) {
+    for (const href of ['/reports/handover', '/menu/recipes', '/settings/tax']) {
         assert.ok(searchable.has(href), `${href} must be searchable`);
         assert.ok(!railHrefs.has(href), `${href} is an inner page and should not be on a rail`);
     }

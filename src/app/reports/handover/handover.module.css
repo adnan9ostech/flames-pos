@@ -41,8 +41,6 @@
     font-family: inherit;
     font-size: 0.85rem;
     padding: 0.55rem 0.6rem;
-    /* Without this the native picker icon renders black on the dark field */
-    color-scheme: dark;
 }
 
 .dateInput:focus {
@@ -72,7 +70,7 @@
 }
 
 .toolBtn:disabled {
-    opacity: 0.45;
+    opacity: var(--disabled-opacity);
     cursor: not-allowed;
 }
 
@@ -309,3 +307,11 @@
         transition: none;
     }
 }
+
+/*
+ * An alignment class must win on a HEADER, not just on a cell. `.table th` sets
+ * text-align and outranks a bare `.alignRight`, so every money column printed its
+ * figures hard right under a title sitting hard left — the misalignment the owner
+ * reported on 3 Sep 2026, on 29 screens. Repeating the table selector settles it.
+ */
+.table th.alignRight { text-align: right }

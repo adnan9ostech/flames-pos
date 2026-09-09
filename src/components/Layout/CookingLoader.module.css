@@ -12,19 +12,35 @@
 }
 
 /* Soft heat halo. Sits behind the flame and breathes on a slower cycle than the
-   flicker, so the two never look locked together. */
+   flicker, so the two never look locked together.
+
+   A bloom is a dark-scene idiom: it works by adding light to a dark ground.
+   There is no light to add on the warm-white page, so at full strength the
+   same radial reads as a dirty orange smudge around the flame rather than as
+   heat. Light keeps a trace of it and no more. */
 .glow {
     position: absolute;
     inset: -18%;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(242, 101, 19, 0.35) 0%, rgba(242, 101, 19, 0) 68%);
+    --glow-tint: color-mix(in srgb, var(--primary) 35%, transparent);
+    background: radial-gradient(circle, var(--glow-tint) 0%, transparent 68%);
     animation: glowPulse 2.6s ease-in-out infinite;
+}
+
+[data-theme="light"] .glow {
+    --glow-tint: color-mix(in srgb, var(--primary) 9%, transparent);
 }
 
 .flameSvg {
     position: relative;
     overflow: visible;
-    filter: drop-shadow(0 0 12px rgba(242, 101, 19, 0.45));
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--primary) 45%, transparent));
+}
+
+/* Same reason as .glow: swap the 12px bloom for a short warm drop shadow, which
+   gives the flame an edge on white instead of a haze. */
+[data-theme="light"] .flameSvg {
+    filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--primary) 30%, transparent));
 }
 
 /* Anchored at the base: fire stretches and leans from where it's fed, it
@@ -89,7 +105,7 @@
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: #fbbf24;
+    background: var(--warning-text);
     opacity: 0;
     animation: rise 2.4s ease-out infinite;
 }
@@ -118,12 +134,12 @@
     margin-top: 0.5rem;
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--foreground, #f8f4ee);
+    color: var(--foreground);
 }
 
 .message {
     font-size: 0.75rem;
-    color: var(--muted-foreground, #a39a92);
+    color: var(--muted-foreground);
     animation: messageIn 0.4s ease-out;
 }
 

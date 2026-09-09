@@ -17,7 +17,10 @@
  *   - /login, so a session is never decided from cache
  */
 
-const VERSION = 'v2';
+/* v3: the dual-theme release. offline.html is cached by NAME, not by content
+   hash, so an installed till would keep serving the old always-dark copy until
+   this bumps. */
+const VERSION = 'v3';
 const SHELL_CACHE = `flames-shell-${VERSION}`;
 const ASSET_CACHE = `flames-assets-${VERSION}`;
 const OFFLINE_URL = '/offline.html';

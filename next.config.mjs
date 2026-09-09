@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Recipes moved under Menu Management (3 Sep 2026); the old address keeps
+  // working for bookmarks and the inventory hub's muscle memory.
+  async redirects() {
+    return [{ source: '/inventory/recipes', destination: '/menu/recipes', permanent: false }];
+  },
   experimental: {
     // Server Actions verify that the Origin header matches the Host header.
     // Behind Apache the primary defense is `ProxyPreserveHost On` in the

@@ -8,6 +8,10 @@ import { getDashboardStats, getReportPreviews } from './actions'
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
+import {
+    SERIES, GRID, AXIS_TEXT, SURFACE, CURSOR_FILL,
+    TOOLTIP_STYLE, TOOLTIP_LABEL, TOOLTIP_ITEM,
+} from '@/lib/reports/chartTheme.mjs'
 import LiveClock from '@/components/Layout/LiveClock'
 import {
     DollarSign, ShoppingBag, TrendingUp, TrendingDown, Minus, Calendar,
@@ -19,26 +23,18 @@ import styles from './reports.module.css'
 const RANGE_LABEL = { today: 'Today', '7days': 'the last 7 days', '30days': 'the last 30 days' }
 
 /*
- * Chart tokens. SERIES is slot 2 of the validated categorical palette: every
- * chart on this page is single-series, and a single series must not be drawn
- * in --primary or it reads as chrome — the same orange is on the active tab
- * and the buttons three inches above it.
+ * Chart chrome comes from the shared theme module: SERIES is slot 2 of the
+ * validated categorical palette, because every chart on this page is
+ * single-series and a single series must not be drawn in --primary or it reads
+ * as chrome — the same orange is on the active tab and the buttons three inches
+ * above it.
+ *
+ * Only geometry stays local. These tooltips sit over 76px preview cards, where
+ * recharts' default padding and an inherited body size crowd the one number the
+ * tooltip exists to show; no colour is set here.
  */
-const SERIES = '#d95926'
-const GRID = '#332c27'
-const AXIS = '#a39a92'
-const SURFACE = '#0d0b0a'
-
-const TOOLTIP_STYLE = {
-    background: '#15120f',
-    border: `1px solid ${GRID}`,
-    borderRadius: 8,
-    color: '#f8f4ee',
-    fontSize: 12,
-    padding: '6px 10px',
-}
-const TOOLTIP_LABEL = { color: AXIS, marginBottom: 2 }
-const TOOLTIP_ITEM = { color: '#f8f4ee' }
+const TOOLTIP_BOX = { ...TOOLTIP_STYLE, fontSize: 12, padding: '6px 10px' }
+const TOOLTIP_LABEL_BOX = { ...TOOLTIP_LABEL, marginBottom: 2 }
 
 // Money on screen: en-PK grouping, no decimals — rupees are counted in whole
 // notes here and the .00 is noise on every screen in the app.
@@ -101,9 +97,9 @@ function MiniBars({ data, labelKey, valueKey, name, format }) {
                 <XAxis dataKey={labelKey} hide />
                 <YAxis hide domain={[0, 'dataMax']} />
                 <Tooltip
-                    cursor={{ fill: 'rgba(248, 244, 238, 0.05)' }}
-                    contentStyle={TOOLTIP_STYLE}
-                    labelStyle={TOOLTIP_LABEL}
+                    cursor={CURSOR_FILL}
+                    contentStyle={TOOLTIP_BOX}
+                    labelStyle={TOOLTIP_LABEL_BOX}
                     itemStyle={TOOLTIP_ITEM}
                     formatter={(value) => [format(value), name]}
                 />
@@ -128,8 +124,8 @@ function MiniArea({ data, labelKey, valueKey, name, format }) {
                 <YAxis hide />
                 <Tooltip
                     cursor={{ stroke: GRID }}
-                    contentStyle={TOOLTIP_STYLE}
-                    labelStyle={TOOLTIP_LABEL}
+                    contentStyle={TOOLTIP_BOX}
+                    labelStyle={TOOLTIP_LABEL_BOX}
                     itemStyle={TOOLTIP_ITEM}
                     formatter={(value) => [format(value), name]}
                 />
@@ -350,14 +346,14 @@ export default function ReportsPage() {
 
     if (loading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-gray-950">
-                <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+            <div className="flex h-screen items-center justify-center bg-page">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
         )
     }
 
     if (stats?.error) {
-        return <div className="p-8 text-red-500 bg-gray-950 min-h-screen">Error loading stats: {stats.error}</div>
+        return <div className="p-8 text-destructive bg-page min-h-screen">Error loading stats: {stats.error}</div>
     }
 
     const cards = buildCards(previews).map((card) => (previews ? card : {
@@ -370,7 +366,7 @@ export default function ReportsPage() {
     }))
 
     return (
-        <div className="w-full px-4 sm:px-6 lg:px-10 py-6 sm:py-8 space-y-8 bg-gray-950 min-h-screen text-gray-100" id="report-root">
+        <div className="w-full px-4 sm:px-6 lg:px-10 py-6 sm:py-8 space-y-8 bg-page min-h-screen text-foreground" id="report-root">
 
             {/* Print-only masthead: the interactive header below is hidden when printing */}
             <div className="report-print-header hidden">
@@ -378,7 +374,7 @@ export default function ReportsPage() {
                     <Flame className="h-7 w-7" />
                     <h1 className="text-2xl font-bold">Flames by the Indus — Analytics Report</h1>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted mt-1">
                     Period: {periodLabel} · Generated {formatDateTime(new Date())}
                 </p>
             </div>
@@ -386,18 +382,18 @@ export default function ReportsPage() {
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4 no-print">
                 <div className="min-w-0">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-white whitespace-nowrap">Analytics Dashboard</h1>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-gray-400 text-sm sm:text-base">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground whitespace-nowrap">Analytics Dashboard</h1>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-muted-foreground text-sm sm:text-base">
                         <span>Overview of your store&apos;s performance</span>
-                        <span className="hidden sm:inline text-gray-700">·</span>
-                        <LiveClock className="hidden sm:inline-flex items-center gap-1.5 text-gray-400 text-sm font-medium" showSeconds={false} iconSize={14} />
+                        <span className="hidden sm:inline text-border">·</span>
+                        <LiveClock className="hidden sm:inline-flex items-center gap-1.5 text-muted-foreground text-sm font-medium" showSeconds={false} iconSize={14} />
                     </div>
                 </div>
 
                 {/* Filter Controls */}
                 <div className="flex flex-wrap items-stretch sm:items-center gap-3">
                     {/* Preset Buttons */}
-                    <div className="flex bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-800/50 p-1.5">
+                    <div className="flex bg-surface-translucent backdrop-blur-sm rounded-xl shadow-lg border border-border p-1.5">
                         {[
                             { key: 'today', label: 'Today' },
                             { key: '7days', label: '7 Days' },
@@ -407,8 +403,8 @@ export default function ReportsPage() {
                                 key={preset.key}
                                 onClick={() => handlePresetClick(preset.key)}
                                 className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${!isCustomRange && range === preset.key
-                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25'
-                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                                    ? 'bg-gradient-to-r from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary-soft-strong'
+                                    : 'text-muted-foreground hover:text-card-foreground hover:bg-surface-raise'
                                     }`}
                             >
                                 {preset.label}
@@ -417,31 +413,31 @@ export default function ReportsPage() {
                     </div>
 
                     {/* Custom Date Range */}
-                    <div className={`flex items-center gap-3 bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-lg border p-3 transition-all duration-200 ${isCustomRange ? 'border-orange-500/50 ring-1 ring-orange-500/20' : 'border-gray-800/50'
+                    <div className={`flex items-center gap-3 bg-surface-translucent backdrop-blur-sm rounded-xl shadow-lg border p-3 transition-all duration-200 ${isCustomRange ? 'border-primary ring-1 ring-primary-soft-strong' : 'border-border'
                         }`}>
-                        <Calendar className={`h-4 w-4 flex-shrink-0 ${isCustomRange ? 'text-orange-500' : 'text-gray-500'}`} />
+                        <Calendar className={`h-4 w-4 flex-shrink-0 ${isCustomRange ? 'text-primary' : 'text-muted'}`} />
                         <div className="flex items-center gap-2">
                             <input
                                 type="date"
                                 value={fromDate}
                                 onChange={(e) => setFromDate(e.target.value)}
                                 max={toDate || new Date().toISOString().split('T')[0]}
-                                className="w-[130px] px-2 py-1.5 rounded-lg text-sm font-medium bg-gray-800/50 border border-gray-700/50 text-gray-300 transition-all focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 [color-scheme:dark]"
+                                className="w-[130px] px-2 py-1.5 rounded-lg text-sm font-medium bg-surface-raise border border-border text-foreground transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary-soft-strong"
                             />
-                            <span className="text-gray-600 text-xs font-medium">→</span>
+                            <span className="text-muted text-xs font-medium">→</span>
                             <input
                                 type="date"
                                 value={toDate}
                                 onChange={(e) => setToDate(e.target.value)}
                                 min={fromDate}
                                 max={new Date().toISOString().split('T')[0]}
-                                className="w-[130px] px-2 py-1.5 rounded-lg text-sm font-medium bg-gray-800/50 border border-gray-700/50 text-gray-300 transition-all focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 [color-scheme:dark]"
+                                className="w-[130px] px-2 py-1.5 rounded-lg text-sm font-medium bg-surface-raise border border-border text-foreground transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary-soft-strong"
                             />
                         </div>
                         {isCustomRange && (
                             <button
                                 onClick={() => handlePresetClick('7days')}
-                                className="ml-1 p-1 rounded-md hover:bg-gray-700/50 text-gray-500 hover:text-gray-300 transition-colors"
+                                className="ml-1 p-1 rounded-md hover:bg-surface-raise-strong text-muted hover:text-foreground transition-colors"
                                 title="Clear custom range"
                             >
                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,7 +449,7 @@ export default function ReportsPage() {
 
                     <button
                         onClick={handleExportPdf}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gray-900/80 backdrop-blur-sm border border-gray-800/50 text-gray-300 hover:text-white hover:border-orange-500/50 transition-all duration-200 shadow-lg"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-surface-translucent backdrop-blur-sm border border-border text-foreground hover:text-card-foreground hover:border-primary transition-all duration-200 shadow-lg"
                         title="Export this report as a PDF"
                     >
                         <FileDown className="h-4 w-4" />
@@ -464,36 +460,40 @@ export default function ReportsPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between report-card">
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border flex items-center justify-between report-card">
                     <div>
-                        <p className="text-sm font-medium text-gray-400 mb-1">Total Revenue</p>
-                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.totalRevenue)}</h3>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Total Revenue</p>
+                        <h3 className="text-2xl font-bold text-card-foreground">Rs. {rs(stats.totalRevenue)}</h3>
                         <div className="mt-2"><TrendBadge value={stats.trends?.revenue} /></div>
                     </div>
-                    <div className="h-12 w-12 bg-green-900/20 rounded-full flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="h-6 w-6 text-green-500" />
+                    <div className="h-12 w-12 bg-success-soft rounded-full flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="h-6 w-6 text-success" />
                     </div>
                 </div>
 
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between report-card">
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border flex items-center justify-between report-card">
                     <div>
-                        <p className="text-sm font-medium text-gray-400 mb-1">Total Orders</p>
-                        <h3 className="text-2xl font-bold text-white">{stats.totalOrders}</h3>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Total Orders</p>
+                        <h3 className="text-2xl font-bold text-card-foreground">{stats.totalOrders}</h3>
                         <div className="mt-2"><TrendBadge value={stats.trends?.orders} /></div>
                     </div>
-                    <div className="h-12 w-12 bg-blue-900/20 rounded-full flex items-center justify-center flex-shrink-0">
-                        <ShoppingBag className="h-6 w-6 text-blue-500" />
+                    <div className="h-12 w-12 bg-info-soft rounded-full flex items-center justify-center flex-shrink-0">
+                        <ShoppingBag className="h-6 w-6 text-info" />
                     </div>
                 </div>
 
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between report-card">
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border flex items-center justify-between report-card">
                     <div>
-                        <p className="text-sm font-medium text-gray-400 mb-1">Average Order Value</p>
-                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.avgOrderValue)}</h3>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Average Order Value</p>
+                        <h3 className="text-2xl font-bold text-card-foreground">Rs. {rs(stats.avgOrderValue)}</h3>
                         <div className="mt-2"><TrendBadge value={stats.trends?.avgOrderValue} /></div>
                     </div>
-                    <div className="h-12 w-12 bg-purple-900/20 rounded-full flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="h-6 w-6 text-purple-500" />
+                    {/* The one tile with no status meaning — it was purple, and the
+                        token system has no purple. Slot 6 of the validated chart
+                        palette is the violet, so it carries the hue in both themes
+                        instead of a hardcoded one that only works on black. */}
+                    <div className="h-12 w-12 bg-chart-6-soft rounded-full flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="h-6 w-6 text-chart-6" />
                     </div>
                 </div>
 
@@ -501,24 +501,24 @@ export default function ReportsPage() {
                     than part of revenue: an open tab can still be voided, and
                     folding it in would overstate takings — the audit's biggest
                     reporting finding. */}
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between report-card">
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border flex items-center justify-between report-card">
                     <div>
-                        <p className="text-sm font-medium text-gray-400 mb-1">Open Tabs</p>
-                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.openTabs?.amount)}</h3>
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Open Tabs</p>
+                        <h3 className="text-2xl font-bold text-card-foreground">Rs. {rs(stats.openTabs?.amount)}</h3>
+                        <p className="mt-2 text-xs text-muted">
                             {stats.openTabs?.count || 0} unpaid {(stats.openTabs?.count || 0) === 1 ? 'tab' : 'tabs'} — not in revenue
                         </p>
                     </div>
-                    <div className="h-12 w-12 bg-amber-900/20 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Receipt className="h-6 w-6 text-amber-500" />
+                    <div className="h-12 w-12 bg-warning-soft rounded-full flex items-center justify-center flex-shrink-0">
+                        <Receipt className="h-6 w-6 text-accent" />
                     </div>
                 </div>
             </div>
 
             {/* Hero chart: the money over time, one series, on the range above. */}
-            <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
-                <h3 className="text-lg font-semibold text-white">Revenue by trading day</h3>
-                <p className="text-sm text-gray-400 mt-1 mb-6">Settled bills only — open tabs are counted in their own tile above.</p>
+            <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card">
+                <h3 className="text-lg font-semibold text-card-foreground">Revenue by trading day</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-6">Settled bills only — open tabs are counted in their own tile above.</p>
                 <div className="h-[300px] w-full">
                     {stats.chartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -531,12 +531,12 @@ export default function ReportsPage() {
                                 </defs>
                                 {/* Recessive, horizontal only: a time axis needs no vertical rules. */}
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
-                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: AXIS, fontSize: 12 }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS, fontSize: 12 }} tickFormatter={rsAxis} width={64} />
+                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: AXIS_TEXT, fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS_TEXT, fontSize: 12 }} tickFormatter={rsAxis} width={64} />
                                 <Tooltip
                                     cursor={{ stroke: GRID }}
-                                    contentStyle={TOOLTIP_STYLE}
-                                    labelStyle={TOOLTIP_LABEL}
+                                    contentStyle={TOOLTIP_BOX}
+                                    labelStyle={TOOLTIP_LABEL_BOX}
                                     itemStyle={TOOLTIP_ITEM}
                                     formatter={(value, key) => key === 'sales'
                                         ? [`Rs ${rs(value)}`, 'Revenue']
@@ -556,7 +556,7 @@ export default function ReportsPage() {
                             </AreaChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-full flex items-center justify-center text-center px-6 rounded-lg border border-dashed border-gray-800 text-gray-500 text-sm">
+                        <div className="h-full flex items-center justify-center text-center px-6 rounded-lg border border-dashed border-border text-muted text-sm">
                             No settled sales in this range. Revenue per trading day will plot here once a bill is paid.
                         </div>
                     )}
@@ -601,16 +601,16 @@ export default function ReportsPage() {
             {/* Money breakdown. All of this comes from columns the till was
                 already writing and nothing reported on. */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
-                    <p className="text-sm font-medium text-gray-400 mb-4">Payment mix</p>
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card">
+                    <p className="text-sm font-medium text-muted-foreground mb-4">Payment mix</p>
                     <div className="space-y-3">
                         {[
-                            { key: 'cash', label: 'Cash', color: 'bg-green-500' },
-                            { key: 'card', label: 'Card', color: 'bg-blue-500' },
-                            { key: 'unpaid', label: 'Open tabs', color: 'bg-amber-500' },
+                            { key: 'cash', label: 'Cash', color: 'bg-success' },
+                            { key: 'card', label: 'Card', color: 'bg-info' },
+                            { key: 'unpaid', label: 'Open tabs', color: 'bg-accent' },
                             // Only shown when there is some: history from before the
                             // field existed, and not worth a permanent empty row.
-                            { key: 'unrecorded', label: 'Not recorded', color: 'bg-gray-500' },
+                            { key: 'unrecorded', label: 'Not recorded', color: 'bg-chart-other' },
                         ].filter(({ key }) => key !== 'unrecorded' || (stats.paymentMix?.unrecorded?.count || 0) > 0)
                             .map(({ key, label, color }) => {
                                 const row = stats.paymentMix?.[key] || { amount: 0, count: 0 }
@@ -624,15 +624,21 @@ export default function ReportsPage() {
                                 return (
                                     <div key={key}>
                                         <div className="flex items-baseline justify-between text-sm">
-                                            <span className="text-gray-300">{label}</span>
-                                            <span className="text-white font-semibold tabular-nums">
+                                            <span className="text-foreground">{label}</span>
+                                            <span className="text-card-foreground font-semibold tabular-nums">
                                                 Rs. {rs(row.amount)}
-                                                <span className="ml-2 text-xs font-normal text-gray-500">
+                                                <span className="ml-2 text-xs font-normal text-muted">
                                                     {row.count} {row.count === 1 ? 'order' : 'orders'}
                                                 </span>
                                             </span>
                                         </div>
-                                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-800 overflow-hidden">
+                                        {/* The track is --surface-raise-strong, not
+                                            --surface-sunken: this bar sits ON a card, and
+                                            on the dark theme the card is already near-black,
+                                            so a sunken wash would hide the unfilled part of
+                                            the bar entirely. Raise lifts on dark and darkens
+                                            on light, which is a visible track in both. */}
+                                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-surface-raise-strong overflow-hidden">
                                             <div className={`h-full ${color}`} style={{ width: `${share}%` }} />
                                         </div>
                                     </div>
@@ -641,54 +647,54 @@ export default function ReportsPage() {
                     </div>
                 </div>
 
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card flex items-center justify-between">
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-400 mb-1">Tax collected</p>
-                        <h3 className="text-2xl font-bold text-white">Rs. {rs(stats.totalTax)}</h3>
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Tax collected</p>
+                        <h3 className="text-2xl font-bold text-card-foreground">Rs. {rs(stats.totalTax)}</h3>
+                        <p className="mt-2 text-xs text-muted">
                             {Math.round(stats.totalDiscount || 0) > 0
                                 ? `After Rs. ${rs(stats.totalDiscount)} of discounts given`
                                 : 'No discounts given this period'}
                         </p>
                     </div>
-                    <div className="h-12 w-12 bg-orange-900/20 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Receipt className="h-6 w-6 text-orange-500" />
+                    <div className="h-12 w-12 bg-primary-soft rounded-full flex items-center justify-center flex-shrink-0">
+                        <Receipt className="h-6 w-6 text-primary" />
                     </div>
                 </div>
 
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
-                    <p className="text-sm font-medium text-gray-400 mb-4">Takings by server</p>
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card">
+                    <p className="text-sm font-medium text-muted-foreground mb-4">Takings by server</p>
                     {stats.waiters?.length ? (
                         <div className="space-y-2.5">
                             {stats.waiters.slice(0, 5).map(w => (
                                 <div key={w.name} className="flex items-baseline justify-between text-sm">
-                                    <span className="text-gray-300 truncate mr-3">{w.name}</span>
-                                    <span className="text-white font-semibold tabular-nums whitespace-nowrap">
+                                    <span className="text-foreground truncate mr-3">{w.name}</span>
+                                    <span className="text-card-foreground font-semibold tabular-nums whitespace-nowrap">
                                         Rs. {rs(w.revenue)}
-                                        <span className="ml-2 text-xs font-normal text-gray-500">{w.orders}</span>
+                                        <span className="ml-2 text-xs font-normal text-muted">{w.orders}</span>
                                     </span>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-gray-500">No orders had a server assigned.</p>
+                        <p className="text-sm text-muted">No orders had a server assigned.</p>
                     )}
                 </div>
             </div>
 
             {/* Sales by hour — the shape of a service, for staffing */}
             {stats.hourly?.length > 0 && (
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
-                    <h3 className="text-lg font-semibold text-white mb-6">Busiest hours</h3>
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card">
+                    <h3 className="text-lg font-semibold text-card-foreground mb-6">Busiest hours</h3>
                     <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={stats.hourly} barCategoryGap={4}>
                             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
-                            <XAxis dataKey="label" stroke={AXIS} fontSize={11} tickLine={false} />
-                            <YAxis stroke={AXIS} fontSize={11} tickLine={false} axisLine={false} tickFormatter={rsAxis} width={64} />
+                            <XAxis dataKey="label" stroke={AXIS_TEXT} fontSize={11} tickLine={false} />
+                            <YAxis stroke={AXIS_TEXT} fontSize={11} tickLine={false} axisLine={false} tickFormatter={rsAxis} width={64} />
                             <Tooltip
-                                cursor={{ fill: 'rgba(248, 244, 238, 0.05)' }}
-                                contentStyle={TOOLTIP_STYLE}
-                                labelStyle={TOOLTIP_LABEL}
+                                cursor={CURSOR_FILL}
+                                contentStyle={TOOLTIP_BOX}
+                                labelStyle={TOOLTIP_LABEL_BOX}
                                 itemStyle={TOOLTIP_ITEM}
                                 formatter={(value, key) => key === 'revenue'
                                     ? [`Rs ${rs(value)}`, 'Sales']
@@ -702,26 +708,26 @@ export default function ReportsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Items */}
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
-                    <h3 className="text-lg font-semibold text-white mb-6">Top Selling Items</h3>
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card">
+                    <h3 className="text-lg font-semibold text-card-foreground mb-6">Top Selling Items</h3>
                     <div className="space-y-4">
                         {stats.topItems.length > 0 ? (
                             stats.topItems.map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between pb-4 border-b border-gray-800 last:border-0 last:pb-0">
+                                <div key={idx} className="flex items-center justify-between pb-4 border-b border-border last:border-0 last:pb-0">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-orange-900/20 flex items-center justify-center font-bold text-orange-500 text-xs">
+                                        <div className="h-8 w-8 rounded-full bg-primary-soft flex items-center justify-center font-bold text-primary text-xs">
                                             #{idx + 1}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-200 text-sm">{item.name}</p>
-                                            <p className="text-xs text-gray-400">{item.count} orders</p>
+                                            <p className="font-medium text-foreground text-sm">{item.name}</p>
+                                            <p className="text-xs text-muted-foreground">{item.count} orders</p>
                                         </div>
                                     </div>
-                                    <span className="font-semibold text-gray-300 text-sm">Rs. {rs(item.revenue)}</span>
+                                    <span className="font-semibold text-foreground text-sm">Rs. {rs(item.revenue)}</span>
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center text-gray-500 py-10">
+                            <div className="text-center text-muted py-10">
                                 No items sold yet
                             </div>
                         )}
@@ -729,27 +735,27 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Trending Items — biggest movers vs. the prior period, not just top volume */}
-                <div className="bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-800 report-card">
+                <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card">
                     <div className="flex items-center gap-2 mb-6">
-                        <TrendingUp className="h-5 w-5 text-orange-500" />
-                        <h3 className="text-lg font-semibold text-white">Trending Now</h3>
-                        <span className="text-xs text-gray-500 font-normal">— fastest-growing items vs. the previous period</span>
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold text-card-foreground">Trending Now</h3>
+                        <span className="text-xs text-muted font-normal">— fastest-growing items vs. the previous period</span>
                     </div>
                     {stats.trendingItems && stats.trendingItems.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {stats.trendingItems.map((item, idx) => (
-                                <div key={idx} className="bg-gray-800/50 border border-gray-800 rounded-lg p-4">
-                                    <p className="font-medium text-gray-200 text-sm truncate" title={item.name}>{item.name}</p>
-                                    <div className="flex items-center gap-1.5 mt-2 text-green-400 text-sm font-semibold">
+                                <div key={idx} className="bg-surface-raise border border-border rounded-lg p-4">
+                                    <p className="font-medium text-foreground text-sm truncate" title={item.name}>{item.name}</p>
+                                    <div className="flex items-center gap-1.5 mt-2 text-success-text text-sm font-semibold">
                                         <TrendingUp className="h-3.5 w-3.5" />
                                         +{item.growth} sold
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">{item.prevCount} → {item.count} units</p>
+                                    <p className="text-xs text-muted mt-1">{item.prevCount} → {item.count} units</p>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center text-gray-500 py-6">
+                        <div className="text-center text-muted py-6">
                             Not enough history yet to detect trends for this period
                         </div>
                     )}
@@ -786,9 +792,9 @@ export default function ReportsPage() {
                     font-size: 0.75rem;
                     font-weight: 600;
                 }
-                .trend-up { color: #4ade80; }
-                .trend-down { color: #f87171; }
-                .trend-flat { color: #9ca3af; }
+                .trend-up { color: var(--trend-up); }
+                .trend-down { color: var(--trend-down); }
+                .trend-flat { color: var(--trend-flat); }
             `}</style>
         </div>
     )

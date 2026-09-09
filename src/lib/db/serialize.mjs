@@ -10,7 +10,7 @@
 
 const BOOL_COLUMNS = {
     orders: ['include_tax'],
-    menu_items: ['is_available'],
+    menu_items: ['is_available', 'is_archived'],
     waiters: ['is_active'],
     store_settings: ['qr_enabled', 'auto_print'],
 };

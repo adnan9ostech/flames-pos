@@ -10,8 +10,11 @@ import {
     cancelOrder, ORDERS_PAGE_SIZES
 } from '@/lib/dataClient';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
+import OrderDetail from './OrderDetail';
 import { printReceipt } from '@/lib/printReceipt';
-import { useRole, usePermissions, useUserName } from '@/components/Layout/AppLayout';
+import { printReceiptViaAgent } from '@/lib/thermalAgent';
+import { formatNumber as money } from '@/lib/money';
+import { useRole, usePermissions } from '@/components/Layout/AppLayout';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import {
     getOrderNumber, formatOrderDate, buildImageMap, resolveItemImage, formatModifiers
@@ -21,7 +24,7 @@ import {
     UtensilsCrossed, ArrowRight, LayoutGrid, List, UserRound, Armchair,
     ShoppingBag, Bike, Loader2, ClipboardList, Layers, Wallet,
     ChevronLeft, ChevronRight, CalendarRange, ArrowUpDown, RotateCcw,
-    Search, X, Ban, Printer, AlertTriangle
+    Search, X, Ban, Printer, AlertTriangle, PanelRightOpen
 } from 'lucide-react';
 
 const ORDER_TYPE = {
@@ -117,7 +120,6 @@ const resolvePeriod = (period, customFrom, customTo) => {
 export default function OrdersPage() {
     const role = useRole();
     const { can } = usePermissions();
-    const userName = useUserName();
     const [orders, setOrders] = useState([]);
     const [total, setTotal] = useState(0);
     const [unpaidCount, setUnpaidCount] = useState(0);
@@ -149,6 +151,16 @@ export default function OrdersPage() {
     const [voiding, setVoiding] = useState(false);
     const [receiptOrder, setReceiptOrder] = useState(null);
 
+    /*
+     * The open order, by id — never a copy of the row it was opened from. The
+     * panel refetches the whole order whenever `dataVersion` moves, which the
+     * loader below bumps on every successful read. So the same 4s version poll
+     * that keeps this list current keeps the open panel current too: a KDS bump
+     * touches updated_at, the poll sees it, the list reloads, the panel follows.
+     */
+    const [detailId, setDetailId] = useState(null);
+    const [dataVersion, setDataVersion] = useState(0);
+
     const { from, to } = resolvePeriod(period, customFrom, customTo);
     const fromISO = from ? from.toISOString() : null;
     const toISO = to ? to.toISOString() : null;
@@ -165,6 +177,9 @@ export default function OrdersPage() {
             setOrders(rows);
             setTotal(count);
             setUnpaidCount(unpaid);
+            // Whatever moved the orders table moved this too — the open detail
+            // panel reloads off it rather than holding a stale row.
+            setDataVersion(v => v + 1);
         } catch (error) {
             console.error('Failed to load orders', error);
         } finally {
@@ -266,7 +281,7 @@ export default function OrdersPage() {
         setVoiding(true);
         setVoidError('');
         try {
-            await cancelOrder(voidTarget.id, { reason: voidReason, by: userName || role || 'staff' });
+            await cancelOrder(voidTarget.id, { reason: voidReason });
             setVoidTarget(null);
             setVoidReason('');
             await load();
@@ -374,7 +389,7 @@ export default function OrdersPage() {
     const NextStatusBtn = ({ order }) => (
         <button
             className={styles.actionBtn}
-            onClick={() => handleStatusUpdate(order.id, order.status)}
+            onClick={(e) => { e.stopPropagation(); handleStatusUpdate(order.id, order.status); }}
         >
             Next Status
             <ArrowRight size={15} aria-hidden="true" />
@@ -384,6 +399,9 @@ export default function OrdersPage() {
     /*
      * Reprint is always available; voiding only for an admin, and only while the
      * bill is still open — a settled one would need a refund.
+     *
+     * Every button here stops the click: the row and the card open the detail
+     * panel now, and pressing Void must not do both.
      */
     const RowActions = ({ order }) => {
         const voidable = canVoid && order.status !== 'cancelled' && order.payment_status !== 'paid';
@@ -393,9 +411,19 @@ export default function OrdersPage() {
                 {order.status !== 'completed' && order.status !== 'cancelled' && (
                     <NextStatusBtn order={order} />
                 )}
+                {/* The keyboard's way in. The row itself opens on a click, but a
+                    click is not an affordance a keyboard or a screen reader has. */}
                 <button
                     className={styles.iconBtn}
-                    onClick={() => setReceiptOrder(order)}
+                    onClick={(e) => { e.stopPropagation(); setDetailId(order.id); }}
+                    title="Open order"
+                    aria-label={`Open order ${getOrderNumber(order)}`}
+                >
+                    <PanelRightOpen size={15} />
+                </button>
+                <button
+                    className={styles.iconBtn}
+                    onClick={(e) => { e.stopPropagation(); setReceiptOrder(order); }}
                     title="Reprint receipt"
                     aria-label="Reprint receipt"
                 >
@@ -404,7 +432,10 @@ export default function OrdersPage() {
                 {voidable && (
                     <button
                         className={`${styles.iconBtn} ${styles.voidBtn}`}
-                        onClick={() => { setVoidTarget(order); setVoidReason(''); setVoidError(''); }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setVoidTarget(order); setVoidReason(''); setVoidError('');
+                        }}
                         title="Void order"
                         aria-label="Void order"
                     >
@@ -580,7 +611,12 @@ export default function OrdersPage() {
                 /* ===== GRID ===== */
                 <div className={`${styles.ordersGrid} ${isFetching ? styles.stale : ''}`}>
                     {orders.map(order => (
-                        <div key={order.id} className={styles.orderCard}>
+                        <div
+                            key={order.id}
+                            className={`${styles.orderCard} ${styles.openable} ${detailId === order.id ? styles.openCard : ''}`}
+                            onClick={() => setDetailId(order.id)}
+                            title="Open order"
+                        >
                             <div className={styles.cardHeader}>
                                 <div>
                                     <div className={styles.orderId}>Order #{getOrderNumber(order)}</div>
@@ -617,10 +653,10 @@ export default function OrdersPage() {
 
                             <div className={styles.cardFooter}>
                                 <div className={styles.totalAmount}>
-                                    Rs. {order.total.toLocaleString()}
+                                    Rs. {money(order.total)}
                                     {Number(order.discount) > 0 && (
                                         <span className={styles.discountNote}>
-                                            after Rs. {Number(order.discount).toLocaleString()} off
+                                            after Rs. {money(order.discount)} off
                                         </span>
                                     )}
                                 </div>
@@ -656,7 +692,12 @@ export default function OrdersPage() {
                             {orders.map(order => {
                                 const type = ORDER_TYPE[order.order_type];
                                 return (
-                                    <tr key={order.id}>
+                                    <tr
+                                        key={order.id}
+                                        className={`${styles.openable} ${detailId === order.id ? styles.openRow : ''}`}
+                                        onClick={() => setDetailId(order.id)}
+                                        title="Open order"
+                                    >
                                         <td className={styles.cellStrong}>
                                             #{getOrderNumber(order)}
                                         </td>
@@ -691,7 +732,7 @@ export default function OrdersPage() {
                                             </span>
                                         </td>
                                         <td className={`${styles.cellStrong} ${styles.alignRight}`}>
-                                            Rs. {order.total.toLocaleString()}
+                                            Rs. {money(order.total)}
                                             {isOpenTab(order) && (
                                                 <div className={styles.unpaidNote}>
                                                     Unpaid
@@ -709,6 +750,26 @@ export default function OrdersPage() {
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {/*
+                One order, opened. It reads its own detail off `detailId` and
+                reloads on `dataVersion`, so the kitchen's progress arrives here
+                on the same 4s poll that refreshes the list behind it.
+
+                Reprint and Void hand back up to the dialogs this screen already
+                owns — same receipt, same void path, same error strings.
+            */}
+            {detailId && (
+                <OrderDetail
+                    orderId={detailId}
+                    refreshKey={dataVersion}
+                    canVoid={canVoid}
+                    onClose={() => setDetailId(null)}
+                    onReprint={(order) => setReceiptOrder(order)}
+                    onVoid={(order) => { setVoidTarget(order); setVoidReason(''); setVoidError(''); }}
+                    onChanged={load}
+                />
             )}
 
             {/* Void: a reason is mandatory, because a void with no reason tells
@@ -769,6 +830,10 @@ export default function OrdersPage() {
                     cart={receiptOrder.items || []}
                     totals={receiptTotals}
                     includeTax={receiptOrder.include_tax ?? true}
+                    /* The rate the bill was settled at, stamped on the order.
+                       Null on a pre-migration bill — the receipt then prints
+                       the tax line without a percentage. */
+                    taxRate={receiptOrder.tax_rate ?? null}
                     invoiceNumber={receiptOrder.invoice_number || undefined}
                     /* The bill's own date: when it was paid, or failing that
                        when it was taken — never the day of the reprint. */
@@ -784,7 +849,12 @@ export default function OrdersPage() {
                     role={role}
                     busy={false}
                     onClose={() => setReceiptOrder(null)}
-                    onPrint={printReceipt}
+                    /* The thermal agent when one is running, the browser
+                       otherwise — and the paper says REPRINT either way. */
+                    onPrint={async () => {
+                        if (await printReceiptViaAgent(receiptOrder.id, { reprint: true })) return;
+                        printReceipt();
+                    }}
                 />
             )}
 

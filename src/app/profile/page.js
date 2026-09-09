@@ -5,8 +5,9 @@ import styles from './profile.module.css'
 import { getUser, updateProfile, changePassword } from './actions'
 import {
     UserRound, KeyRound, ShieldCheck, Save, Loader2,
-    AlertTriangle, CheckCircle2, Eye, EyeOff,
+    AlertTriangle, CheckCircle2, Eye, EyeOff, Palette,
 } from 'lucide-react'
+import ThemeSwitcher from '@/components/Layout/ThemeSwitcher'
 
 const EMPTY_PW = { current_password: '', new_password: '', confirm_password: '' }
 
@@ -353,6 +354,24 @@ export default function ProfilePage() {
                             </button>
                         </div>
                     </form>
+                </section>
+
+                <section className={styles.card}>
+                    <div className={styles.cardHead}>
+                        <div className={styles.cardIcon}>
+                            <Palette size={20} aria-hidden="true" />
+                        </div>
+                        <div>
+                            <h2 className={styles.cardTitle}>Appearance</h2>
+                            <p className={styles.cardHint}>
+                                Light or dark, or follow whatever this device is set to.
+                                The choice is saved on this device, so a shared till keeps
+                                the same look whoever signs in.
+                            </p>
+                        </div>
+                    </div>
+
+                    <ThemeSwitcher />
                 </section>
 
                 <section className={styles.card}>

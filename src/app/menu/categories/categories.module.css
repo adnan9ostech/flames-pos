@@ -1,0 +1,50 @@
+/*
+ * Only what menu.module.css does not already carry. The shared module's
+ * .iconBtn is 36px, which is right beside a dense accounts table; this screen
+ * is used standing at the pass, so its row buttons get the 44px target.
+ */
+
+.tap {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* The up/down pair, kept on one line so the row height does not grow. */
+.moveCell {
+    display: inline-flex;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+/* Glyph beside the name, the way the till draws its tab. */
+.nameCell {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    color: var(--primary);
+}
+
+/* The consequence list inside the delete dialog: a paragraph of prose hides
+ * the one line that matters, so each consequence gets its own bullet. */
+.impact {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+}
+
+.impact strong { color: var(--foreground) }
+
+/* The shared .choice is 40px; this screen is used standing at the pass. */
+.tapChoice { min-height: 44px }

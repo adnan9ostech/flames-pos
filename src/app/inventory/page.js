@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import styles from './inventory.module.css'
 import { getInventoryOverview } from './actions'
+import { usePermissions } from '@/components/Layout/AppLayout'
 import {
     Boxes, ChefHat, Truck, ArrowRightLeft, BarChart3,
     Wallet, AlertTriangle, PackageSearch, Loader2, ChevronRight,
@@ -16,8 +17,12 @@ const SURFACES = [
         blurb: 'Stock items, units, suppliers and warehouses',
     },
     {
-        href: '/inventory/recipes', Icon: ChefHat, title: 'Recipes',
-        blurb: 'What one sold portion of each dish consumes',
+        // Recipes moved under Menu, where the dishes and their sizes live —
+        // a recipe is now per size, and it is edited next to the size list
+        // that defines it. The shortcut stays here because that is where the
+        // hands go, and it needs the `menu` right rather than `inventory`.
+        href: '/menu/recipes', Icon: ChefHat, title: 'Recipes', perm: 'menu',
+        blurb: 'In Menu — what one sold portion of each size consumes',
     },
     {
         href: '/inventory/receiving', Icon: Truck, title: 'Receiving',
@@ -36,6 +41,7 @@ const SURFACES = [
 const rupees = (n) => `Rs. ${Number(n).toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
 
 export default function InventoryPage() {
+    const { can } = usePermissions()
     const [stats, setStats] = useState(null)
     const [error, setError] = useState('')
 
@@ -104,7 +110,8 @@ export default function InventoryPage() {
             </div>
 
             <div className={styles.tileGrid}>
-                {SURFACES.map(({ href, Icon, title, blurb }) => (
+                {/* A tile that would bounce off the route gate is not a tile. */}
+                {SURFACES.filter((s) => !s.perm || can(s.perm)).map(({ href, Icon, title, blurb }) => (
                     <Link key={href} href={href} className={styles.tile}>
                         <div className={styles.tileIcon}>
                             <Icon size={22} />

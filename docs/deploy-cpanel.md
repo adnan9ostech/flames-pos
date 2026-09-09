@@ -211,6 +211,12 @@ SESSION_SECRET=<openssl rand -hex 32>
 # Public origin (bakes into the client bundle at build time)
 NEXT_PUBLIC_SITE_URL=https://pos.flamesbytheindus.com
 
+# Where menu photos uploaded from the Menu screen are written. Outside the
+# checkout and outside every docroot: `next start` only serves what public/
+# held at build time, so uploads go through /api/uploads instead, and a
+# `git pull` must never be able to touch them. Defaults to ./uploads if unset.
+UPLOAD_DIR=/home/ostech/apps/flames-pos-uploads
+
 # FBR fiscal invoicing
 FBR_ENABLED=true
 FBR_MODE=sandbox          # flip to production only after the sandbox test in Phase 5
@@ -229,6 +235,13 @@ Rules that are not optional:
 - **`NEXT_PUBLIC_*` values bake into the client bundle at `npm run build`.**
   That is why the build runs on this server, after this file exists — a
   bundle built anywhere else carries the wrong origin.
+- **`UPLOAD_DIR` must exist and be writable by `ostech` before first use**, and
+  it must be in the backup set — those photos exist nowhere else:
+
+  ```
+  mkdir -p /home/ostech/apps/flames-pos-uploads/menu-images
+  chmod 700 /home/ostech/apps/flames-pos-uploads
+  ```
 
 ### 3.4 Install, migrate + import, build, start
 

@@ -253,6 +253,131 @@ Settings → **Print receipt automatically on payment**. Use it when the printer
 jammed or out of roll — sales continue as normal, and any order can be reprinted
 later from the Orders screen (the 🖨 button on each row).
 
+
+## Bluetooth mini printers (58mm pocket printers)
+
+**Set the paper width first.** Settings → **Receipt paper width** → **58 mm**. The
+bill is laid out at whatever is chosen here, so the preview on screen becomes
+exactly what comes out of the machine — the date and the operator stack onto two
+lines, the Qty and Amount columns get a gap, and nothing runs into the margin.
+Leave it at 80 mm for a counter printer. Getting this wrong is the single most
+common reason a receipt prints clipped down the right-hand edge.
+
+**Then understand the one hard constraint.** This app prints through the
+browser: it renders the receipt as a picture of a page and hands it to the
+operating system. So the printer has to appear in **Printers & Scanners** as a
+normal printer. Pairing it over Bluetooth is not enough on its own — pairing
+gets the two devices talking, a driver is what lets anything print to it.
+
+That splits Bluetooth mini printers into two kinds:
+
+| | What happens |
+|---|---|
+| **Has a desktop driver** (most XPrinter / POS-58 / Goojprt / Rongta units) | Install it, the printer appears as a queue, and the app prints to it like any other. This is the case you want. |
+| **App-only** (many no-name pocket printers sold for phones) | It only prints from the vendor's phone app over raw ESC/POS. The browser cannot reach it, and no setting in this app changes that. |
+
+If yours is the second kind, the honest options are a USB or network thermal
+printer at the counter, or a separate piece of work to speak ESC/POS to it
+directly — which is a real project, not a setting.
+
+### macOS — read this before you spend an evening on it
+
+**Tested on the restaurant's own Black Copper Bluetooth printer, 3 Sep 2026.
+It cannot be printed to from the browser on macOS.** Not a settings problem, and
+not something this app can fix.
+
+What the machine reports:
+
+```
+system_profiler SPBluetoothDataType   →  "BlueTooth Printer", Connected,
+                                          Services: 0x802000 < Braille ACL >
+/usr/libexec/cups/backend/bluetooth   →  Found device BlueTooth Printer
+                                          No SDP record for BlueTooth Printer
+lpstat -p                             →  the printer is NOT among the queues
+lpinfo -v                             →  no bluetooth or usb device listed
+```
+
+The printer never advertises a Bluetooth printing service record, so macOS's own
+CUPS Bluetooth backend refuses to build a print queue for it. No queue means the
+browser has nothing to print to, and no driver install changes that — the driver
+is the second half of a handshake whose first half never happens.
+
+It is not unreachable, though. macOS exposes it as a serial port,
+`/dev/cu.BlueToothPrinter`, and ESC/POS bytes written straight there print
+immediately. That is what `scripts/print-thermal.mjs` does:
+
+```
+node scripts/print-thermal.mjs --dry              # see the bill in the terminal
+node scripts/print-thermal.mjs --width 58         # print the newest paid bill
+node scripts/print-thermal.mjs --order 172957     # print a specific one
+```
+
+Use it to prove the printer, the paper width and the bill layout. It is a bench
+test, not the till's print path: it knows nothing about KOT slips, QR codes or
+the FBR block, and nothing calls it during a sale.
+
+**If the printer stops accepting data, the write hangs.** A thermal printer out
+of paper, asleep, or out of Bluetooth range simply stops reading its serial
+port. A process writing to it then blocks in an uninterruptible kernel wait —
+state `U` in `ps` — and **cannot be killed**, not even with `kill -9`, until the
+device lets go. Power-cycle the printer (or toggle Bluetooth off and on) and the
+process dies on its own. `scripts/print-agent.mjs` guards against getting into
+that state with a write deadline (`PRINT_WRITE_TIMEOUT_MS`, 15s by default), so
+it reports a failure the till can fall back from instead of wedging; a raw
+`printf > /dev/cu.…` has no such protection.
+
+**So on a Mac, for a real till, use a USB or network thermal printer** — those
+appear as ordinary queues and the browser prints to them normally. Keep the
+Bluetooth unit for Windows (below), where it works properly.
+
+### macOS, for a printer that DOES advertise itself
+
+1. **Pair** — System Settings → Bluetooth, put the printer in pairing mode
+   (usually hold the feed button until it flashes), connect.
+2. **Install the driver** the printer came with. Search the model number plus
+   "mac driver"; most 58mm units are rebadged POS-58 and take the common
+   driver. Nothing to do here if the vendor ships a `.pkg`.
+3. **Add it** — System Settings → Printers & Scanners → Add Printer. It should
+   be listed under Default or Bluetooth. Choose the driver from step 2, not
+   "Generic PostScript" — a thermal printer is not a PostScript device.
+4. **Paper size** — in the print dialog, choose the 58mm roll size the driver
+   offers (often `58 x 3276mm` or `Roll 58mm`). The long page is deliberate:
+   3276mm is the ESC/POS maximum and a page that long cannot paginate, so
+   there is never a mid-bill break for the cutter to act on.
+5. **Test** — open any order in **Orders**, press the printer button, and print.
+
+### Windows — this is where the Bluetooth printer belongs
+
+Windows solves the problem macOS cannot: pairing a Bluetooth printer creates a
+**virtual COM port**, and Black Copper's own driver binds a real printer queue
+to it. Once there is a queue, everything in this document applies unchanged and
+the browser prints to it like any other printer.
+
+1. Settings → Bluetooth & devices → pair the printer.
+2. Note the outgoing COM port it was given (Bluetooth settings → More Bluetooth
+   options → COM Ports).
+3. Install the Black Copper / POS-58 driver, choosing that COM port.
+4. Set it as the Windows default printer and turn off "Let Windows manage my
+   default printer" — `--kiosk-printing` always prints to the default.
+5. Paper size: the 58mm roll the driver offers, scaling 100%, headers and
+   footers off. Then prime the Chrome profile once (section 2) before switching
+   on `--kiosk-printing` (section 3).
+
+And set **Settings → Receipt paper width → 58 mm** in the app itself, or the
+bill will be laid out for an 80mm roll and clipped down the right-hand side.
+
+### If it prints but looks wrong
+
+- **Cut off down the right side** — the paper width setting still says 80 mm,
+  or the driver's paper size is wider than the roll.
+- **Very small type with white space each side** — scaling is on "Fit to page".
+  Set it to 100% / Actual size.
+- **Comes out in pieces** — the paper length is too short, or the cutter is set
+  to cut per page. Both are covered under "One bill came out with several cuts".
+- **Nothing at all, no error** — the printer is paired but has no driver, so
+  there is no queue for the browser to print to. Check Printers & Scanners: if
+  it is not listed there, the app cannot see it.
+
 ## Notes and limits
 
 - **Reprints** go through the same path, so they need no extra setup.
@@ -264,4 +389,9 @@ later from the Orders screen (the 🖨 button on each row).
 - **This is browser printing, not ESC/POS.** It renders the receipt as graphics,
   which is slower and uses more roll than sending text commands, but it needs no
   driver work and prints exactly what's on screen. Direct ESC/POS would be a
-  separate piece of work.
+  separate piece of work — and it is the only way to reach a pocket printer that
+  ships no desktop driver.
+- **Paper width is a setting, not a constant.** Settings → Receipt paper width
+  drives the preview, the print rules and the page size handed to the printer
+  from one value, and the KOT slips follow it too. 58mm and 80mm are the two
+  sizes offered because they are the two that are sold.

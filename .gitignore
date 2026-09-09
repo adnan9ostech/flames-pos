@@ -23,6 +23,10 @@
 # production
 /build
 
+# Menu photos uploaded from the Menu screen (served by /api/uploads). Lives
+# beside the checkout on the server, never in it: a git clean must not eat it.
+/uploads/
+
 # misc
 .DS_Store
 *.pem
@@ -53,6 +57,13 @@ menu-photo-review.html
 menu-photo-review-2.html
 menu-photo-review-final.html
 *.zip
+
+# Scratch: ad-hoc DB probes and editor backups. q2.mjs-style files connect to
+# whatever DB_NAME points at and interpolate ids into SQL — they must never be
+# swept in by `git add -A`.
+.tmp-*/
+*.bak
+*.bak[0-9]
 
 # Local QA review list
 qa-review.html

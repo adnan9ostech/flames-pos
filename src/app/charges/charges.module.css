@@ -56,13 +56,13 @@
 }
 
 .noteError {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-soft);
     border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
     color: var(--destructive);
 }
 
 .noteSuccess {
-    background: rgba(16, 185, 129, 0.1);
+    background: var(--success-soft);
     border-color: color-mix(in srgb, var(--success) 45%, transparent);
     color: var(--success);
 }
@@ -104,7 +104,7 @@
 }
 
 .table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-raise);
 }
 
 /* Switched off, still listed: dimmed instead of hidden so it can be found
@@ -176,7 +176,7 @@
 .stateOn {
     color: var(--success);
     border-color: color-mix(in srgb, var(--success) 45%, transparent);
-    background: rgba(16, 185, 129, 0.1);
+    background: var(--success-soft);
 }
 
 .stateOff {
@@ -364,7 +364,9 @@
 }
 
 .primaryBtn:disabled {
-    opacity: 0.55;
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
     cursor: not-allowed;
 }
 
@@ -481,7 +483,7 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background: rgba(0, 0, 0, 0.65);
+    background: var(--overlay);
     backdrop-filter: blur(2px);
 }
 
@@ -492,7 +494,7 @@
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) * 2);
     padding: 1.5rem;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 .modalTitle {
@@ -535,9 +537,15 @@
     color: var(--destructive-foreground);
 }
 
-.dangerConfirm:disabled,
+.dangerConfirm:disabled {
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
+    cursor: not-allowed;
+}
+
 .secondaryBtn:disabled {
-    opacity: 0.55;
+    opacity: var(--disabled-opacity);
     cursor: not-allowed;
 }
 
@@ -546,3 +554,11 @@
         animation-duration: 2s;
     }
 }
+
+/*
+ * An alignment class must win on a HEADER, not just on a cell. `.table th` sets
+ * text-align and outranks a bare `.alignRight`, so every money column printed its
+ * figures hard right under a title sitting hard left — the misalignment the owner
+ * reported on 3 Sep 2026, on 29 screens. Repeating the table selector settles it.
+ */
+.table th.alignRight { text-align: right }

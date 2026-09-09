@@ -2,6 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { RECIPE_COST_TABLE, RECIPE_VARIANT_FOR_LINE } from '@/lib/menu/rules.mjs'
 
 // The calendar day in Asia/Karachi (fixed UTC+5, no DST) — the last-resort
 // default when neither business_days nor orders can name a trading day.
@@ -128,7 +129,7 @@ export async function getHandoverReport(businessDate = null) {
 
         const drawerSessions = (await query(
             `SELECT cashier_role, opening_float, expected_amount, counted_amount,
-                    variance, opened_at, closed_at
+                    variance, carry_forward, handover_amount, opened_at, closed_at
              FROM drawer_sessions
              WHERE business_date = ?
              ORDER BY opened_at`,
@@ -141,23 +142,29 @@ export async function getHandoverReport(businessDate = null) {
             expected: s.expected_amount == null ? null : Number(s.expected_amount),
             counted: s.counted_amount == null ? null : Number(s.counted_amount),
             variance: s.variance == null ? null : Number(s.variance),
+            // The split at close: what went to the owner, what stayed as the
+            // next session's float. NULL on sessions closed before the split
+            // was recorded, which the page renders as a dash rather than zero.
+            handover: s.handover_amount == null ? null : Number(s.handover_amount),
+            carry_forward: s.carry_forward == null ? null : Number(s.carry_forward),
             opened_at: s.opened_at ? s.opened_at.toISOString() : null,
             closed_at: s.closed_at ? s.closed_at.toISOString() : null,
         }))
 
         // COGS: what the paid food cost to make. Recipe cost is priced at the
-        // current moving-average ingredient cost; the LEFT JOIN means a dish
-        // with no recipe yet contributes zero rather than dropping the order.
+        // current moving-average ingredient cost and resolved per sold line —
+        // the size's own recipe when it has one, else the dish's base — using
+        // the same two fragments the gross-profit report joins on, so the
+        // handover and that report cannot disagree about a Full karahi. The
+        // LEFT JOIN means a dish with no recipe yet contributes zero rather
+        // than dropping the order.
         const [cogsRow] = await query(
-            `SELECT COALESCE(SUM(oi.qty * COALESCE(rc.cost, 0)), 0) AS cogs
+            `SELECT COALESCE(SUM(oi.qty * COALESCE(rc.unit_cost, 0)), 0) AS cogs
              FROM order_items oi
              JOIN orders o ON o.id = oi.order_id
-             LEFT JOIN (
-                 SELECT rl.menu_item_id, SUM(rl.qty * ii.avg_cost) AS cost
-                 FROM recipe_lines rl
-                 JOIN inventory_items ii ON ii.id = rl.inventory_item_id
-                 GROUP BY rl.menu_item_id
-             ) rc ON rc.menu_item_id = oi.menu_item_id
+             LEFT JOIN (${RECIPE_COST_TABLE}) rc
+                    ON rc.menu_item_id = oi.menu_item_id
+                   AND rc.variant_name = (${RECIPE_VARIANT_FOR_LINE})
              WHERE o.business_date = ? AND o.payment_status = 'paid' AND o.status <> 'cancelled'`,
             [date],
         )

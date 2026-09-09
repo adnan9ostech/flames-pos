@@ -96,7 +96,7 @@
 }
 
 .exportBtn:disabled {
-    opacity: 0.5;
+    opacity: var(--disabled-opacity);
     cursor: not-allowed;
 }
 
@@ -129,7 +129,7 @@
     background: var(--primary);
     border: none;
     border-radius: var(--radius);
-    color: white;
+    color: var(--primary-foreground);
     cursor: pointer;
     font-family: inherit;
     font-weight: 600;
@@ -142,7 +142,9 @@
 }
 
 .payBtn:disabled {
-    opacity: 0.55;
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
     cursor: not-allowed;
 }
 
@@ -159,13 +161,13 @@
 
 .noteError {
     border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
-    background: rgba(239, 68, 68, 0.08);
+    background: var(--danger-soft);
     color: var(--destructive);
 }
 
 .noteSuccess {
     border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
-    background: rgba(34, 197, 94, 0.08);
+    background: var(--success-soft);
     color: var(--success);
 }
 
@@ -177,7 +179,7 @@
     padding: 0.75rem 1rem;
     border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
     border-radius: var(--radius);
-    background: rgba(239, 68, 68, 0.08);
+    background: var(--danger-soft);
     color: var(--destructive);
     font-size: 0.85rem;
 }
@@ -220,7 +222,7 @@
 }
 
 .table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-raise);
 }
 
 .table tfoot td {
@@ -353,3 +355,11 @@
         transition: none;
     }
 }
+
+/*
+ * An alignment class must win on a HEADER, not just on a cell. `.table th` sets
+ * text-align and outranks a bare `.alignRight`, so every money column printed its
+ * figures hard right under a title sitting hard left — the misalignment the owner
+ * reported on 3 Sep 2026, on 29 screens. Repeating the table selector settles it.
+ */
+.table th.alignRight, .table th.num { text-align: right }

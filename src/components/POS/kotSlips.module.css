@@ -18,7 +18,7 @@
 
     /* Laid out at exactly the printable width so the measured height is the
        printed height — same reasoning as the receipt modal's 80mm. */
-    width: 80mm;
+    width: var(--receipt-width, 80mm);
     /* ~3mm of the roll is unprintable on either side */
     padding: 2mm 3mm;
     box-sizing: border-box;
@@ -55,6 +55,24 @@
     letter-spacing: 2px;
     border-bottom: 1px dashed #000;
     padding-bottom: 1.5mm;
+    margin-bottom: 1.5mm;
+}
+
+/*
+ * A reprint from the KDS. Inverted rather than merely bold: a thermal head has
+ * one colour and one weight to play with, and a reprint that reads as an
+ * ordinary ticket is a dish cooked twice. Black block, white knockout — the
+ * only thing on the slip that is not black-on-white.
+ */
+.reprint {
+    background: #000;
+    color: #fff;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 1mm 0;
     margin-bottom: 1.5mm;
 }
 
@@ -137,8 +155,12 @@
         visibility: hidden !important;
     }
 
-    :global(#kot-print-root),
-    :global(#kot-print-root *) {
+    /* The ancestor is repeated for the same specificity reason as the
+       receipt's (see globals.css): `body:has(#kot-print-root) *` scores
+       (1,0,1) and a bare `#kot-print-root` scores (1,0,0), so !important on
+       both halves settled nothing — the hide won and a slip printed blank. */
+    :global(body:has(#kot-print-root) #kot-print-root),
+    :global(body:has(#kot-print-root) #kot-print-root *) {
         visibility: visible !important;
     }
 
@@ -149,7 +171,7 @@
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
-        width: 80mm;
+        width: var(--receipt-width, 80mm);
         margin: 0;
         background: #fff;
         color: #000;
@@ -162,6 +184,21 @@
         box-shadow: none !important;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
+    }
+
+    /*
+     * The one exception to the rule above. The knockout band is the whole
+     * point of the reprint marker, and `background: transparent !important`
+     * would flatten it into ordinary bold text. print-color-adjust is already
+     * set on the subtree, so the black actually prints.
+     *
+     * Only the id is :global here — .reprint stays a module class so it keeps
+     * hashing with the one above, and the pair scores (1,1,0) against the
+     * blanket rule's (1,0,0).
+     */
+    :global(#kot-print-root) .reprint {
+        background: #000 !important;
+        color: #fff !important;
     }
 
     /* A slip is one continuous strip — never break mid-line */

@@ -3,36 +3,69 @@
 @tailwind utilities;
 
 /*
- * Pure black theme. The greys are neutral rather than the slate-blue they were:
- * against #000 any blue cast in a card or border reads as a colour wash rather
- * than as dark.
+ * ===== THEME TOKENS =====
  *
- * Cards sit at #0d0d0d, not #000 — a card the same colour as the page behind it
- * has no edge, and the whole layout depends on that separation.
+ * Two themes, one vocabulary. Every rule in the 45 CSS modules and the three
+ * Tailwind pages reads these names and nothing else, so a theme change is a
+ * change to this block alone.
+ *
+ * `:root` carries DARK. That is deliberate: it is the design the tills were
+ * built and accepted against, so if the boot script never runs — JS disabled,
+ * a stale service worker, a hydration failure — the app renders exactly as it
+ * does today rather than flashing into a half-applied light theme.
+ * `[data-theme="light"]` is the only override. The boot script in layout.js
+ * always resolves "system" to a literal light/dark before paint, so no
+ * stylesheet here ever has to know the third option exists.
+ *
+ * WHY THE LIGHT ACCENTS ARE DARKER, NOT INVERTED
+ * ----------------------------------------------
+ * Every accent token is used BOTH as text and as a fill (--primary is 99x
+ * `color:`, 75x `background:`, 107x `border-color:`). Reusing the dark accents
+ * on a light ground fails WCAG AA as text — #F26513 measures 3.11:1 on white,
+ * #22c55e 2.24:1, #f59e0b 2.11:1. So each theme gets its own tuned accent whose
+ * single value satisfies both roles: light --primary #b34309 is 5.55:1 as text
+ * on a card and 5.64:1 as a fill under white. That is why light mode is not an
+ * inversion. --primary-foreground is white in both themes (owner's call): the
+ * brand buttons read white-on-orange throughout.
+ *
+ * The neutrals are matched by CONTRAST RATIO, not by mirroring the hex:
+ * --muted-foreground is 7.10:1 in both themes, --muted 5.14:1 in both, so the
+ * text hierarchy feels identical either way. The chromatics deliberately do
+ * NOT match dark's ratios — bright accents on black land at 8-9:1 for free, and
+ * forcing that on white turns amber into mud (solving #f59e0b for 9.14:1 gives
+ * #634004). They target 5-6.5:1 instead, where the hue still reads as itself.
+ *
+ * STRUCTURE INVERTS TOO. On black, borders carry the layout and surfaces lift
+ * with white alpha. On white there is no white left to lift with, so light
+ * leans on shadow and surface tint instead — hence --surface-raise/-sunken and
+ * the three shadow tokens rather than copied rgba() literals.
  */
 :root {
-  /* Primary Brand Colors - Flames by the Indus */
+  color-scheme: dark;
+
+  /* Brand */
   --primary: #F26513;
   --primary-hover: #D95511;
   /*
-   * Near-black, not white. White on the brand orange measures 3.16:1 —
-   * failing WCAG AA (4.5:1) on every primary button at the sizes this app
-   * uses. This warm near-black reads 5.9:1 on --primary and 4.9:1 on
-   * --primary-hover, so the CTA text passes on both states.
+   * White, by owner decision (3 Sep) — the brand's buttons read white-on-orange
+   * in both themes. White on --primary #F26513 is 3.16:1: below the 4.5:1 bar
+   * for small text, but the primary fill only ever carries button/tab LABELS,
+   * which are semibold and large enough to clear the 3:1 large-text bar (and
+   * 3.99:1 on --primary-hover). The light theme's deeper orange takes white at
+   * 6.21:1, fully passing. Anything that needs dark ink on a light fill (the
+   * amber count-badges) uses --accent-foreground, not this.
    */
-  --primary-foreground: #1A0E05;
+  --primary-foreground: #ffffff;
 
-  /* Secondary / Accent */
   --accent: #f59e0b;
-  --accent-foreground: #ffffff;
+  --accent-foreground: #1A0E05;
 
   /*
    * Backgrounds. Pure black page, with everything above it drawn from the
-   * warm near-blacks the public menu site uses (#0a0908, #11100f) rather than
-   * neutral grey — a cool grey card on a warm-branded black reads as blue.
-   *
-   * Cards are lifted off the page rather than sharing its colour: a card the
-   * same black as the background has no edge, and the layout leans on that.
+   * warm near-blacks the public menu site uses rather than neutral grey — a
+   * cool grey card on a warm-branded black reads as blue. Cards are lifted off
+   * the page rather than sharing its colour: a card the same black as the
+   * background has no edge, and the layout leans on that.
    */
   --background: #000000;
   --card: #0d0b0a;
@@ -46,8 +79,11 @@
      Lifted until it clears 4.5:1 while staying the same warm hue. */
   --muted: #8a8179;
   --muted-foreground: #a39a92;
+  /* Was referenced by Sidebar .sectionLabel with a #6b7280 fallback and never
+     declared, so the rail's group headings rendered a cool grey among warm
+     ones. Declared now, on-system. */
+  --sidebar-muted: #8a8179;
 
-  /* Borders */
   /* Borders carry the layout on a black theme, where there's no shadow to read
      against. #201c19 was 1.16:1 on a card — effectively invisible. */
   --border: #332c27;
@@ -55,13 +91,244 @@
 
   /* Status */
   --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  /*
+   * Near-black for the same reason --primary-foreground is: white on #ef4444
+   * measures 3.76:1 and fails AA on every destructive button. Tinted toward the
+   * red it sits on rather than neutral, so it reads as part of the button.
+   * (Pre-existing bug — this token said #ffffff before the theme work.)
+   */
+  --destructive-foreground: #240707;
   --success: #22c55e;
+  --info: #60a5fa;
 
-  /* Spacing & Radius */
+  /*
+   * Surfaces built from alpha rather than a flat colour, so one rule works on
+   * a card, on the page and over a photo. On dark these lift with white; the
+   * light theme redefines them to sink with warm brown instead — copying these
+   * literals into light mode is exactly what makes a flipped theme look wrong.
+   */
+  --surface-raise: rgba(255, 255, 255, 0.04);
+  --surface-raise-strong: rgba(255, 255, 255, 0.07);
+  --surface-sunken: rgba(0, 0, 0, 0.20);
+  --surface-sunken-strong: rgba(0, 0, 0, 0.35);
+
+  /*
+   * A card you can see through, for sticky chrome sitting over scrolling
+   * content. Tailwind 3 cannot apply an opacity modifier to a bare var(), so
+   * bg-surface/80 silently loses its alpha — the alpha has to be in the token.
+   */
+  --surface-translucent: color-mix(in srgb, var(--card) 82%, transparent);
+
+  /* Modal/drawer scrim */
+  --overlay: rgba(0, 0, 0, 0.65);
+
+  /*
+   * Elevation. Near-invisible on black by design — the borders do this job in
+   * dark — but they are the PRIMARY depth cue in light, so the light theme
+   * gives them real weight and a warm tint that echoes the brand.
+   */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5);
+  /* Panels that slide in from the right cast LEFT, not down. */
+  --shadow-drawer: -20px 0 40px -10px rgba(0, 0, 0, 0.5);
+
+  /* One focus treatment for the whole app. Was three competing ones, and 46 of
+     51 rules were a border tint with outline:none — no ring at all. */
+  --focus-ring: rgba(242, 101, 19, 0.55);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /*
+   * Disabled was opacity-only at six different values. Opacity composites
+   * toward whatever is behind, so a primary button at 0.45 reads correctly dim
+   * on black but as a pale peach that still looks clickable on white. Real
+   * colours instead of a fade.
+   */
+  --disabled-bg: rgba(255, 255, 255, 0.04);
+  --disabled-fg: #6b635b;
+  --disabled-border: #241f1b;
+  --disabled-opacity: 0.5;
+
+  /*
+   * Status families. These replace ~38 hand-mixed tint+text pairs that had two
+   * different greens, two reds, two ambers and five alpha levels between them.
+   * -soft is the badge/banner fill, -border its edge, -text the label on it.
+   */
+  --success-soft: rgba(34, 197, 94, 0.12);
+  --success-soft-strong: rgba(34, 197, 94, 0.18);
+  --success-border: rgba(34, 197, 94, 0.35);
+  --success-text: #4ade80;
+
+  --danger-soft: rgba(239, 68, 68, 0.10);
+  --danger-soft-strong: rgba(239, 68, 68, 0.16);
+  --danger-border: rgba(239, 68, 68, 0.40);
+  --danger-text: #fca5a5;
+
+  --warning-soft: rgba(245, 158, 11, 0.12);
+  --warning-soft-strong: rgba(245, 158, 11, 0.18);
+  --warning-border: rgba(245, 158, 11, 0.40);
+  --warning-text: #f5b041;
+
+  --info-soft: rgba(59, 130, 246, 0.15);
+  --info-soft-strong: rgba(59, 130, 246, 0.22);
+  --info-border: rgba(59, 130, 246, 0.40);
+  --info-text: #93c5fd;
+
+  --neutral-soft: rgba(107, 114, 128, 0.20);
+  --neutral-text: #9ca3af;
+
+  /* A brand-tinted wash, used behind icons and banners. color-mix keeps it tied
+     to --primary so it follows the theme instead of restating 242,101,19. */
+  --primary-soft: color-mix(in srgb, var(--primary) 12%, transparent);
+  --primary-soft-strong: color-mix(in srgb, var(--primary) 18%, transparent);
+
+  /*
+   * ===== Charts =====
+   *
+   * The six series slots are VALIDATED, not chosen — lightness band, chroma
+   * floor, CVD separation, normal-vision floor and contrast, via the dataviz
+   * skill's validator. Re-run it before changing any of them.
+   *
+   * Light re-steps exactly ONE slot: amber, which measures 2.99:1 on a white
+   * card and fails the contrast check. Every other slot is byte-identical
+   * across themes on purpose — a series must keep its colour when someone
+   * flips the theme, or two people reading the same report disagree about
+   * which line is which. Re-stepping amber also improved worst-pair CVD
+   * separation from 8.4 to 9.4.
+   */
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #9085e9;
+
+  --chart-grid: #332c27;
+  --chart-axis: #a39a92;
+  --chart-label: #f8f4ee;
+  --chart-surface: #0d0b0a;
+  --chart-tooltip-bg: #15120f;
+  /* Profit waterfall, and the "everything else" bucket on top-10 charts. */
+  --chart-gain: #199e70;
+  --chart-loss: #d55181;
+  --chart-other: #6f655d;
+  /* The band recharts paints under a hovered bar. A white wash on dark; it has
+     to darken on light or the hover target disappears. */
+  --chart-cursor: rgba(248, 244, 238, 0.05);
+
+  --trend-up: #4ade80;
+  --trend-down: #f87171;
+  --trend-flat: #9ca3af;
+
+  /* Spacing & Radius — shared, not themed */
   --radius: 0.5rem;
   --header-height: 4rem;
   --sidebar-width: 280px;
+}
+
+/*
+ * LIGHT. A warm off-white page rather than #fff, so a near-white card can still
+ * lift off it — the same separation problem the dark theme solves by making
+ * cards lighter than the page, solved in the other direction.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --primary: #a83f08;
+  --primary-hover: #8a2f06;
+  /* Flips to white: on the darker light-mode orange, white reads 5.64:1 while
+     the dark theme's near-black ink would be 3.15:1. */
+  --primary-foreground: #ffffff;
+
+  --accent: #a34e08;
+  --accent-foreground: #ffffff;
+
+  --background: #f6f2ec;
+  --card: #fffdf9;
+  --card-elevated: #ffffff;
+  --card-foreground: #12100e;
+
+  --foreground: #1b1613;
+  --muted: #6f6760;
+  --muted-foreground: #5d564f;
+  --sidebar-muted: #6f6760;
+
+  /* 1.39 on the page, 1.53 on a card. #e4dbd1 was 1.23 on the page — a border
+     you cannot find is not a border. */
+  --border: #d9cec1;
+  --input: #d3c7b8;
+
+  --destructive: #c62828;
+  /* White is correct HERE — 5.62:1 on the light theme's deeper red. */
+  --destructive-foreground: #ffffff;
+  --success: #0d6630;
+  --info: #1d4ed8;
+
+  /* Warm brown, not black: a neutral-black tint over a warm cream page reads
+     as a grey smear. Raise/sunken both darken here — there is no white to
+     lift with on a white ground. */
+  --surface-raise: rgba(28, 22, 18, 0.045);
+  --surface-raise-strong: rgba(28, 22, 18, 0.075);
+  --surface-sunken: rgba(28, 22, 18, 0.035);
+  --surface-sunken-strong: rgba(28, 22, 18, 0.065);
+
+  /* Lighter than dark's 0.65: the same scrim that barely registers over black
+     reads as near-opaque over white. */
+  --overlay: rgba(28, 22, 18, 0.40);
+
+  /* The primary depth cue in this theme, warm-tinted so elevation stays
+     on-brand rather than going grey. */
+  --shadow-sm: 0 1px 2px rgba(60, 40, 28, 0.08), 0 1px 3px rgba(60, 40, 28, 0.06);
+  --shadow-md: 0 4px 12px -2px rgba(60, 40, 28, 0.12), 0 2px 6px -2px rgba(60, 40, 28, 0.08);
+  --shadow-lg: 0 18px 40px -12px rgba(60, 40, 28, 0.22), 0 6px 14px -6px rgba(60, 40, 28, 0.10);
+  --shadow-drawer: -18px 0 36px -12px rgba(60, 40, 28, 0.18);
+
+  --focus-ring: rgba(179, 67, 9, 0.45);
+
+  --disabled-bg: rgba(28, 22, 18, 0.05);
+  --disabled-fg: #a39a92;
+  --disabled-border: #e4dbd1;
+  --disabled-opacity: 0.55;
+
+  /* The tints stay alpha-based and land as pale washes on white, but every
+     -text token darkens: the dark theme's #4ade80 is 2.2:1 on a pale mint. */
+  --success-soft: rgba(13, 102, 48, 0.10);
+  --success-soft-strong: rgba(13, 102, 48, 0.16);
+  --success-border: rgba(13, 102, 48, 0.35);
+  --success-text: #0d6630;
+
+  --danger-soft: rgba(198, 40, 40, 0.09);
+  --danger-soft-strong: rgba(198, 40, 40, 0.15);
+  --danger-border: rgba(198, 40, 40, 0.35);
+  --danger-text: #a81f1f;
+
+  --warning-soft: rgba(163, 78, 8, 0.10);
+  --warning-soft-strong: rgba(163, 78, 8, 0.16);
+  --warning-border: rgba(163, 78, 8, 0.35);
+  --warning-text: #8a4206;
+
+  --info-soft: rgba(29, 78, 216, 0.09);
+  --info-soft-strong: rgba(29, 78, 216, 0.15);
+  --info-border: rgba(29, 78, 216, 0.32);
+  --info-text: #1d4ed8;
+
+  --neutral-soft: rgba(107, 99, 91, 0.14);
+  --neutral-text: #5d564f;
+
+  --chart-4: #b67800;
+
+  --chart-grid: #e4dbd1;
+  --chart-axis: #5d564f;
+  --chart-label: #1b1613;
+  --chart-surface: #fffdf9;
+  --chart-tooltip-bg: #ffffff;
+  --chart-other: #8a8179;
+  --chart-cursor: rgba(28, 22, 18, 0.06);
+
+  --trend-up: #0f7034;
+  --trend-down: #a81f1f;
+  --trend-flat: #6b635b;
 }
 
 * {
@@ -88,6 +355,54 @@ h6 {
   font-weight: 600;
   color: var(--card-foreground);
   letter-spacing: -0.025em;
+}
+
+/*
+ * ===== Theme switching =====
+ *
+ * The transition is applied ONLY while a theme change is in flight — the
+ * provider stamps [data-theme-transition] on <html> for ~220ms and removes it.
+ * A permanent transition on these properties would put a paint on every hover
+ * of every table row on till hardware, which is the opposite of polish.
+ *
+ * Deliberately narrow: colour properties only, never layout ones, so nothing
+ * can reflow mid-switch.
+ */
+:root[data-theme-transition],
+:root[data-theme-transition] *,
+:root[data-theme-transition] *::before,
+:root[data-theme-transition] *::after {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    fill 220ms ease,
+    stroke 220ms ease,
+    box-shadow 220ms ease !important;
+  transition-delay: 0ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme-transition],
+  :root[data-theme-transition] *,
+  :root[data-theme-transition] *::before,
+  :root[data-theme-transition] *::after {
+    transition: none !important;
+  }
+}
+
+/*
+ * One focus ring for the whole app. The modules had three competing treatments
+ * and 46 of 51 focus rules were a border tint paired with outline:none, which
+ * on a light ground is a 1px colour change against an already-visible border.
+ * :focus-visible so a mouse click never draws it — the old rules used :focus
+ * and did.
+ *
+ * Modules that set their own outline still win on specificity; this is the floor.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* Utilities */
@@ -225,6 +540,24 @@ h6 {
  * so Chrome drops the declaration and silently prints US Letter, paginating a
  * long receipt. Verified empirically — the height has to be a real length.
  */
+/*
+ * Charts on paper. The sheet is white whichever theme is on screen, so the
+ * print palette is the LIGHT one — printing from dark mode used to put
+ * dark-surface-validated colours onto white, where amber measures 2.99:1 and
+ * fails the contrast check the palette is validated against.
+ */
+@media print {
+  :root, :root[data-theme="dark"], :root[data-theme="light"] {
+    --chart-4: #b67800;
+    --chart-grid: #e4dbd1;
+    --chart-axis: #5d564f;
+    --chart-label: #1b1613;
+    --chart-surface: #ffffff;
+    --chart-other: #8a8179;
+    --chart-cursor: transparent;
+  }
+}
+
 @media print {
   /*
    * Hide everything, then re-show one subtree — but only when a receipt is
@@ -246,8 +579,22 @@ h6 {
     visibility: hidden;
   }
 
-  #receipt-print-root,
-  #receipt-print-root * {
+  /*
+   * The re-show has to out-rank the hide, and until 3 Sep 2026 it did not.
+   * `:has()` takes the specificity of its most specific argument, so
+   * `body:has(#receipt-print-root) *` scores (1,0,1) — an id plus a type —
+   * while a bare `#receipt-print-root` scores (1,0,0) and loses. Every rule
+   * matched, the hide won on both the root and its children, and the receipt
+   * printed as a blank strip. Repeating the ancestor here takes the re-show to
+   * (2,0,1). Measured in print media, not reasoned about: this was found by
+   * reading getComputedStyle on the mounted receipt.
+   *
+   * Deliberately NOT `!important`: the KOT slip's rules are important on both
+   * halves, which is what lets a kitchen slip take the paper off a receipt
+   * that is mounted at the same time (Send & Pay Now fires the slips first).
+   */
+  body:has(#receipt-print-root) #receipt-print-root,
+  body:has(#receipt-print-root) #receipt-print-root * {
     visibility: visible;
   }
 
@@ -255,7 +602,7 @@ h6 {
     position: absolute;
     left: 0;
     top: 0;
-    width: 80mm;
+    width: var(--receipt-width, 80mm);
 
     /* The on-screen modal scrolls; paper cannot. Without these a receipt longer
        than the viewport is silently cut off at the bottom. */

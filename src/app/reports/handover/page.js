@@ -7,6 +7,9 @@ import {
     BarChart, Bar, Cell, LabelList, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { AlertTriangle, Flame, Loader2, Printer, FileDown } from 'lucide-react';
+/* The categorical palette in its fixed slot order — never re-ordered, never
+   cycled. GAIN/LOSS below are slots 3 and 5, kept for the bottom line. */
+import { SLOTS, GAIN, LOSS, AXIS_TEXT, LABEL_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs';
 
 const TYPE_LABEL = { 'dine-in': 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery' };
 const METHOD_LABEL = { cash: 'Cash', card: 'Card', city_ledger: 'City Ledger' };
@@ -14,14 +17,6 @@ const METHOD_LABEL = { cash: 'Cash', card: 'Card', city_ledger: 'City Ledger' };
 const money = (x) => `Rs. ${Number(x || 0).toLocaleString('en-PK')}`;
 // A minus sign rather than a hyphen, and never "Rs. -1,200" mid-string.
 const signedMoney = (x) => (Number(x) < 0 ? `− ${money(Math.abs(x))}` : money(x));
-
-/* The categorical palette in its fixed slot order — never re-ordered, never
-   cycled. Green/magenta below are slots 3 and 5, kept for the bottom line. */
-const SLOT = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9'];
-const GAIN = '#199e70';
-const LOSS = '#d55181';
-const AXIS_TEXT = '#a39a92';
-const LABEL_TEXT = '#f8f4ee';
 
 /* Explicit pixel heights: the charts are sized in JS from these, and print
    inherits the same numbers. Both stay under the 160px the one-pager can
@@ -76,7 +71,7 @@ function MiniBars({ rows, height, yWidth = 74 }) {
                         axisLine={false}
                         tickLine={false}
                     />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={<ChartTooltip />} />
+                    <Tooltip cursor={CURSOR_FILL} content={<ChartTooltip />} />
                     {/* No entry animation: the bars must be fully drawn the
                         moment someone hits Print. */}
                     <Bar dataKey="magnitude" barSize={14} radius={[0, 4, 4, 0]} isAnimationActive={false}>
@@ -240,13 +235,13 @@ export default function HandoverReportPage() {
             magnitude: p.amount,
         }))
         .sort((a, b) => b.value - a.value)
-        .map((row, i) => ({ ...row, fill: SLOT[Math.min(i, SLOT.length - 1)] }));
+        .map((row, i) => ({ ...row, fill: SLOTS[Math.min(i, SLOTS.length - 1)] }));
 
     // Net sales, minus what the food cost, minus what the day cost to run.
     const profitSteps = [
-        { label: 'Net sales', value: r.sales.net, fill: SLOT[0] },
-        { label: 'COGS', value: -r.profit.cogs, fill: SLOT[1] },
-        { label: 'Expenses', value: -r.expenses.total, fill: SLOT[1] },
+        { label: 'Net sales', value: r.sales.net, fill: SLOTS[0] },
+        { label: 'COGS', value: -r.profit.cogs, fill: SLOTS[1] },
+        { label: 'Expenses', value: -r.expenses.total, fill: SLOTS[1] },
         // Colour is the second cue only; the label is signed either way.
         { label: 'Net profit', value: r.profit.netProfit, fill: r.profit.netProfit < 0 ? LOSS : GAIN },
     ].map((s) => ({ ...s, magnitude: Math.abs(s.value) }));
@@ -432,6 +427,8 @@ export default function HandoverReportPage() {
                                             <th className={styles.alignRight}>Expected</th>
                                             <th className={styles.alignRight}>Counted</th>
                                             <th className={styles.alignRight}>Variance</th>
+                                            <th className={styles.alignRight}>Handed over</th>
+                                            <th className={styles.alignRight}>Left in till</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -450,6 +447,12 @@ export default function HandoverReportPage() {
                                                 </td>
                                                 <td className={`${styles.alignRight} ${s.variance ? (s.variance < 0 ? styles.negative : styles.positive) : ''}`}>
                                                     {s.variance == null ? '—' : money(s.variance)}
+                                                </td>
+                                                <td className={styles.alignRight}>
+                                                    {s.handover == null ? '—' : money(s.handover)}
+                                                </td>
+                                                <td className={styles.alignRight}>
+                                                    {s.carry_forward == null ? '—' : money(s.carry_forward)}
                                                 </td>
                                             </tr>
                                         ))}

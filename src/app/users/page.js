@@ -265,64 +265,66 @@ export default function UsersPage() {
                     </div>
                 )}
 
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th>Person</th>
-                            <th>Signs in with</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Last login</th>
-                            <th aria-label="Actions" />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {users.length === 0 && (
-                            <tr><td colSpan={6} className={styles.empty}>
-                                No accounts yet — add the first one.
-                            </td></tr>
-                        )}
-                        {groups.map(({ key, title, hint, rows }) => (
-                            <Fragment key={key}>
-                                {rows.length > 0 && (
-                                    <tr className={styles.groupRow}>
-                                        <th colSpan={6} scope="colgroup" className={styles.groupHead}>
-                                            {title}
-                                            <span className={styles.groupHint}>{hint}</span>
-                                        </th>
-                                    </tr>
-                                )}
-                                {rows.map((row) => (
-                            <UserRow
-                                key={row.id}
-                                row={row}
-                                editing={editing}
-                                form={form}
-                                setForm={setForm}
-                                onSave={submitForm}
-                                onCancel={closeAll}
-                                busy={busy}
-                                onEdit={() => startEdit(row)}
-                                permsOpen={permsFor === row.id}
-                                draft={draft}
-                                setDraft={setDraft}
-                                onPermissions={() => openPermissions(row)}
-                                onSavePermissions={savePermissions}
-                                resetOpen={resetFor === row.id}
-                                onReset={() => { closeAll(); setError(''); setResetFor(row.id); }}
-                                password={password}
-                                setPassword={setPassword}
-                                revealed={revealed}
-                                setRevealed={setRevealed}
-                                onSubmitReset={() => submitReset(row)}
-                                onFlip={() => flip(row)}
-                                onDelete={() => { setError(''); setTyped(''); setDeleting(row); }}
-                            />
-                                ))}
-                            </Fragment>
-                        ))}
-                    </tbody>
-                </table>
+                <div className={styles.listWrap}>
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th>Person</th>
+                                <th>Signs in with</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Last login</th>
+                                <th aria-label="Actions" />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.length === 0 && (
+                                <tr><td colSpan={6} className={styles.empty}>
+                                    No accounts yet — add the first one.
+                                </td></tr>
+                            )}
+                            {groups.map(({ key, title, hint, rows }) => (
+                                <Fragment key={key}>
+                                    {rows.length > 0 && (
+                                        <tr className={styles.groupRow}>
+                                            <th colSpan={6} scope="colgroup" className={styles.groupHead}>
+                                                {title}
+                                                <span className={styles.groupHint}>{hint}</span>
+                                            </th>
+                                        </tr>
+                                    )}
+                                    {rows.map((row) => (
+                                <UserRow
+                                    key={row.id}
+                                    row={row}
+                                    editing={editing}
+                                    form={form}
+                                    setForm={setForm}
+                                    onSave={submitForm}
+                                    onCancel={closeAll}
+                                    busy={busy}
+                                    onEdit={() => startEdit(row)}
+                                    permsOpen={permsFor === row.id}
+                                    draft={draft}
+                                    setDraft={setDraft}
+                                    onPermissions={() => openPermissions(row)}
+                                    onSavePermissions={savePermissions}
+                                    resetOpen={resetFor === row.id}
+                                    onReset={() => { closeAll(); setError(''); setResetFor(row.id); }}
+                                    password={password}
+                                    setPassword={setPassword}
+                                    revealed={revealed}
+                                    setRevealed={setRevealed}
+                                    onSubmitReset={() => submitReset(row)}
+                                    onFlip={() => flip(row)}
+                                    onDelete={() => { setError(''); setTyped(''); setDeleting(row); }}
+                                />
+                                    ))}
+                                </Fragment>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {deleting && (
@@ -384,7 +386,9 @@ function UserRow({
                     </div>
                 </td>
                 <td className={styles.subtle}>{whenSeen(row.last_login_at)}</td>
-                <td className={styles.actions}>
+                <td className={styles.actionsCell}>
+                    {/* The buttons flex; the CELL must stay a table cell. */}
+                    <div className={styles.actions}>
                     <button type="button" className={styles.linkBtn} onClick={onEdit} disabled={busy}>
                         Edit
                     </button>
@@ -421,6 +425,7 @@ function UserRow({
                             <Trash2 size={14} aria-hidden="true" />
                         </button>
                     )}
+                </div>
                 </td>
             </tr>
 

@@ -1,0 +1,52 @@
+/*
+ * What the photo field needs beyond menu.module.css's .photoField /
+ * .photoPreview / .photoActions: a drop target that shows it is one, the
+ * progress bar, and the error line.
+ */
+
+.zone {
+    border: 1px dashed transparent;
+    border-radius: 14px;
+    padding: 0.5rem;
+    margin: -0.5rem;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.zoneOver {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+/* The real input stays reachable by keyboard and screen readers; the styled
+ * button is what people see. */
+.fileInput {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.bar {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.barFill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.2s;
+}
+
+.error {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--destructive);
+}

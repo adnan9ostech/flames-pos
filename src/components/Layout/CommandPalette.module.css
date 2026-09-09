@@ -12,7 +12,7 @@
     position: fixed;
     inset: 0;
     z-index: 200;              /* above the sidebar's 50 and any page chrome */
-    background: rgba(0, 0, 0, 0.62);
+    background: var(--overlay);
     backdrop-filter: blur(3px);
     display: flex;
     justify-content: center;
@@ -29,7 +29,7 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) * 1.5);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -99,7 +99,7 @@
     transition: color 0.15s, background 0.15s;
 }
 
-.closeBtn:hover { color: var(--foreground); background: rgba(255, 255, 255, 0.06) }
+.closeBtn:hover { color: var(--foreground); background: var(--surface-raise-strong) }
 .closeBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px }
 
 /* ---- Results ---- */
@@ -215,7 +215,7 @@
     gap: 1.1rem;
     padding: 0.6rem 1rem;
     border-top: 1px solid var(--border);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-sunken);
     flex-shrink: 0;
 }
 

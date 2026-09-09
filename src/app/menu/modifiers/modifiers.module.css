@@ -1,0 +1,60 @@
+/*
+ * Only what menu.module.css does not already carry. The editor is a wide
+ * modal rather than the 22rem side card the other two Menu lists use: an
+ * option row is name + price + three buttons, and squeezed into a side card
+ * the name field ends up about six characters wide.
+ */
+
+.tap {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* name · price · up · down · remove */
+.optionRow {
+    grid-template-columns: minmax(0, 1fr) 7rem auto auto auto;
+}
+
+@media (max-width: 640px) {
+    /* On a phone the buttons wrap under the two fields rather than shrinking
+     * the name field to nothing. */
+    .optionRow { grid-template-columns: minmax(0, 1fr) 6rem }
+    .optionRow > button { grid-row: 2 }
+}
+
+.optionRank {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The pre-selected option of a pick-one modifier, marked in the list so the
+ * order is visibly load-bearing rather than a fact in a paragraph. */
+.defaultMark {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.impact {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+}
+
+.impact strong { color: var(--foreground) }
+
+/* The key, beside its lock, in the editor. */
+.keyRow {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+/* The shared .choice is 40px; 44 is the target this screen is used at. */
+.tapChoice { min-height: 44px }

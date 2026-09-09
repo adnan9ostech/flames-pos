@@ -1,0 +1,100 @@
+/*
+ * Segmented control. Every colour here is a token, so the control that changes
+ * the theme is itself the first thing to prove the theme works.
+ */
+
+.wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.group {
+    display: inline-flex;
+    /* The track is the sunken surface, so the selected segment reads as raised
+       out of it in both themes rather than as a coloured rectangle on a flat one. */
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 2px;
+}
+
+.option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    /* 44px is the till's touch target; this is the one place it is load-bearing
+       on a control small enough to be tempted to shrink. */
+    min-height: 40px;
+    padding: 0 0.9rem;
+    border: 1px solid transparent;
+    border-radius: calc(var(--radius) - 2px);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.option:hover:not(.active) {
+    background: var(--surface-raise);
+    color: var(--foreground);
+}
+
+.active {
+    background: var(--card-elevated);
+    border-color: var(--border);
+    color: var(--foreground);
+    box-shadow: var(--shadow-sm);
+}
+
+.hint {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.hint strong {
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+/* ---- Sidebar variants ---- */
+
+/* The sidebar's .navPinned already supplies the horizontal padding. */
+.compactWrap {
+    width: 100%;
+}
+
+.groupCompact {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+}
+
+.groupCompact .option {
+    min-height: 34px;
+    padding: 0;
+}
+
+/* Collapsed rail: a single square that matches the nav rows around it. */
+.cycle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+}
+
+.cycle:hover {
+    background: var(--surface-raise);
+    color: var(--foreground);
+}

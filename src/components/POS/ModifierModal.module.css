@@ -4,7 +4,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--overlay);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -18,7 +18,7 @@
     max-width: 90%;
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-lg);
     display: flex;
     flex-direction: column;
     max-height: 90vh;
@@ -83,9 +83,11 @@
     transition: all 0.2s;
 }
 
+/* The fill matches the border and the label. It was an emerald wash under
+   orange text and an orange border — a copy-paste from a green control. */
 .optionBtn.selected {
     border-color: var(--primary);
-    background: rgba(16, 185, 129, 0.1);
+    background: var(--primary-soft);
     color: var(--primary);
     font-weight: 600;
 }
@@ -118,7 +120,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-sunken);
 }
 
 .priceTag {

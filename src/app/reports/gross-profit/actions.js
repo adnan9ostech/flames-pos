@@ -2,22 +2,30 @@
 
 import { query } from '@/lib/db/pool.mjs';
 import { requirePermission } from '@/lib/db/auth.mjs';
+import { RECIPE_COST_TABLE, RECIPE_VARIANT_FOR_LINE } from '@/lib/menu/rules.mjs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /*
- * Gross profit per dish over a business-date range: what it sold for
- * against what its recipe says it costs to make.
+ * Gross profit per dish and size over a business-date range: what it sold
+ * for against what its recipe says it costs to make.
  *
  * Cost comes from the recipe (Σ line qty × ingredient avg_cost) at today's
  * moving-average prices — a report of what the menu earns now, not a
- * ledger of what each historical plate cost. Grouping is by menu item, not
- * by variant: one recipe covers the dish, so Half and Full price together
- * against the same cost.
+ * ledger of what each historical plate cost. The recipe is resolved per
+ * sold line the way the kitchen actually consumes it: the size's own lines
+ * when that size has any, else the dish's base.
+ *
+ * Grouping is by dish AND size sold, not by dish alone. A Half and a Full
+ * fetch different money, and once they can also cost different money,
+ * folding them into one row averages two margins into a number that is
+ * neither. Split, the pair is the clearest signal on the page that a size
+ * still leaning on the base recipe needs its own — a Full priced at twice a
+ * Half but costed at a Half's ingredients shows an impossible margin.
  *
  * COGS in the footer is Σ(recipe cost × qty sold) over settled orders —
- * the same figure the handover's COGS line reports, so the two can be laid
- * side by side without reconciliation.
+ * the same figure, resolved the same way, that the handover's COGS line
+ * reports, so the two can be laid side by side without reconciliation.
  */
 export async function grossProfit(from, to) {
     try {
@@ -33,28 +41,27 @@ export async function grossProfit(from, to) {
     if (from > to) [from, to] = [to, from];
 
     try {
-        // LEFT JOIN onto the recipe roll-up: a dish with no recipe keeps its
-        // sales but comes back with unit_cost NULL — flagged, never treated
-        // as free to make. Lines whose menu item was deleted group by name.
+        // LEFT JOIN onto the recipe roll-up at the resolved size: a dish with
+        // no recipe keeps its sales but comes back with unit_cost NULL —
+        // flagged, never treated as free to make. Lines whose menu item was
+        // deleted group by name.
         const rows = await query(
             `SELECT oi.menu_item_id,
                     COALESCE(mi.name, oi.name) AS name,
+                    COALESCE(oi.variant, '') AS variant,
                     SUM(oi.qty) AS qty_sold,
                     SUM(oi.line_total) AS revenue,
                     rc.unit_cost
              FROM order_items oi
              JOIN orders o ON o.id = oi.order_id
              LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
-             LEFT JOIN (
-                 SELECT rl.menu_item_id, SUM(rl.qty * ii.avg_cost) AS unit_cost
-                 FROM recipe_lines rl
-                 JOIN inventory_items ii ON ii.id = rl.inventory_item_id
-                 GROUP BY rl.menu_item_id
-             ) rc ON rc.menu_item_id = oi.menu_item_id
+             LEFT JOIN (${RECIPE_COST_TABLE}) rc
+                    ON rc.menu_item_id = oi.menu_item_id
+                   AND rc.variant_name = (${RECIPE_VARIANT_FOR_LINE})
              WHERE o.business_date BETWEEN ? AND ?
                AND o.status <> 'cancelled'
                AND o.payment_status <> 'unpaid'
-             GROUP BY oi.menu_item_id, name, rc.unit_cost`,
+             GROUP BY oi.menu_item_id, name, variant, rc.unit_cost`,
             [from, to],
         );
 
@@ -66,7 +73,13 @@ export async function grossProfit(from, to) {
             const totalCost = hasRecipe ? unitCost * qtySold : null;
             const margin = hasRecipe ? revenue - totalCost : null;
             return {
-                name: r.name,
+                // The size rides in the name so the existing table, chart and
+                // row keys read one string per row and stay correct; dishName
+                // and variant are carried alongside for anything that wants
+                // the two apart.
+                name: r.variant ? `${r.name} (${r.variant})` : r.name,
+                dishName: r.name,
+                variant: r.variant || null,
                 qtySold,
                 revenue,
                 unitCost,

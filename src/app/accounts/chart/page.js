@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import styles from '../accounts.module.css'
 import { listAccounts, saveAccount, toggleAccount } from './actions'
-import { GROUPS, groupOf, LINK_GROUPS } from '@/lib/accounts/constants.mjs'
+import { GROUPS, groupOf, LINK_GROUPS, digitsLabel } from '@/lib/accounts/constants.mjs'
 import { usePermissions } from '@/components/Layout/AppLayout'
 import {
     BookOpen, Loader2, Pencil, AlertTriangle, CheckCircle2, Search, Plus, X, Lock,
@@ -26,18 +26,22 @@ const GROUP_LABEL = Object.fromEntries(GROUPS.map((g) => [g.key, g.label]))
  * The next free number in a group, ten above the highest one in it, or the
  * group's first slot if it is empty. A suggestion, never a rule — the field
  * stays editable — but it means adding "Bank — Savings" does not begin with
- * scrolling the list to see what number 10200 was.
+ * scrolling the list to see what number 1020 was.
  */
 const suggestNumber = (accounts, groupKey) => {
     const g = groupOf(groupKey)
     if (!g) return ''
+    const first = g.digits[0]
+    const last = g.digits[g.digits.length - 1]
     const nums = accounts
         .filter((a) => a.account_group === groupKey)
         .map((a) => Number(a.account_number))
         .filter(Number.isFinite)
-    if (nums.length === 0) return `${g.digit}0100`
-    const next = Math.max(...nums) + 10
-    return next < Number(g.digit) * 10000 + 10000 ? String(next) : ''
+    if (nums.length === 0) return `${first}000`
+    // +5, not +10: the chart is four digits now, so a block like 7010-7095 has
+    // room for a neighbour but not for a decade between every pair.
+    const next = Math.max(...nums) + 5
+    return next < (Number(last) + 1) * 1000 ? String(next) : ''
 }
 
 export default function ChartOfAccountsPage() {
@@ -124,7 +128,7 @@ export default function ChartOfAccountsPage() {
             account_group: key,
             // Only re-suggest for a NEW account whose number still matches the
             // old group's digit — never overwrite a number someone typed.
-            account_number: !p.id && (!p.account_number || p.account_number[0] !== groupOf(key)?.digit)
+            account_number: !p.id && (!p.account_number || !groupOf(key)?.digits.includes(p.account_number[0]))
                 ? suggestNumber(accounts, key)
                 : p.account_number,
         }))
@@ -174,8 +178,8 @@ export default function ChartOfAccountsPage() {
                 <div>
                     <h1 className={styles.title}>Chart of Accounts</h1>
                     <p className={styles.subtitle}>
-                        Every account the books are kept in. Numbers say what they are:
-                        1 asset · 2 liability · 3 income · 4 expense · 5 equity.
+                        Every account the books are kept in. Numbers say what they are:{' '}
+                        {GROUPS.map((g) => `${digitsLabel(g)} ${g.label.toLowerCase()}`).join(' · ')}.
                     </p>
                 </div>
                 {canEdit && (
@@ -343,7 +347,7 @@ export default function ChartOfAccountsPage() {
                                         onChange={(e) => changeGroup(e.target.value)}
                                     >
                                         {GROUPS.map((g) => (
-                                            <option key={g.key} value={g.key}>{g.label} ({g.digit}xxxx)</option>
+                                            <option key={g.key} value={g.key}>{g.label} ({digitsLabel(g)})</option>
                                         ))}
                                     </select>
                                 </label>
@@ -352,12 +356,12 @@ export default function ChartOfAccountsPage() {
                                     <input
                                         type="text"
                                         inputMode="numeric"
-                                        pattern="\d{5}"
-                                        maxLength={5}
+                                        pattern="\d{4}"
+                                        maxLength={4}
                                         className={`${styles.input} ${styles.inputMono}`}
                                         value={form.account_number}
                                         onChange={(e) => setForm((p) => ({ ...p, account_number: e.target.value.replace(/\D/g, '') }))}
-                                        placeholder={`${groupOf(form.account_group)?.digit}xxxx`}
+                                        placeholder={digitsLabel(groupOf(form.account_group))}
                                         required
                                     />
                                 </label>

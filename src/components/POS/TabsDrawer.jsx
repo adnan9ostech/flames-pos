@@ -1,5 +1,6 @@
 'use client';
 import { X, Armchair, UserRound, Layers, Receipt, Plus, ClipboardList } from 'lucide-react';
+import { formatNumber as money } from '@/lib/money';
 import { formatOrderDate, getOrderNumber } from '@/lib/orderDisplay';
 import styles from './TabsDrawer.module.css';
 
@@ -62,7 +63,7 @@ const TabsDrawer = ({ tabs, activeTabId, onClose, onAttach, onSettle }) => (
                                     </div>
                                 </div>
                                 <div className={styles.amount}>
-                                    Rs. {Number(tab.total).toLocaleString()}
+                                    Rs. {money(tab.total)}
                                 </div>
                             </div>
 

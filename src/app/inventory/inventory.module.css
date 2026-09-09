@@ -29,7 +29,7 @@
     padding: 0.75rem 1rem;
     border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent);
     border-radius: var(--radius);
-    background: rgba(239, 68, 68, 0.08);
+    background: var(--danger-soft);
     color: var(--destructive);
     font-size: 0.85rem;
 }
@@ -67,7 +67,7 @@
 /* Items short of stock get the amber treatment so the number reads as a
    to-do, not a statistic */
 .warnIcon {
-    background: rgba(245, 158, 11, 0.12);
+    background: var(--warning-soft);
     color: var(--accent);
 }
 
@@ -127,7 +127,7 @@
 
 .tile:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     border-color: var(--primary);
 }
 

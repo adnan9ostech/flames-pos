@@ -31,7 +31,12 @@ export const PERMISSIONS = {
     // change the meaning of every number below it.
     accounts_admin: 'Accounts: edit the chart of accounts and mapping',
     inventory: 'Inventory and suppliers',
-    menu: 'Charges, discounts, waiters and tables',
+    // The menu decides what every bill SAYS and what it costs: dishes, prices,
+    // sizes, modifiers, recipes and ingredient prices. Held apart from the
+    // till-setup lists below so the front desk can retire a waiter without
+    // being able to reprice a karahi.
+    menu: 'Menu: dishes, prices, sizes, modifiers, recipes and ingredient prices',
+    setup: 'Till setup: charges, discounts, waiters and tables',
     settings: 'Store settings',
     users: 'Manage users',
 };
@@ -59,7 +64,7 @@ export const ROLE_DEFAULTS = {
     // cannot restructure the books, for the matching reason.
     manager: grant(...PERMISSION_KEYS.filter((k) => k !== 'users' && k !== 'accounts_admin')),
     cashier: grant('pos', 'orders', 'kds', 'drawer'),
-    frontdesk: grant('pos', 'orders', 'kds', 'menu'),
+    frontdesk: grant('pos', 'orders', 'kds', 'setup'),
     kitchen: grant('kds'),
     // Reads the money, never rings it: no POS, no voids.
     accountant: grant('orders', 'reports', 'expenses', 'cityledger', 'inventory', 'dayclose', 'drawer',
@@ -111,9 +116,10 @@ export const ROUTE_PERMISSIONS = {
     '/companies': 'cityledger',
     '/accounts': 'accounts',
     '/inventory': 'inventory',
-    '/charges': 'menu',
-    '/discounts': 'menu',
-    '/floor': 'menu',
+    '/menu': 'menu',
+    '/charges': 'setup',
+    '/discounts': 'setup',
+    '/floor': 'setup',
     '/settings': 'settings',
     '/users': 'users',
 };
@@ -135,12 +141,12 @@ export const permissionForPath = (pathname) => {
  * lands on the board, an accountant on reports.
  */
 export const landingPath = (perms) => {
-    const order = ['pos', 'kds', 'orders', 'reports', 'accounts', 'drawer', 'expenses', 'inventory', 'cityledger', 'users', 'settings'];
+    const order = ['pos', 'kds', 'orders', 'reports', 'accounts', 'drawer', 'expenses', 'inventory', 'menu', 'cityledger', 'users', 'settings'];
     const first = order.find((k) => perms?.includes?.(k) ?? perms?.[k]);
     const paths = {
         pos: '/pos', kds: '/kds', orders: '/orders', reports: '/reports',
         accounts: '/accounts',
-        drawer: '/drawer', expenses: '/expenses', inventory: '/inventory',
+        drawer: '/drawer', expenses: '/expenses', inventory: '/inventory', menu: '/menu',
         cityledger: '/cityledger', users: '/users', settings: '/settings',
     };
     return paths[first] || '/profile';

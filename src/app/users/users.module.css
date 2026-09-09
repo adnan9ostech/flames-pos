@@ -44,9 +44,9 @@
     margin-bottom: 1rem;
     padding: 0.75rem 1rem;
     border-radius: var(--radius);
-    background: rgba(220, 38, 38, 0.12);
-    border: 1px solid rgba(220, 38, 38, 0.4);
-    color: #fca5a5;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-text);
     font-size: 0.9rem;
 }
 
@@ -87,9 +87,17 @@
     cursor: pointer;
 }
 
-.addBtn:disabled,
+.addBtn:disabled {
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
+    cursor: default;
+}
+
 .saveBtn:disabled {
-    opacity: 0.6;
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
     cursor: default;
 }
 
@@ -131,7 +139,7 @@
 .newBlock {
     margin-bottom: 1rem;
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-raise);
     border: 1px solid var(--border);
 }
 
@@ -149,7 +157,7 @@
     padding: 0.85rem;
     margin-bottom: 1rem;
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-raise);
     border: 1px solid var(--border);
 }
 
@@ -171,7 +179,7 @@
 }
 
 .input:disabled {
-    opacity: 0.6;
+    opacity: var(--disabled-opacity);
     cursor: not-allowed;
 }
 
@@ -204,12 +212,12 @@
     margin-bottom: 1rem;
     padding: 0.9rem 1.1rem;
     border-radius: var(--radius);
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.35);
+    background: var(--success-soft);
+    border: 1px solid var(--success-border);
 }
 
 .handoverLabel {
-    color: #4ade80;
+    color: var(--success-text);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -232,8 +240,16 @@
     gap: 0.5rem;
 }
 
+/* The house pattern for a wide table: it keeps its columns' shape and scrolls
+   inside the card. Without this the six columns squeeze until every cell wraps
+   and the actions column spills over the card's right border. */
+.listWrap {
+    overflow-x: auto;
+}
+
 .table {
     width: 100%;
+    min-width: 54rem;
     border-collapse: collapse;
     font-size: 0.9rem;
 }
@@ -247,11 +263,14 @@
     letter-spacing: 0.05em;
     text-transform: uppercase;
     border-bottom: 1px solid var(--border);
+    /* A heading that wraps to two lines over single-line rows reads as a
+       column that has slipped out of step with its data. */
+    white-space: nowrap;
 }
 
 .table td {
     padding: 0.7rem 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border);
     color: var(--foreground);
     vertical-align: top;
 }
@@ -291,36 +310,51 @@
 }
 
 .roleChip {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--surface-raise-strong);
     color: var(--foreground);
 }
 
 .activeChip {
     align-self: flex-start;
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
+    background: var(--success-soft-strong);
+    color: var(--success-text);
 }
 
 .retiredChip {
     align-self: flex-start;
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--surface-raise-strong);
     color: var(--muted-foreground);
 }
 
 .youChip {
     margin-left: 0.5rem;
-    background: rgba(59, 130, 246, 0.15);
-    color: #93c5fd;
+    background: var(--info-soft);
+    color: var(--info-text);
 }
 
 .customChip {
-    background: rgba(234, 179, 8, 0.15);
-    color: #fde047;
+    background: var(--warning-soft-strong);
+    color: var(--warning-text);
 }
 
 .defaultChip {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--surface-raise-strong);
     color: var(--muted-foreground);
+}
+
+/*
+ * The buttons flex; the CELL around them does not.
+ *
+ * `display: flex` was on the <td> itself, which takes it out of table layout —
+ * so it stopped stretching to its row and measured 44px against the row's 67px,
+ * and its bottom border drew 23px above every other cell's. That is the
+ * staggered, broken-looking divider the owner reported on 3 Sep 2026: one line
+ * under the person, a second, higher line under their buttons.
+ */
+.actionsCell {
+    /* Top, like every other cell in the row, so the buttons sit on the same
+       line as the person's name rather than floating in the middle of it. */
+    vertical-align: top;
 }
 
 .actions {
@@ -346,7 +380,7 @@
 }
 
 .linkBtn:disabled {
-    opacity: 0.5;
+    opacity: var(--disabled-opacity);
     cursor: default;
 }
 
@@ -364,11 +398,11 @@
 }
 
 .dangerLink:hover:not(:disabled) {
-    color: #f87171;
+    color: var(--danger-text);
 }
 
 .dangerLink:disabled {
-    opacity: 0.4;
+    opacity: var(--disabled-opacity);
     cursor: default;
 }
 
@@ -382,7 +416,7 @@
     margin: 0.25rem 0 0.75rem;
     padding: 1rem;
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-raise);
     border: 1px solid var(--border);
 }
 
@@ -466,7 +500,7 @@
     align-items: center;
     justify-content: center;
     padding: 1.5rem;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--overlay);
 }
 
 .dialog {
@@ -475,8 +509,8 @@
     padding: 1.5rem;
     border-radius: var(--radius);
     background: var(--card);
-    border: 1px solid rgba(248, 113, 113, 0.4);
-    box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--danger-border);
+    box-shadow: var(--shadow-lg);
 }
 
 .dialogTitle {
@@ -486,7 +520,7 @@
     margin-bottom: 0.85rem;
     font-size: 1.1rem;
     font-weight: 700;
-    color: #fca5a5;
+    color: var(--danger-text);
 }
 
 .dialogBody {
@@ -539,9 +573,9 @@
     gap: 0.4rem;
     padding: 0.55rem 1rem;
     border-radius: var(--radius);
-    background: #dc2626;
+    background: var(--destructive);
     border: none;
-    color: #fff;
+    color: var(--destructive-foreground);
     font-size: 0.875rem;
     font-weight: 600;
     font-family: inherit;
@@ -549,7 +583,9 @@
 }
 
 .deleteBtn:disabled {
-    opacity: 0.45;
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: var(--disabled-border);
     cursor: default;
 }
 

@@ -1,13 +1,12 @@
 'use client';
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import styles from './pos.module.css';
 import {
     getMenuItems, getCategories, addOrder, getModifiers, getWaiters,
     getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone,
-    setMenuItemAvailability
 } from '@/lib/dataClient';
-import { groupRoundByCategory, printKotSlip, runPrintQueue } from '@/lib/kotPrint';
+import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/lib/kotPrint';
 import { listActiveCharges } from '@/app/charges/actions';
 import { applicablePlans } from '@/app/discounts/actions';
 import { listActiveTables } from '@/app/floor/actions';
@@ -16,7 +15,9 @@ import { calcTotals, itemRound, DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 import { getOrderNumber, formatOrderDate } from '@/lib/orderDisplay';
 import { loadCartDraft, saveCartDraft, clearCartDraft } from '@/lib/cartDraft';
 import { getSettings } from '@/app/settings/actions';
-import { printReceipt } from '@/lib/printReceipt';
+import { printReceipt, applyPaperWidth } from '@/lib/printReceipt';
+import { printReceiptViaAgent } from '@/lib/thermalAgent';
+import { formatNumber as money, formatPriceRange } from '@/lib/money';
 
 import ModifierModal from '@/components/POS/ModifierModal';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
@@ -30,8 +31,8 @@ import { useRole } from '@/components/Layout/AppLayout';
 import {
     Soup, Flame, Utensils, Cookie, GlassWater, Plus, CirclePlus,
     Search, Banknote, CreditCard, X, Minus, UserRound, Armchair, Phone, MapPin,
-    UtensilsCrossed, ShoppingBag, Bike, Loader2, Layers, Receipt, Send, EyeOff, Eye,
-    BadgePercent
+    UtensilsCrossed, ShoppingBag, Bike, Loader2, Layers, Receipt, Send,
+    BadgePercent, LayoutGrid, Rows3
 } from 'lucide-react';
 
 const ORDER_TYPES = [
@@ -39,6 +40,50 @@ const ORDER_TYPES = [
     { key: 'takeaway', label: 'Takeaway', Icon: ShoppingBag },
     { key: 'delivery', label: 'Delivery', Icon: Bike }
 ];
+
+/*
+ * Grid or list, remembered per till.
+ *
+ * Photographs sell food, so the grid is the default and stays the default. The
+ * list is for the shift that already knows the menu: names and prices, four
+ * times as many dishes on screen, no scrolling past pictures to reach the
+ * chai. Which one a terminal wants is a property of that terminal — the
+ * counter till and the phone-order desk disagree — so the choice lives in
+ * localStorage, not in store settings.
+ *
+ * Read through a store rather than an effect for the same reason the sidebar's
+ * collapse state is: an effect would paint the grid first and snap to the list
+ * a frame later, and the server render has to be allowed to disagree with the
+ * client without React calling it a hydration error.
+ */
+const VIEW_KEY = 'fbi.posView';
+const viewListeners = new Set();
+
+const viewStore = {
+    subscribe(onChange) {
+        viewListeners.add(onChange);
+        window.addEventListener('storage', onChange);
+        return () => {
+            viewListeners.delete(onChange);
+            window.removeEventListener('storage', onChange);
+        };
+    },
+    getSnapshot() {
+        try {
+            return window.localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid';
+        } catch {
+            // A till with site data blocked still has to sell food.
+            return 'grid';
+        }
+    },
+    getServerSnapshot: () => 'grid',
+    set(mode) {
+        try {
+            window.localStorage.setItem(VIEW_KEY, mode);
+        } catch { /* ignore — the toggle still works for this session */ }
+        viewListeners.forEach((onChange) => onChange());
+    },
+};
 
 const CategoryIcon = ({ name, size = 18 }) => {
     const icons = {
@@ -66,6 +111,9 @@ export default function POSPage() {
 
     // Checkout State
     const [receiptMode, setReceiptMode] = useState(null); // 'pay-now' | 'settle'
+    const viewMode = useSyncExternalStore(
+        viewStore.subscribe, viewStore.getSnapshot, viewStore.getServerSnapshot,
+    );
     const [paymentMode, setPaymentMode] = useState('cash'); // 'cash' or 'card'
     const [isSending, setIsSending] = useState(false);
     const [notice, setNotice] = useState('');
@@ -140,6 +188,13 @@ export default function POSPage() {
     const [taxRates, setTaxRates] = useState({ cash: DEFAULT_TAX_RATE, card: DEFAULT_TAX_RATE });
     // Absent column reads as enabled, matching how qr_enabled degrades
     const [autoPrint, setAutoPrint] = useState(true);
+    /*
+     * How a round is cut into slips: one per section, or one per dish. Read
+     * once at mount and again on nothing — a mode change is a settings save,
+     * and the till picks it up on its next load, which is how the paper width
+     * and the auto-print switch already behave.
+     */
+    const [kotMode, setKotMode] = useState(DEFAULT_KOT_MODE);
 
     // Discount on the bill being paid
     const [discountMode, setDiscountMode] = useState('amount'); // 'amount' | 'percent'
@@ -214,7 +269,15 @@ export default function POSPage() {
         getTaxRates().then(r => r && setTaxRates(r));
         listActiveCharges().then(r => r?.data && setActiveCharges(r.data)).catch(() => {});
         listActiveTables().then(r => r?.data && setFloorTables(r.data)).catch(() => {});
-        getSettings().then(s => setAutoPrint(s?.auto_print !== false));
+        getSettings().then(s => {
+            setAutoPrint(s?.auto_print !== false);
+            // normalizeKotMode inside buildKotSlips guards the value, so an
+            // older row with no column simply prints the default.
+            setKotMode(s?.kot_mode || DEFAULT_KOT_MODE);
+            // The kitchen slips print before any receipt is mounted, so the
+            // till has to publish the paper width itself.
+            applyPaperWidth(s?.receipt_width_mm);
+        });
     }, []);
 
     const loadTabs = useCallback(async () => {
@@ -303,38 +366,15 @@ export default function POSPage() {
     }, [menuData.items, activeCategory, searchQuery]);
 
     /*
-     * Mark a dish sold out, or back on.
+     * Availability is no longer flipped from the till.
      *
-     * Optimistic, because the kitchen shouts and the floor answers — a
-     * round trip before the tile greys out is a round trip too many. Reverted
-     * and reported if the write fails, so nobody is left believing a dish is
-     * off when the till will still sell it.
-     *
-     * Deliberately not admin-gated: whoever notices the shortage is whoever
-     * is standing at the till, and P2's permissions will give this its own
-     * verb rather than borrowing the admin PIN.
+     * It used to be a switch on every tile, on the reasoning that whoever
+     * notices the shortage is whoever is standing at the counter. Menu
+     * Management owns it now (Menu > Dishes), beside the price, the sizes and
+     * the recipe it belongs with — one switch in one place, rather than the
+     * same fact editable from two screens with two different audiences.
+     * `setMenuItemAvailability` still exists; that screen is what calls it.
      */
-    const toggleSoldOut = async (item, event) => {
-        event.stopPropagation(); // the tile behind this adds to the cart
-        const next = item.is_available === false;
-
-        setMenuData(prev => ({
-            ...prev,
-            items: prev.items.map(i => (i.id === item.id ? { ...i, is_available: next } : i)),
-        }));
-
-        try {
-            await setMenuItemAvailability(item.id, next);
-            setNotice(next ? `${item.name} is back on.` : `${item.name} marked sold out.`);
-        } catch (error) {
-            console.error('Could not change availability', error);
-            setMenuData(prev => ({
-                ...prev,
-                items: prev.items.map(i => (i.id === item.id ? { ...i, is_available: !next } : i)),
-            }));
-            setNotice(`Could not change ${item.name} — it is unchanged.`);
-        }
-    };
 
     // Handle Item Click
     const handleItemClick = (item) => {
@@ -358,7 +398,12 @@ export default function POSPage() {
 
             if (existingIndex >= 0) {
                 const newCart = [...prev];
-                newCart[existingIndex].qty += 1;
+                // Replace the line, never mutate it: the spread above is a
+                // shallow copy, so `prev[existingIndex].qty += 1` edited the
+                // object React still holds as the previous state. Same shape
+                // as updateQty below.
+                const line = newCart[existingIndex];
+                newCart[existingIndex] = { ...line, qty: line.qty + 1 };
                 return newCart;
             }
             return [...prev, { ...item, qty: 1 }];
@@ -466,23 +511,32 @@ export default function POSPage() {
      * printer with no dialog. Without that flag it opens the normal print
      * preview, which is the visible sign the terminal isn't set up yet.
      */
-    const printIfEnabled = () => {
+    const printIfEnabled = async (order = null) => {
         if (!autoPrint) return;
+        /*
+         * The local thermal agent first, when one is running: it writes the
+         * bill to the printer as text, which is the only way to reach a
+         * Bluetooth printer the operating system refuses to make a queue for,
+         * and is far faster than a rasterised page over a serial link either
+         * way. It returns false the moment anything is wrong — no agent, no
+         * printer, no confirmation — and the browser path below is then
+         * exactly what it always was.
+         */
+        if (order?.id && await printReceiptViaAgent(order.id)) return;
         printReceipt();
     };
 
     /*
-     * One kitchen slip per category in the round just sent — four sections in
-     * the order means four cuts, handed out by the runner. Runs only after
-     * the server accepted the round (kitchen must never cook food that was
-     * never stored) and always before the customer receipt, whose print CSS
-     * the slip root deliberately overrides while mounted. Gated on autoPrint
-     * with the receipt: without --kiosk-printing each slip would raise its
-     * own dialog.
+     * The kitchen slips for the round just sent, cut the way Settings says:
+     * one per section, or one per dish. Runs only after the server accepted
+     * the round (kitchen must never cook food that was never stored) and
+     * always before the customer receipt, whose print CSS the slip root
+     * deliberately overrides while mounted. Gated on autoPrint with the
+     * receipt: without --kiosk-printing each slip would raise its own dialog.
      */
     const printKotSlips = async (sentItems, order, roundNo) => {
         if (!autoPrint || !order) return;
-        const slips = groupRoundByCategory(sentItems, menuData.items, menuData.categories);
+        const slips = buildKotSlips(kotMode, sentItems, menuData.items, menuData.categories);
         const meta = {
             orderNumber: getOrderNumber(order),
             table: order.table_number,
@@ -686,7 +740,7 @@ export default function POSPage() {
             // then the customer receipt — and both before clearOrderFields,
             // which unmounts the receipt being printed.
             await printKotSlips(cart, saved, 1);
-            printIfEnabled();
+            await printIfEnabled(saved);
             clearOrderFields();
             setReceiptMode(null);
             setNotice('Paid. Order sent to the kitchen.');
@@ -710,6 +764,11 @@ export default function POSPage() {
                 items: cart.map(item => ({ ...item, round: 1 })),
                 client_request_id: requestId,
                 ...billColumns(billTotals),
+                // Same expression handlePayNow uses. Without it a tab opened
+                // with a discount stored the rupees and no reason — the one
+                // path in the till where money came off a bill unexplained —
+                // and attachTab had nothing to restore into the reason box.
+                discount_reason: discountAmount > 0 ? discountReason.trim() || null : null,
                 include_tax: includeTax,
                 order_type: orderType,
                 ...orderDetails(),
@@ -789,7 +848,7 @@ export default function POSPage() {
             // Same as pay-now: the paper must carry the number the server
             // issued, so flush it into the receipt before printing.
             flushSync(() => setPendingInvoiceNo(settled?.invoice_number || null));
-            printIfEnabled();
+            await printIfEnabled(settled);
             await loadTabs();
             clearOrderFields();
             setReceiptMode(null);
@@ -845,6 +904,9 @@ export default function POSPage() {
                     cart={receiptMode === 'settle' ? tab.items : cart}
                     totals={receiptTotals}
                     includeTax={includeTax}
+                    /* The rate this bill was actually priced at — the payment
+                       mode's, not a store-wide one. */
+                    taxRate={taxRate}
                     /* A tab already settled once keeps its stored number so a
                        reprint matches the original paper. */
                     invoiceNumber={tab?.invoice_number || pendingInvoiceNo || undefined}
@@ -892,6 +954,33 @@ export default function POSPage() {
                     </div>
 
                     <div className={styles.headerRight}>
+                        {/* Grid or list. A segmented pair rather than one
+                            toggling button: staff should see which view they
+                            are in without having to work it out from the
+                            screen behind it. */}
+                        <div className={styles.viewToggle} role="group" aria-label="Menu layout">
+                            <button
+                                type="button"
+                                className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.viewBtnOn : ''}`}
+                                onClick={() => viewStore.set('grid')}
+                                aria-pressed={viewMode === 'grid'}
+                                title="Show dishes as cards with photos"
+                            >
+                                <LayoutGrid size={17} aria-hidden="true" />
+                                <span className={styles.viewLabel}>Grid</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnOn : ''}`}
+                                onClick={() => viewStore.set('list')}
+                                aria-pressed={viewMode === 'list'}
+                                title="Show dishes as a compact list"
+                            >
+                                <Rows3 size={17} aria-hidden="true" />
+                                <span className={styles.viewLabel}>List</span>
+                            </button>
+                        </div>
+
                         <button
                             className={`${styles.tabsBtn} ${openTabs.length > 0 ? styles.tabsBtnActive : ''}`}
                             onClick={() => setShowTabs(true)}
@@ -929,8 +1018,10 @@ export default function POSPage() {
                     ))}
                 </div>
 
-                {/* Menu Grid */}
-                <div className={styles.menuGrid}>
+                {/* One markup, two layouts: the list is a CSS variant of the
+                    same cards, so a dish behaves identically either way —
+                    same tap to add, same 86 switch, same sold-out state. */}
+                <div className={`${styles.menuGrid} ${viewMode === 'list' ? styles.menuList : ''}`}>
                     {filteredItems.map(item => {
                         const soldOut = item.is_available === false;
                         return (
@@ -951,21 +1042,31 @@ export default function POSPage() {
                                             decoding="async"
                                         />
                                     )}
-                                    {soldOut && <span className={styles.soldOutTag}>Sold out</span>}
-                                    <button
-                                        type="button"
-                                        className={`${styles.soldOutBtn} ${soldOut ? styles.soldOutBtnOn : ''}`}
-                                        onClick={(e) => toggleSoldOut(item, e)}
-                                        title={soldOut ? `Put ${item.name} back on` : `Mark ${item.name} sold out`}
-                                        aria-label={soldOut ? `Put ${item.name} back on` : `Mark ${item.name} sold out`}
-                                    >
-                                        {soldOut ? <Eye size={15} /> : <EyeOff size={15} />}
-                                    </button>
                                 </div>
+                                {/*
+                                  * The tag stays; the switch is gone. A dish being off has
+                                  * to be visible to whoever is selling — a cashier
+                                  * promising food the kitchen cannot cook is the failure
+                                  * this guards against — but turning it off and on is a
+                                  * menu decision, made on Menu > Dishes beside the price,
+                                  * the sizes and the recipe it belongs with. One switch,
+                                  * one place, one audit trail.
+                                  */}
+                                {soldOut && <span className={styles.soldOutTag}>Sold out</span>}
                                 <div className={styles.itemContent}>
                                     <div className={styles.itemHeader}>
                                         <h3>{item.name}</h3>
-                                        <span className={styles.itemPrice}>Rs. {item.price}</span>
+                                        {/* The list shows the span a sized dish can ring
+                                            at, instead of a "Variants" chip beside the
+                                            name: it says the same thing in the space the
+                                            price already occupies, and gives the name back
+                                            the width it was losing. The grid has room for
+                                            both, so it keeps the chip. */}
+                                        <span className={styles.itemPrice}>
+                                            {viewMode === 'list'
+                                                ? formatPriceRange(item.price, item.variants)
+                                                : `Rs. ${money(item.price)}`}
+                                        </span>
                                     </div>
 
                                     <p className={styles.itemDesc}>{item.description}</p>
@@ -1181,7 +1282,7 @@ export default function POSPage() {
                                         <span className={styles.roundTag}>R{itemRound(item)}</span>
                                     </span>
                                     <span className={styles.sentPrice}>
-                                        Rs. {(item.price * item.qty).toLocaleString()}
+                                        Rs. {money(item.price * item.qty)}
                                     </span>
                                 </div>
                             ))}
@@ -1226,7 +1327,7 @@ export default function POSPage() {
                                 )}
                             </div>
                             <div className={styles.cartItemTotal}>
-                                Rs. {(item.price * item.qty).toLocaleString()}
+                                Rs. {money(item.price * item.qty)}
                             </div>
                             <button
                                 className={styles.removeBtn}
@@ -1336,12 +1437,12 @@ export default function POSPage() {
                         <>
                             <div className={styles.summaryRow}>
                                 <span>Already on tab</span>
-                                <span>Rs. {tabTotals.subtotal.toLocaleString()}</span>
+                                <span>Rs. {money(tabTotals.subtotal)}</span>
                             </div>
                             {cart.length > 0 && (
                                 <div className={styles.summaryRow}>
                                     <span>This round</span>
-                                    <span>Rs. {roundTotals.subtotal.toLocaleString()}</span>
+                                    <span>Rs. {money(roundTotals.subtotal)}</span>
                                 </div>
                             )}
                         </>
@@ -1349,18 +1450,18 @@ export default function POSPage() {
 
                     <div className={styles.summaryRow}>
                         <span>Subtotal</span>
-                        <span>Rs. {receiptTotals.subtotal.toLocaleString()}</span>
+                        <span>Rs. {money(receiptTotals.subtotal)}</span>
                     </div>
                     {receiptTotals.discount > 0 && (
                         <div className={`${styles.summaryRow} ${styles.discountSummary}`}>
                             <span>Discount{discountReason.trim() ? ` · ${discountReason.trim()}` : ''}</span>
-                            <span>− Rs. {receiptTotals.discount.toLocaleString()}</span>
+                            <span>− Rs. {money(receiptTotals.discount)}</span>
                         </div>
                     )}
                     {(receiptTotals.charges || []).map((c) => (
                         <div className={styles.summaryRow} key={c.name}>
                             <span>{c.name}</span>
-                            <span>Rs. {c.amount.toLocaleString()}</span>
+                            <span>Rs. {money(c.amount)}</span>
                         </div>
                     ))}
                     {/* The FBR tax switch lives on the row it governs. It used
@@ -1376,11 +1477,11 @@ export default function POSPage() {
                             />
                             FBR Tax ({taxPercentLabel})
                         </span>
-                        <span>Rs. {receiptTotals.tax.toLocaleString()}</span>
+                        <span>Rs. {money(receiptTotals.tax)}</span>
                     </label>
                     <div className={`${styles.summaryRow} ${styles.totalRow}`}>
                         <span>{tab ? 'Bill total' : 'Total'}</span>
-                        <span>Rs. {receiptTotals.total.toLocaleString()}</span>
+                        <span>Rs. {money(receiptTotals.total)}</span>
                     </div>
 
                     {/* How they are paying sits directly above the button that
@@ -1444,7 +1545,7 @@ export default function POSPage() {
                                     : 'Send this round to the kitchen first'}
                             >
                                 <Receipt size={17} aria-hidden="true" />
-                                Settle Bill (Rs. {tabTotals.total.toLocaleString()})
+                                Settle Bill (Rs. {money(tabTotals.total)})
                             </button>
                         </>
                     ) : (
@@ -1454,7 +1555,7 @@ export default function POSPage() {
                                 onClick={handleCheckout}
                                 disabled={cart.length === 0 || isSending}
                             >
-                                Send &amp; Pay Now (Rs. {roundTotals.total.toLocaleString()})
+                                Send &amp; Pay Now (Rs. {money(roundTotals.total)})
                             </button>
                             <button
                                 className={styles.secondaryBtn}

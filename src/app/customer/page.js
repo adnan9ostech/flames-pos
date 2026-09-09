@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import styles from './customer.module.css';
 import { getFullMenuData } from '@/lib/dataClient';
 import { Soup, Flame, Utensils, Cookie, GlassWater, Plus, Search, LayoutGrid, List } from 'lucide-react';
+import { formatNumber as money } from '@/lib/money';
 import Image from 'next/image';
 
 // Icon mapping for categories
@@ -107,13 +108,24 @@ export default function CustomerMenuPage() {
             <header className={styles.header}>
                 <div className={styles.headerContent}>
                     <div className={styles.branding}>
+                        {/* Two assets, swapped in CSS: the source SVG's wordmark is
+                            white and vanishes on the light header, so light gets the
+                            dark-ink variant. Same pattern as the sidebar. */}
                         <Image
                             src="/flames-by-the-indus-logo.svg"
                             alt="Flames by the Indus"
                             width={180}
                             height={54}
                             priority
-                            className={styles.logo}
+                            className={`${styles.logo} ${styles.logoOnDark}`}
+                        />
+                        <Image
+                            src="/flames-by-the-indus-logo-dark-ink.svg"
+                            alt=""
+                            aria-hidden="true"
+                            width={180}
+                            height={54}
+                            className={`${styles.logo} ${styles.logoOnLight}`}
                         />
                         <p className={styles.tagline}>Authentic Pakistani Cuisine</p>
                     </div>
@@ -239,13 +251,13 @@ export default function CustomerMenuPage() {
                                     <div className={styles.itemFooter}>
                                         <div className={styles.priceSection}>
                                             <span className={styles.price}>
-                                                Rs. {item.price.toLocaleString()}
+                                                Rs. {money(item.price)}
                                             </span>
                                             {item.variants && item.variants.length > 0 && (
                                                 <div className={styles.variants}>
                                                     {item.variants.map((v, idx) => (
                                                         <span key={idx} className={styles.variant}>
-                                                            {v.name}: Rs. {v.price.toLocaleString()}
+                                                            {v.name}: Rs. {money(v.price)}
                                                         </span>
                                                     ))}
                                                 </div>

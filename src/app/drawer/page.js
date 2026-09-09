@@ -9,10 +9,14 @@ import LiveClock from '@/components/Layout/LiveClock';
 import { formatDateTime, formatClockTime } from '@/lib/timeFormat';
 import {
     Wallet, Loader2, Lock, History, AlertTriangle, CheckCircle2,
-    ArrowDownToLine, ArrowUpFromLine, Banknote,
+    ArrowDownToLine, ArrowUpFromLine, Banknote, ArrowRightLeft, Coins,
 } from 'lucide-react';
+import { formatRupees } from '@/lib/money';
+import {
+    PKR_DENOMINATIONS, round2, varianceOf, needsReason,
+} from '@/lib/cash/drawer.mjs';
 
-const money = (n) => `Rs. ${Number(n || 0).toLocaleString('en-PK')}`;
+const money = (n) => formatRupees(n, 0);
 
 // Signed for variance lines: the sign is the finding, so it never gets elided.
 const signedMoney = (n) => {
@@ -27,7 +31,10 @@ export default function DrawerPage() {
     const [pageError, setPageError] = useState('');
 
     // Open-drawer card
-    const [floatInput, setFloatInput] = useState('');
+    // null means the cashier has not typed yet, so the box can show the
+    // carried-forward figure without an effect copying it into state — the
+    // proposal is a default, and touching the box makes it an answer.
+    const [floatInput, setFloatInput] = useState(null);
     const [opening, setOpening] = useState(false);
     const [openError, setOpenError] = useState('');
 
@@ -41,6 +48,11 @@ export default function DrawerPage() {
     // Close flow
     const [closePanel, setClosePanel] = useState(false);
     const [countedInput, setCountedInput] = useState('');
+    // Note-by-note. Empty object = counted as a lump sum, which is still
+    // allowed — a breakdown is the better habit, not a gate on shutting the
+    // till at 1am.
+    const [denoms, setDenoms] = useState({});
+    const [carryInput, setCarryInput] = useState('');
     const [closeNotes, setCloseNotes] = useState('');
     const [closeBusy, setCloseBusy] = useState(false);
     const [closeError, setCloseError] = useState('');
@@ -63,6 +75,7 @@ export default function DrawerPage() {
             setState(res.data);
         }
         setIsLoading(false);
+        return res.error ? null : res.data;
     }, []);
 
     const loadHistory = useCallback(async () => {
@@ -81,11 +94,11 @@ export default function DrawerPage() {
     const submitOpen = async () => {
         setOpening(true);
         setOpenError('');
-        const res = await openDrawer({ opening_float: Number(floatInput) || 0 });
+        const res = await openDrawer({ opening_float: Number(floatValue) || 0 });
         if (res.error) {
             setOpenError(res.error);
         } else {
-            setFloatInput('');
+            setFloatInput(null);
             setClosedResult(null);
             await load();
             if (role === 'admin') loadHistory();
@@ -113,22 +126,33 @@ export default function DrawerPage() {
     // current, not the number from whenever the page last loaded.
     const startClose = async () => {
         setCountedInput('');
+        setDenoms({});
         setCloseNotes('');
         setCloseError('');
         setClosePanel(true);
-        await load();
+        const fresh = await load();
+        // Propose the standing float as tomorrow's opener; zero is a real
+        // answer (the owner empties the till), so it is proposed and not
+        // assumed.
+        const std = Number(fresh?.defaultFloat ?? state?.defaultFloat ?? 0);
+        setCarryInput(std > 0 ? String(std) : '');
     };
 
     const submitClose = async () => {
         setCloseBusy(true);
         setCloseError('');
         const res = await closeDrawer({
-            counted_amount: Number(countedInput), notes: closeNotes,
+            counted_amount: counted,
+            carry_forward: carryInput === '' ? 0 : Number(carryInput),
+            notes: closeNotes,
+            denominations: anyDenoms ? denoms : null,
         });
         if (res.error) {
             setCloseError(res.error);
         } else {
             setClosePanel(false);
+            setDenoms({});
+            setCarryInput('');
             setClosedResult(res.data);
             await load();
             if (role === 'admin') loadHistory();
@@ -136,12 +160,37 @@ export default function DrawerPage() {
         setCloseBusy(false);
     };
 
-    // Live preview: counted against the running expected. The close recomputes
-    // authoritatively inside its transaction; this is the cashier's early look.
-    const countedNum = countedInput === '' ? null : Number(countedInput);
-    const previewVariance = state && countedNum !== null && Number.isFinite(countedNum)
-        ? Math.round((countedNum - state.expected) * 100) / 100
+    /*
+     * The count, from whichever way it was made. A breakdown wins over the
+     * typed total whenever one exists — you cannot half-count a drawer.
+     */
+    const anyDenoms = PKR_DENOMINATIONS.some((d) => String(denoms[d] ?? '') !== '');
+    const denomTotal = PKR_DENOMINATIONS
+        .reduce((t, d) => t + d * (Number(denoms[d]) || 0), 0);
+    const typedTotal = countedInput.trim() === '' ? null : Number(countedInput);
+    const counted = anyDenoms
+        ? round2(denomTotal)
+        : (typedTotal !== null && Number.isFinite(typedTotal) ? round2(typedTotal) : null);
+
+    /*
+     * Blind until the count is in. Showing the expected first is how a drawer
+     * that is short by two hundred rupees gets closed for exactly the right
+     * amount — the number to beat is right there on the screen. It appears
+     * the moment the count does, which is when it becomes useful instead of
+     * suggestive.
+     */
+    const revealed = counted !== null;
+    const previewVariance = state?.session && revealed
+        ? varianceOf(counted, state.expected)
         : null;
+
+    const carryNum = carryInput.trim() === '' ? null : Number(carryInput);
+    const carryValid = carryNum !== null && Number.isFinite(carryNum)
+        && carryNum >= 0 && counted !== null && carryNum <= counted;
+    const handover = carryValid ? round2(counted - carryNum) : null;
+    const reasonNeeded = previewVariance !== null
+        && needsReason(previewVariance, state?.tolerance ?? 0);
+    const closeReady = revealed && carryValid && (!reasonNeeded || closeNotes.trim() !== '');
 
     const varianceClass = (v) =>
         v < 0 ? styles.short : v > 0 ? styles.over : styles.balanced;
@@ -150,6 +199,9 @@ export default function DrawerPage() {
         v < 0 ? `Short by ${money(Math.abs(v))}` : v > 0 ? `Over by ${money(v)}` : 'Balanced';
 
     const session = state?.session;
+    const floatValue = floatInput === null
+        ? (state && !state.session && state.suggestedFloat > 0 ? String(state.suggestedFloat) : '')
+        : floatInput;
 
     return (
         <div className={styles.container}>
@@ -176,10 +228,19 @@ export default function DrawerPage() {
             {closedResult && (
                 <div className={styles.closedNote} role="status">
                     <CheckCircle2 size={16} aria-hidden="true" />
-                    Drawer closed — expected {money(closedResult.expected_amount)}, counted{' '}
-                    {money(closedResult.counted_amount)},{' '}
-                    <span className={varianceClass(Number(closedResult.variance))}>
-                        {varianceWord(Number(closedResult.variance))}
+                    <span>
+                        Drawer closed — expected {money(closedResult.expected_amount)}, counted{' '}
+                        {money(closedResult.counted_amount)},{' '}
+                        <span className={varianceClass(Number(closedResult.variance))}>
+                            {varianceWord(Number(closedResult.variance))}
+                        </span>
+                        {closedResult.carry_forward !== null && (
+                            <>
+                                {'. '}
+                                <strong>{money(closedResult.carry_forward)}</strong> left in the
+                                drawer for tomorrow, {money(closedResult.handover_amount)} handed over.
+                            </>
+                        )}
                     </span>
                 </div>
             )}
@@ -197,9 +258,30 @@ export default function DrawerPage() {
                     </div>
                     <h2 className={styles.openTitle}>No drawer open</h2>
                     <p className={styles.openHint}>
-                        Count the float into the till, enter it, and open the drawer.
+                        Count what is in the till, enter it, and open the drawer.
                         Cash sales and movements from then on count against this session.
                     </p>
+
+                    {state?.lastClose?.carry_forward !== null && state?.lastClose && (
+                        <div className={styles.carryNote}>
+                            <ArrowRightLeft size={15} aria-hidden="true" />
+                            <span>
+                                <strong>{money(state.lastClose.carry_forward)}</strong> was left in
+                                this drawer at the {state.lastClose.business_date} close
+                                {' — '}that is what it should hold now. Count it and correct the
+                                figure if it differs.
+                            </span>
+                        </div>
+                    )}
+                    {state && !state.lastClose && state.suggestedFloat > 0 && (
+                        <div className={styles.carryNote}>
+                            <Coins size={15} aria-hidden="true" />
+                            <span>
+                                No previous close to carry forward from — proposing the standing
+                                float of <strong>{money(state.suggestedFloat)}</strong>.
+                            </span>
+                        </div>
+                    )}
                     <div className={styles.openForm}>
                         <div className={styles.amountField}>
                             <span className={styles.amountPrefix}>Rs.</span>
@@ -210,7 +292,7 @@ export default function DrawerPage() {
                                 inputMode="decimal"
                                 className={styles.amountInput}
                                 placeholder="Opening float"
-                                value={floatInput}
+                                value={floatValue}
                                 onChange={(e) => { setFloatInput(e.target.value); setOpenError(''); }}
                                 aria-label="Opening float"
                             />
@@ -219,7 +301,7 @@ export default function DrawerPage() {
                             type="button"
                             className={styles.primaryBtn}
                             onClick={submitOpen}
-                            disabled={opening || floatInput === ''}
+                            disabled={opening || floatValue === ''}
                         >
                             {opening
                                 ? <Loader2 size={15} className={styles.inlineSpinner} />
@@ -373,49 +455,135 @@ export default function DrawerPage() {
                             Close drawer
                         </h3>
                         <p className={styles.modalBody}>
-                            Count everything in the till — float included — and enter the total.
-                            The expected balance freezes on the session when you confirm.
+                            Count everything in the till — float included. Enter it note by note,
+                            or type the total straight in. The expected balance appears once you
+                            have counted, so the count is yours and not the screen&apos;s.
                         </p>
 
-                        <div className={styles.expectedRow}>
-                            <span>Expected in drawer</span>
-                            <strong>{money(state.expected)}</strong>
+                        {/* ---- 1. the count ---- */}
+                        <div className={styles.denomGrid}>
+                            {PKR_DENOMINATIONS.map((d) => {
+                                const n = Number(denoms[d]) || 0;
+                                return (
+                                    <div key={d} className={styles.denomRow}>
+                                        <span className={styles.denomFace}>{money(d)}</span>
+                                        <span className={styles.denomTimes}>×</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            inputMode="numeric"
+                                            className={styles.denomInput}
+                                            value={denoms[d] ?? ''}
+                                            placeholder="0"
+                                            disabled={closeBusy}
+                                            aria-label={`Number of Rs. ${d} notes`}
+                                            onChange={(e) => {
+                                                setCloseError('');
+                                                setDenoms((prev) => ({ ...prev, [d]: e.target.value }));
+                                            }}
+                                        />
+                                        <span className={styles.denomSub}>
+                                            {n > 0 ? money(d * n) : ''}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
 
-                        <div className={styles.amountField}>
-                            <span className={styles.amountPrefix}>Rs.</span>
-                            <input
-                                type="number"
-                                min="0"
-                                step="any"
-                                inputMode="decimal"
-                                className={styles.amountInput}
-                                placeholder="Counted amount"
-                                value={countedInput}
-                                onChange={(e) => { setCountedInput(e.target.value); setCloseError(''); }}
-                                autoFocus
-                                disabled={closeBusy}
-                                aria-label="Counted amount"
-                            />
+                        <div className={styles.countedRow}>
+                            <span>Counted in drawer</span>
+                            {anyDenoms ? (
+                                <strong>{money(denomTotal)}</strong>
+                            ) : (
+                                <div className={styles.amountField}>
+                                    <span className={styles.amountPrefix}>Rs.</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        inputMode="decimal"
+                                        className={styles.amountInput}
+                                        placeholder="Total counted"
+                                        value={countedInput}
+                                        onChange={(e) => { setCountedInput(e.target.value); setCloseError(''); }}
+                                        autoFocus
+                                        disabled={closeBusy}
+                                        aria-label="Counted amount"
+                                    />
+                                </div>
+                            )}
                         </div>
 
-                        {previewVariance !== null && (
-                            <div className={`${styles.varianceRow} ${varianceClass(previewVariance)}`}>
-                                {previewVariance < 0 && <AlertTriangle size={15} aria-hidden="true" />}
-                                {varianceWord(previewVariance)}
-                                {previewVariance !== 0 && ` (${signedMoney(previewVariance)})`}
-                            </div>
+                        {/* ---- 2. what it should have been ---- */}
+                        {!revealed ? (
+                            <p className={styles.blindHint}>
+                                The expected figure appears when the count is in.
+                            </p>
+                        ) : (
+                            <>
+                                <div className={styles.expectedRow}>
+                                    <span>Expected in drawer</span>
+                                    <strong>{money(state.expected)}</strong>
+                                </div>
+                                <div className={`${styles.varianceRow} ${varianceClass(previewVariance)}`}>
+                                    {previewVariance < 0 && <AlertTriangle size={15} aria-hidden="true" />}
+                                    {varianceWord(previewVariance)}
+                                    {previewVariance !== 0 && ` (${signedMoney(previewVariance)})`}
+                                </div>
+                            </>
                         )}
+
+                        {/* ---- 3. the split: what stays, what leaves ---- */}
+                        <div className={styles.splitBlock}>
+                            <label className={styles.splitLabel} htmlFor="carry-forward">
+                                Leave in the drawer for tomorrow
+                            </label>
+                            <div className={styles.amountField}>
+                                <span className={styles.amountPrefix}>Rs.</span>
+                                <input
+                                    id="carry-forward"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    inputMode="decimal"
+                                    className={styles.amountInput}
+                                    placeholder="0"
+                                    value={carryInput}
+                                    onChange={(e) => { setCarryInput(e.target.value); setCloseError(''); }}
+                                    disabled={closeBusy}
+                                />
+                            </div>
+                            {carryNum !== null && counted !== null && carryNum > counted ? (
+                                <p className={styles.fieldError}>
+                                    You cannot leave more in the drawer than you counted.
+                                </p>
+                            ) : (
+                                <p className={styles.splitHint}>
+                                    {handover === null
+                                        ? 'This becomes tomorrow\u2019s opening float.'
+                                        : <>Handing over <strong>{money(handover)}</strong>. The rest stays as tomorrow&apos;s opening float.</>}
+                                </p>
+                            )}
+                        </div>
 
                         <input
                             type="text"
                             className={styles.modalInput}
-                            placeholder="Notes (why short/over, denominations, handover)"
+                            placeholder={reasonNeeded
+                                ? 'Why is it short/over? (required)'
+                                : 'Notes (optional)'}
                             value={closeNotes}
                             maxLength={191}
                             onChange={(e) => setCloseNotes(e.target.value)}
                             disabled={closeBusy}
+                            aria-invalid={reasonNeeded && closeNotes.trim() === ''}
                         />
+                        {reasonNeeded && closeNotes.trim() === '' && (
+                            <p className={styles.fieldError}>
+                                A difference has to be explained before the drawer closes.
+                            </p>
+                        )}
 
                         {closeError && <p className={styles.fieldError}>{closeError}</p>}
 
@@ -432,7 +600,7 @@ export default function DrawerPage() {
                                 type="button"
                                 className={styles.modalConfirm}
                                 onClick={submitClose}
-                                disabled={closeBusy || countedInput === ''}
+                                disabled={closeBusy || !closeReady}
                             >
                                 {closeBusy
                                     ? <Loader2 size={14} className={styles.inlineSpinner} />

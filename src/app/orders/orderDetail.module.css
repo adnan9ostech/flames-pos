@@ -1,0 +1,652 @@
+/*
+ * The order detail drawer. Sits BELOW the orders screen's own overlays on
+ * purpose: the void dialog (z-index 100) and the receipt preview (1000) are
+ * both launched from inside this panel and have to land on top of it.
+ */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    justify-content: flex-end;
+    background: var(--overlay);
+    backdrop-filter: blur(2px);
+    animation: fade 0.15s ease-out;
+}
+
+.drawer {
+    width: 640px;
+    max-width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    box-shadow: var(--shadow-drawer);
+    color: var(--foreground);
+    animation: slideIn 0.22s ease-out;
+}
+
+@keyframes fade {
+    from { opacity: 0 }
+    to { opacity: 1 }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%) }
+    to { transform: translateX(0) }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .overlay,
+    .drawer { animation: none }
+}
+
+/* ===== Header ===== */
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.headerMain {
+    min-width: 0;
+}
+
+.orderNo {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    color: var(--muted-foreground);
+}
+
+.closeBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* 44px: the panel is opened and dismissed on a till, with a thumb. */
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.closeBtn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* ===== Body ===== */
+.body {
+    flex: 1;
+    /* A flex child will not shrink below its content without this, and the
+       sections would push the footer off the bottom of the drawer. */
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.25rem 1.5rem 2rem;
+}
+
+.section + .section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+}
+
+.stateBlock {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1.5rem;
+    text-align: center;
+    color: var(--muted-foreground);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg) }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner { animation-duration: 2.5s }
+}
+
+/* ===== Type / table / waiter ===== */
+.metaRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.metaChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+/*
+ * The two states, side by side and each under its own name. They are
+ * independent facts — the kitchen finishing does not take payment — so the
+ * layout never lets them read as one "status".
+ */
+.stateRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.stateCell {
+    flex: 1 1 12rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+}
+
+.stateLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted-foreground);
+}
+
+.stateChip {
+    align-self: flex-start;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--neutral-soft);
+    color: var(--neutral-text);
+}
+
+.kitchen_new {
+    background: var(--info-soft-strong);
+    color: var(--info);
+}
+
+.kitchen_preparing {
+    background: var(--warning-soft-strong);
+    color: var(--warning-text);
+}
+
+.kitchen_ready {
+    background: var(--success-soft-strong);
+    color: var(--success-text);
+}
+
+.kitchen_cancelled {
+    background: var(--danger-soft);
+    color: var(--destructive);
+}
+
+.pay_unpaid {
+    background: var(--warning-soft-strong);
+    color: var(--warning-text);
+}
+
+.pay_partial {
+    background: var(--warning-soft-strong);
+    color: var(--warning-text);
+}
+
+.pay_paid {
+    background: var(--success-soft-strong);
+    color: var(--success-text);
+}
+
+.customer {
+    margin: 0.75rem 0 0;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.orderNote {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    margin: 0.6rem 0 0;
+    font-size: 0.82rem;
+    color: var(--foreground);
+}
+
+/* ===== Kitchen progress ===== */
+.stepper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0 0 0.85rem;
+    padding: 0;
+    list-style: none;
+}
+
+.step {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.stepDot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+}
+
+.step_done {
+    color: var(--success-text);
+    border-color: var(--success-border);
+}
+
+.step_done .stepDot {
+    border-color: transparent;
+}
+
+.step_current {
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.step_todo {
+    color: var(--muted);
+}
+
+.advanceBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0 1.1rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.advanceBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.advanceBtn:disabled {
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    cursor: not-allowed;
+}
+
+.inlineError {
+    margin: 0.6rem 0 0;
+    font-size: 0.8rem;
+    color: var(--destructive);
+}
+
+.voidBanner {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius);
+    background: var(--danger-soft);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--destructive);
+}
+
+/* ===== Rounds and lines ===== */
+.round + .round {
+    margin-top: 1.1rem;
+}
+
+.roundHead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.roundName {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.roundMeta {
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.table th {
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.alignRight {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/*
+ * `.table th` sets text-align, and it outranks a bare `.alignRight` — which is
+ * how the money columns across this app ended up with their figures hard right
+ * under titles sitting hard left. Repeating the table selector settles it.
+ */
+.table th.alignRight { text-align: right }
+
+.lineName {
+    display: block;
+    font-weight: 600;
+    /* The drawer is the full screen on a phone-width till; a long dish name
+       must wrap rather than push the money column off the edge. */
+    overflow-wrap: anywhere;
+}
+
+.lineVariant,
+.lineMods,
+.lineNote {
+    display: block;
+    margin-top: 0.12rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.lineNote {
+    color: var(--accent);
+    font-style: italic;
+}
+
+.lineTotal {
+    font-weight: 700;
+}
+
+/* ===== The bill ===== */
+.money {
+    margin: 0;
+}
+
+.moneyRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 0;
+    font-size: 0.88rem;
+}
+
+.moneyRow dt {
+    color: var(--muted-foreground);
+}
+
+.moneyRow dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.moneyNote {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.discount {
+    color: var(--success-text);
+}
+
+.moneyTotal {
+    margin-top: 0.35rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.moneyTotal dt {
+    color: var(--foreground);
+}
+
+/* ===== Payments ===== */
+.payments {
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.payment {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    font-size: 0.82rem;
+}
+
+.paymentMethod {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+}
+
+.reversal {
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    background: var(--danger-soft);
+    color: var(--destructive);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.paymentTime {
+    color: var(--muted-foreground);
+    font-size: 0.78rem;
+}
+
+.paymentAmount {
+    margin-left: auto;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.moneyState {
+    margin: 0.85rem 0 0;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.owed {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.settled {
+    font-weight: 600;
+    color: var(--success-text);
+}
+
+/* ===== Trail ===== */
+.trail {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.trailItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding-left: 0.85rem;
+    border-left: 2px solid var(--border);
+}
+
+.trailTime {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.trailTitle {
+    font-size: 0.85rem;
+    font-weight: 600;
+    /* Unmapped verbs render as "set availability", not "SET_AVAILABILITY". */
+    text-transform: none;
+}
+
+.trailNote {
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+}
+
+/* ===== Footer ===== */
+.footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+}
+
+.footerBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.footerBtn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.voidBtn {
+    margin-left: auto;
+    color: var(--destructive);
+}
+
+.voidBtn:hover {
+    border-color: var(--destructive);
+    color: var(--destructive);
+}
+
+/* A phone-width till: the drawer takes the screen and the footer stacks. */
+@media (max-width: 680px) {
+    .drawer {
+        width: 100vw;
+        border-left: none;
+    }
+
+    .voidBtn {
+        margin-left: 0;
+    }
+}

@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -8,9 +8,10 @@ import {
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { ROLES } from '@/lib/auth/permissions.mjs';
-import { primaryNav, backOfficeNav } from '@/lib/navIndex.mjs';
+import { primaryNav, sidebarSections } from '@/lib/navIndex.mjs';
 import { navIcon } from './navIcons';
 import CommandPalette from './CommandPalette';
+import ThemeSwitcher from './ThemeSwitcher';
 import { logout } from '@/app/logout/actions';
 
 /*
@@ -28,7 +29,7 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
     // eighteen rows have to fit a laptop viewport.
     const iconSize = collapsed ? 24 : 17;
     const links = primaryNav(perms);
-    const backOffice = backOfficeNav(perms);
+    const groups = sidebarSections(perms);
 
     /*
      * Cmd/Ctrl-K from anywhere in the app. A modifier combo rather than a bare
@@ -69,26 +70,67 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
     return (
         <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
             <div className={styles.header}>
+                {/*
+                  * TWO assets, swapped in CSS rather than one `src` picked in JS.
+                  *
+                  * The wordmark is painted white in the source SVG, so on the
+                  * light theme's near-white card it disappears entirely. No CSS
+                  * filter can rescue it — anything that darkens the white type
+                  * also wrecks the orange flame beside it (invert() turns
+                  * #F26513 cyan), which is why there is a second file rather
+                  * than a filter.
+                  *
+                  * Swapping `src` on the resolved theme would mean a state read,
+                  * a re-render and a fresh image request mid-switch — a visible
+                  * blink on the one element that should feel most stable. Both
+                  * render, CSS shows one. They are ~14KB each and the hidden one
+                  * is already in cache when someone flips the theme.
+                  *
+                  * Collapsed, the span crops the wordmark down to the flame,
+                  * which is brand orange in both files — but the pair still has
+                  * to swap, because the crop window is a few pixels wider than
+                  * the flame itself.
+                  */}
                 <Link href="/pos" className={styles.logo} aria-label="Go to POS home">
                     {collapsed ? (
                         // Crop the wordmark down to the flame mark on the left
                         <span className={styles.logoMark}>
                             <Image
+                                className={styles.logoOnDark}
                                 src="/flames-by-the-indus-logo.svg"
                                 alt="Flames by the Indus"
                                 width={146}
                                 height={52}
                                 priority
                             />
+                            <Image
+                                className={styles.logoOnLight}
+                                src="/flames-by-the-indus-logo-dark-ink.svg"
+                                alt=""
+                                aria-hidden="true"
+                                width={146}
+                                height={52}
+                            />
                         </span>
                     ) : (
-                        <Image
-                            src="/flames-by-the-indus-logo.svg"
-                            alt="Flames by the Indus"
-                            width={160}
-                            height={48}
-                            priority
-                        />
+                        <>
+                            <Image
+                                className={styles.logoOnDark}
+                                src="/flames-by-the-indus-logo.svg"
+                                alt="Flames by the Indus"
+                                width={160}
+                                height={48}
+                                priority
+                            />
+                            <Image
+                                className={styles.logoOnLight}
+                                src="/flames-by-the-indus-logo-dark-ink.svg"
+                                alt=""
+                                aria-hidden="true"
+                                width={160}
+                                height={48}
+                            />
+                        </>
                     )}
                 </Link>
 
@@ -148,18 +190,29 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
 
                 {links.map(navLink)}
 
-                {backOffice.length > 0 && (
-                    <>
-                        {!collapsed && <p className={styles.sectionLabel}>Back office</p>}
+                {/* One heading per category rather than one "Back office" for
+                    all thirteen. Collapsed, the headings become the rules that
+                    were already drawn there — the grouping survives, the words
+                    do not have room to. */}
+                {groups.map((group) => (
+                    <Fragment key={group.title}>
+                        {!collapsed && <p className={styles.sectionLabel}>{group.title}</p>}
                         {collapsed && <div className={styles.sectionRule} />}
-                        {backOffice.map(navLink)}
-                    </>
-                )}
+                        {group.items.map(navLink)}
+                    </Fragment>
+                ))}
             </nav>
 
             {/* Outside the scroller: however long the rail grows, the way out
                 of the app stays on screen. */}
             <div className={styles.navPinned}>
+                {/*
+                  * Above Profile/Logout so it is reachable from every screen in
+                  * one click. The full three-way control lives on /profile —
+                  * this is the shortcut, not the only way in.
+                  */}
+                <ThemeSwitcher variant="compact" collapsed={collapsed} />
+
                 {navLink({ href: '/profile', label: 'Profile', icon: 'User' })}
 
                 <form action={logout} className={styles.logoutForm}>

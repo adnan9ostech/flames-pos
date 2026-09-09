@@ -18,12 +18,22 @@
     border: 1px solid;
     font-size: 0.82rem;
     font-weight: 600;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-md);
     /* Never swallows a tap meant for the button underneath it */
     pointer-events: none;
     max-width: calc(100vw - 2rem);
 }
 
+/*
+ * Deliberately NOT tokenised. These two are opaque pills, not tints: the
+ * banner floats over whatever the till happens to be showing, with
+ * pointer-events:none, so it has to carry its own solid ground. The
+ * --danger-* / --warning-* families are alpha washes meant to sit on a known
+ * surface, and swapping them in would leave the one message that must survive
+ * a network drop reading through the screen behind it. A solid dark red pill
+ * with pale text is legible on black and on warm white alike, so there is
+ * nothing for the theme to fix here.
+ */
 .offline {
     background: #7f1d1d;
     border-color: #b91c1c;

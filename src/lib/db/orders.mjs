@@ -624,8 +624,21 @@ export const bumpOrder = async (orderId, from, to) => {
         throw new Error(`Not a kitchen transition: ${to}`);
     }
     await pool.query(
+        /*
+         * `status <> 'cancelled'` is not redundant beside `status = ?`. Only the
+         * TARGET status was ever validated, so a caller passing from='cancelled'
+         * matched a voided row and silently revived it — leaving cancelled_at and
+         * cancel_reason populated, the payments netted to zero, and the order back
+         * on the board as a live sale. The action gates on requireUser() alone, so
+         * any signed-in account could reach it.
+         *
+         * Deliberately still not an error: this function's contract is that the
+         * WHERE clause IS the concurrency control, affectedRows 0 means "did not
+         * match", and the caller re-reads the truth below. A bump against a void
+         * now matches nothing and the board redraws it as cancelled.
+         */
         `UPDATE orders SET status = ?, updated_at = UTC_TIMESTAMP(3)
-         WHERE id = ? AND status = ?`,
+         WHERE id = ? AND status = ? AND status <> 'cancelled'`,
         [to, orderId, from],
     );
     // Someone else moved it first (or a round re-fired it). Return the truth;

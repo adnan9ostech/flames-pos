@@ -100,11 +100,17 @@ const linkAccount = async (conn, type, ref) => {
 };
 
 /* The first active account carrying a link code, optionally narrowed. */
-const accountByLinkCode = async (conn, code, { category = null, nameLike = null } = {}) => {
+/*
+ * Resolve an account by what it is FOR, never by what it is called. The name
+ * option this used to take is gone on purpose: a chart is renamed by whoever
+ * keeps the books, and a resolver that reads the name turns that into a silent
+ * posting failure. Link code, category and the number's order are structure;
+ * the name is prose.
+ */
+const accountByLinkCode = async (conn, code, { category = null } = {}) => {
     const where = ['is_active = 1', 'JSON_CONTAINS(link_codes, ?)'];
     const params = [JSON.stringify(code)];
     if (category) { where.push('category = ?'); params.push(category); }
-    if (nameLike) { where.push('name LIKE ?'); params.push(`%${nameLike}%`); }
     const [rows] = await conn.query(
         `SELECT id FROM accounts WHERE ${where.join(' AND ')} ORDER BY account_number LIMIT 1`,
         params,
@@ -122,9 +128,21 @@ const resolvePaymentAccount = async (conn, method) =>
 
 const resolveArCityLedger = (conn) => linkAccount(conn, 'payment_method', 'city_ledger');
 
+/*
+ * The supplier's own mapped account if it has one, else the payables control.
+ *
+ * That fallback used to match on the NAME containing "Suppliers", which is the
+ * wording the 006 seed happened to use. It broke the day the chart moved to the
+ * accountant's, where the account is called plainly "Accounts Payable" (2000)
+ * with "Accounts Payable - Sundry" (2005) beside it — every GRN and supplier
+ * payment stopped posting, silently, because these hooks swallow their own
+ * errors. Resolve by structure instead: the lowest-numbered active account
+ * carrying the AP link code in the payables category, which is the control by
+ * construction and cannot be the sundry one next to it.
+ */
 const resolveApSuppliers = async (conn, supplierId) =>
     (supplierId != null && await linkAccount(conn, 'supplier', supplierId))
-    || accountByLinkCode(conn, 'AP', { category: 'ACCOUNTS PAYABLE', nameLike: 'Suppliers' });
+    || accountByLinkCode(conn, 'AP', { category: 'ACCOUNTS PAYABLE' });
 
 const resolveInventory = (conn) => accountByLinkCode(conn, 'INVENTORY');
 

@@ -10,19 +10,16 @@ import {
 import {
     CalendarRange, FileDown, Loader2, ClipboardList, AlertTriangle
 } from 'lucide-react'
-
-const TYPE_LABEL = { 'dine-in': 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery' }
-
 /*
- * Chart ink. Literals rather than CSS custom properties because recharts
- * writes them into SVG presentation attributes, where a var() is not reliably
- * resolved; the values are --muted-foreground and --foreground, and #d95926 is
+ * Chart ink, themed. Recharts writes these into SVG presentation attributes
+ * (fill, stroke), which resolve CSS custom properties — so the chart follows
+ * the light/dark switch on the same repaint as the rest of the page. SERIES is
  * the palette slot a single-series chart takes so the data does not read as
  * brand chrome.
  */
-const SERIES = '#d95926'
-const AXIS_TEXT = '#a39a92'
-const LABEL_TEXT = '#f8f4ee'
+import { SERIES, AXIS_TEXT, LABEL_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs'
+
+const TYPE_LABEL = { 'dine-in': 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery' }
 
 const STATUS_LABEL = {
     new: 'New', preparing: 'Preparing', ready: 'Ready',
@@ -294,7 +291,7 @@ export default function DailySalesPage() {
                                         tickLine={false}
                                     />
                                     <Tooltip
-                                        cursor={{ fill: 'rgba(248, 244, 238, 0.06)' }}
+                                        cursor={CURSOR_FILL}
                                         content={<TypeTooltip />}
                                     />
                                     <Bar

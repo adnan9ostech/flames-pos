@@ -41,6 +41,15 @@ export default function CookingLoader({ label, messages = DEFAULT_MESSAGES, size
                     height={size}
                     aria-hidden="true"
                 >
+                    {/*
+                      * These stay literal through the theme switch, deliberately.
+                      * The flame is brand artwork, not chrome: every stop is read
+                      * against the stop beside it inside the flame shape, never
+                      * against the page, so a light background changes nothing
+                      * about its legibility. A flame is the same colour in a lit
+                      * room as in a dark one. (The bloom BEHIND it is a different
+                      * matter and is themed — see CookingLoader.module.css.)
+                      */}
                     <defs>
                         <linearGradient id="cl-outer" x1="32" y1="60" x2="32" y2="4" gradientUnits="userSpaceOnUse">
                             <stop offset="0%" stopColor="#b91c1c" />

@@ -12,8 +12,13 @@ export const getCategories = async () =>
         'SELECT * FROM categories ORDER BY sort_order, name',
     ));
 
+// Archived dishes are off the menu everywhere the menu is read — till, KDS
+// lookups, customer view. They stay in the table for the bills that name them.
 export const getMenuItems = async () =>
-    serializeRows('menu_items', await query('SELECT * FROM menu_items ORDER BY name'));
+    serializeRows('menu_items', await query(
+        `SELECT * FROM menu_items WHERE is_archived = 0
+          ORDER BY sort_order, name`,
+    ));
 
 export const getModifiers = async () =>
     serializeRows('modifiers', await query('SELECT * FROM modifiers'));

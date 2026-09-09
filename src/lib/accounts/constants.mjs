@@ -3,19 +3,49 @@
  * browser and by a plain Node test alike — no database, no React.
  */
 
-/* The five groups, in statement order. `digit` is the leading digit every
- * account number in the group must carry: ChowPOS's convention, kept because
- * a number that says what it is beats one that has to be looked up. */
+/*
+ * The five groups, in statement order, with the leading digits an account
+ * number in each may carry.
+ *
+ * This is the standard accounting series — 1 asset, 2 liability, 3 equity,
+ * 4 income, 5+ expense — which is what QuickBooks, Xero and Sage all use and
+ * what the restaurant's accountant sent his chart in. It replaced ChowPOS's
+ * 1/2/3/4/5 = asset/liability/income/expense/equity on 3 Sep 2026, because the
+ * accountant keeps the statutory books and the till has to speak his codes,
+ * not the other way round. Every account was renumbered with it
+ * (mysql/migrations/018_chart_of_accounts_v2.sql).
+ *
+ * Expense spans five digits on purpose: cost of sales (5), labour (6), direct
+ * operating (7), occupancy and administration (8) and non-operating (9) are
+ * separate blocks of the P&L, and squeezing them into one leading digit is
+ * what forces a restaurant to read its food cost out of a single lump.
+ */
 export const GROUPS = [
-    { key: 'asset', label: 'Asset', digit: '1', normal: 'debit' },
-    { key: 'liability', label: 'Liability', digit: '2', normal: 'credit' },
-    { key: 'income', label: 'Income', digit: '3', normal: 'credit' },
-    { key: 'expense', label: 'Expense', digit: '4', normal: 'debit' },
-    { key: 'equity', label: 'Equity', digit: '5', normal: 'credit' },
+    { key: 'asset', label: 'Asset', digits: ['1'], normal: 'debit' },
+    { key: 'liability', label: 'Liability', digits: ['2'], normal: 'credit' },
+    { key: 'equity', label: 'Equity', digits: ['3'], normal: 'credit' },
+    { key: 'income', label: 'Income', digits: ['4'], normal: 'credit' },
+    { key: 'expense', label: 'Expense', digits: ['5', '6', '7', '8', '9'], normal: 'debit' },
 ];
 
 export const GROUP_KEYS = GROUPS.map((g) => g.key);
 export const groupOf = (key) => GROUPS.find((g) => g.key === key) || null;
+
+/* Account numbers are four digits throughout, as the accountant's chart is. */
+export const ACCOUNT_NUMBER_RE = /^\d{4}$/;
+
+/* "5-9xxx" / "1xxx" — what the form shows beside a group. */
+export const digitsLabel = (group) => {
+    const d = group?.digits ?? [];
+    if (d.length === 0) return '';
+    return d.length === 1 ? `${d[0]}xxx` : `${d[0]}\u2013${d[d.length - 1]}xxx`;
+};
+
+/* The group an account number belongs to, read off its leading digit. */
+export const groupForNumber = (number) => {
+    const first = String(number ?? '')[0];
+    return GROUPS.find((g) => g.digits.includes(first)) || null;
+};
 
 /*
  * ChowPOS's "Link" column, decoded from its Add Account form: an account

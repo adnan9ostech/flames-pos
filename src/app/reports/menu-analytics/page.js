@@ -9,6 +9,16 @@ import {
 import {
     UtensilsCrossed, CalendarRange, Download, Loader2, AlertTriangle,
 } from 'lucide-react';
+/*
+ * SERIES is slot 2 of the app's validated categorical palette: a one-series
+ * chart uses it rather than the brand orange, which belongs to buttons and
+ * tabs. SLOTS is that palette in its fixed slot order — six is the whole of
+ * it, and a seventh category folds into the neutral OTHER rather than getting
+ * a seventh hue.
+ */
+import {
+    SLOTS, SERIES, OTHER, GRID, AXIS_TEXT, LABEL_TEXT, CURSOR_FILL,
+} from '@/lib/reports/chartTheme.mjs';
 
 /*
  * All dates here are business dates on the Karachi calendar — the trading
@@ -57,17 +67,6 @@ const itemLabel = (r) => (r.variant ? `${r.name} (${r.variant})` : r.name);
  * be misread as the whole range.
  */
 const TOP_N = 10;
-
-// Slot 2 of the app's validated categorical palette. A one-series chart uses
-// it rather than the brand orange, which belongs to buttons and tabs.
-const SERIES = '#d95926';
-
-/*
- * The palette in its fixed slot order. Six is the whole of it: a seventh
- * category does not get a seventh hue, it folds into a neutral "Other".
- */
-const PALETTE = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9'];
-const OTHER = '#6f655d';
 
 // Bar ends and the money axis are abbreviated so ten of them fit; the exact
 // figure is a hover away.
@@ -363,10 +362,10 @@ export default function MenuAnalyticsPage() {
             .map(([name, revenue]) => ({ name, revenue }))
             .sort((a, b) => b.revenue - a.revenue);
         const total = all.reduce((s, c) => s + c.revenue, 0);
-        const tail = all.slice(PALETTE.length);
+        const tail = all.slice(SLOTS.length);
         const shown = tail.length > 0
             ? [
-                ...all.slice(0, PALETTE.length),
+                ...all.slice(0, SLOTS.length),
                 {
                     name: 'Other',
                     revenue: tail.reduce((s, c) => s + c.revenue, 0),
@@ -378,7 +377,7 @@ export default function MenuAnalyticsPage() {
             ...c,
             folded: c.folded || 0,
             share: total > 0 ? (c.revenue / total) * 100 : 0,
-            color: c.folded ? OTHER : PALETTE[i],
+            color: c.folded ? OTHER : SLOTS[i],
         }));
     }, [tab, data]);
 
@@ -508,13 +507,13 @@ export default function MenuAnalyticsPage() {
                                     >
                                         {/* Rules only on the value axis; the category
                                             side is already spelled out in words. */}
-                                        <CartesianGrid horizontal={false} stroke="#332c27" strokeDasharray="3 3" />
+                                        <CartesianGrid horizontal={false} stroke={GRID} strokeDasharray="3 3" />
                                         <XAxis
                                             type="number"
                                             domain={[0, 'dataMax']}
                                             allowDecimals={false}
                                             tickFormatter={chartSpec.format}
-                                            tick={{ fill: '#a39a92', fontSize: 11 }}
+                                            tick={{ fill: AXIS_TEXT, fontSize: 11 }}
                                             tickLine={false}
                                             axisLine={false}
                                         />
@@ -523,12 +522,12 @@ export default function MenuAnalyticsPage() {
                                             dataKey="name"
                                             width={140}
                                             tickFormatter={shortName}
-                                            tick={{ fill: '#f8f4ee', fontSize: 11 }}
+                                            tick={{ fill: LABEL_TEXT, fontSize: 11 }}
                                             tickLine={false}
                                             axisLine={false}
                                         />
                                         <Tooltip
-                                            cursor={{ fill: 'rgba(248, 244, 238, 0.04)' }}
+                                            cursor={CURSOR_FILL}
                                             content={<RankTooltip />}
                                         />
                                         <Bar
@@ -543,7 +542,7 @@ export default function MenuAnalyticsPage() {
                                                 position="right"
                                                 offset={8}
                                                 formatter={chartSpec.format}
-                                                fill="#f8f4ee"
+                                                fill={LABEL_TEXT}
                                                 fontSize={11}
                                             />
                                         </Bar>
@@ -560,7 +559,7 @@ export default function MenuAnalyticsPage() {
                                 {categoryShare.length > 0 && (
                                     <span className={styles.chartMeta}>
                                         {categoryShare.some((c) => c.folded > 0)
-                                            ? `Top ${PALETTE.length} + Other`
+                                            ? `Top ${SLOTS.length} + Other`
                                             : `All ${categoryShare.length} ${categoryShare.length === 1 ? 'category' : 'categories'}`}
                                     </span>
                                 )}
@@ -580,13 +579,13 @@ export default function MenuAnalyticsPage() {
                                                 margin={{ top: 0, right: 56, bottom: 0, left: 0 }}
                                                 barCategoryGap={4}
                                             >
-                                                <CartesianGrid horizontal={false} stroke="#332c27" strokeDasharray="3 3" />
+                                                <CartesianGrid horizontal={false} stroke={GRID} strokeDasharray="3 3" />
                                                 <XAxis
                                                     type="number"
                                                     domain={[0, 'dataMax']}
                                                     allowDecimals={false}
                                                     tickFormatter={(v) => `${Math.round(v)}%`}
-                                                    tick={{ fill: '#a39a92', fontSize: 11 }}
+                                                    tick={{ fill: AXIS_TEXT, fontSize: 11 }}
                                                     tickLine={false}
                                                     axisLine={false}
                                                 />
@@ -595,12 +594,12 @@ export default function MenuAnalyticsPage() {
                                                     dataKey="name"
                                                     width={140}
                                                     tickFormatter={shortName}
-                                                    tick={{ fill: '#f8f4ee', fontSize: 11 }}
+                                                    tick={{ fill: LABEL_TEXT, fontSize: 11 }}
                                                     tickLine={false}
                                                     axisLine={false}
                                                 />
                                                 <Tooltip
-                                                    cursor={{ fill: 'rgba(248, 244, 238, 0.04)' }}
+                                                    cursor={CURSOR_FILL}
                                                     content={<ShareTooltip />}
                                                 />
                                                 <Bar
@@ -617,7 +616,7 @@ export default function MenuAnalyticsPage() {
                                                         position="right"
                                                         offset={8}
                                                         formatter={pct}
-                                                        fill="#f8f4ee"
+                                                        fill={LABEL_TEXT}
                                                         fontSize={11}
                                                     />
                                                 </Bar>

@@ -17,11 +17,21 @@
  *            − drawer expenses paid in the window.
  * The same sums feed the live screen, so the number the cashier watched all
  * shift is the number that freezes on the row.
+ *
+ * And the count splits: counted = carry_forward + handover. What stays in the
+ * till is proposed back as the next session's opening float, so the chain
+ * close → open runs on a declared figure instead of somebody's memory. The
+ * arithmetic itself lives in src/lib/cash/drawer.mjs, shared with the screen
+ * and the tests.
  */
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRow, serializeRows } from '@/lib/db/serialize.mjs'
+import {
+    round2, expectedCash, varianceOf, needsReason, cleanAmount,
+    splitCount, cleanDenominations, countFromDenominations, suggestedFloat,
+} from '@/lib/cash/drawer.mjs'
 
 const BRANCH_ID = 1
 
@@ -37,10 +47,6 @@ const fireGlAfterDrawerClose = (sessionId, userId) => {
         .then((m) => m.afterDrawerCloseGl(sessionId, { userId }))
         .catch(() => {})
 }
-
-// Rupee sums at (12,2) survive JS doubles, but the additions here can leave
-// float dust — freeze clean paisa on the row, not 1204.6999999999998.
-const round2 = (n) => Math.round(Number(n) * 100) / 100
 
 const dateOnly = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d))
 
@@ -127,30 +133,93 @@ const sessionFlows = async (run, session) => {
     }
 }
 
-const expectedFrom = (session, flows) => round2(
-    Number(session.opening_float)
-    + flows.cashSales + flows.paidIn - flows.paidOut - flows.drawerExpenses,
-)
+const expectedFrom = (session, flows) =>
+    expectedCash({ openingFloat: session.opening_float, ...flows })
 
-/* The open session with its running numbers, or null when the drawer is shut. */
+/*
+ * The two numbers the admin sets once: the standing change float the close
+ * proposes to leave behind, and how far a count may miss before a reason is
+ * demanded. Read fresh rather than cached — an owner who changes the policy
+ * at 9pm means it from the next close, not the next deploy.
+ */
+const cashPolicy = async (run) => {
+    const rows = await run(
+        'SELECT default_opening_float, cash_variance_tolerance FROM store_settings LIMIT 1',
+    )
+    return {
+        defaultFloat: round2(rows[0]?.default_opening_float ?? 0),
+        tolerance: round2(rows[0]?.cash_variance_tolerance ?? 0),
+    }
+}
+
+/*
+ * The last drawer closed anywhere on this till, for the float it left behind.
+ * Deliberately not scoped to the role or the business day: the cash sitting in
+ * the physical drawer this morning is the cash the last person to shut it left
+ * there, whoever they were and whichever day that was.
+ */
+const lastClosedSession = async (run) => {
+    const rows = await run(
+        `SELECT id, business_date, closed_at, counted_amount, carry_forward, handover_amount
+         FROM drawer_sessions
+         WHERE branch_id = ? AND closed_at IS NOT NULL
+         ORDER BY closed_at DESC LIMIT 1`,
+        [BRANCH_ID],
+    )
+    return rows[0] ?? null
+}
+
+/*
+ * The open session with its running numbers — or, when the drawer is shut,
+ * what it should open on and where that figure came from. A cashier who is
+ * told "Rs. 5,000 was left here last night" can check the till against it in
+ * ten seconds; one handed an empty box types whatever sounds right.
+ */
 export async function getDrawerState() {
     try {
         const user = await requireUser()
         const run = runner(null)
         const session = await findOpenSession(run, user.role)
-        if (!session) return { data: null }
+        if (!session) {
+            const [policy, last] = await Promise.all([cashPolicy(run), lastClosedSession(run)])
+            return {
+                data: {
+                    session: null,
+                    suggestedFloat: suggestedFloat({
+                        lastCarryForward: last?.carry_forward ?? null,
+                        defaultFloat: policy.defaultFloat,
+                    }),
+                    lastClose: last
+                        ? {
+                            business_date: dateOnly(last.business_date),
+                            closed_at: last.closed_at.toISOString(),
+                            counted: round2(last.counted_amount ?? 0),
+                            carry_forward: last.carry_forward === null
+                                ? null : round2(last.carry_forward),
+                            handover: last.handover_amount === null
+                                ? null : round2(last.handover_amount),
+                        }
+                        : null,
+                },
+            }
+        }
 
         const flows = await sessionFlows(run, session)
         const movements = await run(
             'SELECT * FROM drawer_movements WHERE session_id = ? ORDER BY at DESC',
             [session.id],
         )
+        const policy = await cashPolicy(run)
         return {
             data: {
                 session: serializeRow('drawer_sessions', session),
                 movements: serializeRows('drawer_movements', movements),
                 ...flows,
                 expected: expectedFrom(session, flows),
+                // What the close panel proposes to leave behind, and how far a
+                // count may miss before it asks why.
+                defaultFloat: policy.defaultFloat,
+                tolerance: policy.tolerance,
             },
         }
     } catch (e) {
@@ -161,10 +230,7 @@ export async function getDrawerState() {
 export async function openDrawer({ opening_float } = {}) {
     try {
         const user = await requireUser()
-        const float = round2(opening_float)
-        if (!Number.isFinite(float) || float < 0) {
-            return { error: 'Opening float must be zero or more' }
-        }
+        const float = cleanAmount(opening_float, 'Opening float')
 
         const session = await withTransaction(async (conn) => {
             const run = runner(conn)
@@ -174,13 +240,45 @@ export async function openDrawer({ opening_float } = {}) {
                 throw new Error('Close the open drawer first')
             }
             const businessDate = await resolveBusinessDate(run)
+
+            // What the till SHOULD have opened on, so a float typed over the
+            // carried-forward figure is a recorded correction rather than a
+            // silent one. This is the line that turns "the drawer was short
+            // this morning" into a question with an answer.
+            const [policy, last] = await Promise.all([cashPolicy(run), lastClosedSession(run)])
+            const suggested = suggestedFloat({
+                lastCarryForward: last?.carry_forward ?? null,
+                defaultFloat: policy.defaultFloat,
+            })
+
             const [result] = await conn.query(
                 `INSERT INTO drawer_sessions (branch_id, business_date, cashier_role, opening_float)
                  VALUES (?, ?, ?, ?)`,
                 [BRANCH_ID, businessDate, user.role, float],
             )
+
+            /*
+             * The day's opening cash, stamped by the first drawer to open on
+             * it and never overwritten — a second till opening at noon does
+             * not restate what the day started with. Silently does nothing
+             * before the first day-close, when there is no business_days row
+             * yet and the Karachi calendar day is standing in.
+             */
+            await run(
+                `UPDATE business_days SET opening_cash = ?
+                 WHERE branch_id = ? AND business_date = ? AND opening_cash IS NULL`,
+                [float, BRANCH_ID, businessDate],
+            )
+
             await auditLog(run, businessDate, 'drawer_open', {
-                session_id: result.insertId, cashier_role: user.role, opening_float: float,
+                session_id: result.insertId,
+                cashier_role: user.role,
+                opening_float: float,
+                suggested_float: suggested,
+                ...(round2(float) === suggested
+                    ? {}
+                    : { float_differs_by: round2(float - suggested) }),
+                carried_from_session: last?.id ?? null,
             })
             const rows = await run('SELECT * FROM drawer_sessions WHERE id = ?', [result.insertId])
             return rows[0]
@@ -227,13 +325,43 @@ export async function recordMovement({ type, amount, reason } = {}) {
     }
 }
 
-export async function closeDrawer({ counted_amount, notes } = {}) {
+/*
+ * Close the drawer.
+ *
+ * `counted_amount` is the whole till, float included. `denominations` is the
+ * optional note-by-note breakdown behind it — when it is given it must agree
+ * with the total, because a breakdown that disagrees with its own sum is
+ * worse than no breakdown at all. `carry_forward` is what stays in the till
+ * for tomorrow; the rest is handed over, and the pair is stored rather than
+ * inferred.
+ */
+export async function closeDrawer({
+    counted_amount, carry_forward, notes, denominations,
+} = {}) {
     try {
         const user = await requireUser()
-        const counted = round2(counted_amount)
-        if (!Number.isFinite(counted) || counted < 0) {
-            return { error: 'Counted amount must be zero or more' }
+
+        const breakdown = cleanDenominations(denominations)
+        if (breakdown) {
+            const fromNotes = countFromDenominations(breakdown)
+            const typed = cleanAmount(counted_amount, 'Counted amount')
+            if (fromNotes !== typed) {
+                return {
+                    error: `The notes add up to Rs. ${fromNotes.toLocaleString('en-PK')}, but the total says Rs. ${typed.toLocaleString('en-PK')} — recount or clear the breakdown.`,
+                }
+            }
         }
+
+        // Nothing carried forward is a legitimate answer (the owner empties
+        // the till), so the field is required to be a number, not required to
+        // be positive — and it defaults to nothing rather than to the float,
+        // because the app must not decide how much of the owner's cash stays
+        // on the premises overnight.
+        const { counted, carry, handover } = splitCount({
+            counted: counted_amount,
+            carryForward: carry_forward ?? 0,
+        })
+        const why = String(notes ?? '').trim().slice(0, 191)
 
         const closed = await withTransaction(async (conn) => {
             const run = runner(conn)
@@ -244,21 +372,55 @@ export async function closeDrawer({ counted_amount, notes } = {}) {
             // the computation and the freeze below.
             const flows = await sessionFlows(run, session)
             const expected = expectedFrom(session, flows)
-            const variance = round2(counted - expected)
+            const variance = varianceOf(counted, expected)
+
+            /*
+             * A miss past the tolerance has to be explained in writing before
+             * it is allowed to freeze. The check is here rather than in the
+             * browser because the browser is where it would be skipped: this
+             * is the one moment in the day when the difference is still fresh
+             * enough for anybody to know the answer.
+             */
+            const { tolerance } = await cashPolicy(run)
+            if (needsReason(variance, tolerance) && !why) {
+                throw new Error(
+                    variance < 0
+                        ? `The drawer is short by Rs. ${Math.abs(variance).toLocaleString('en-PK')} — write why before closing.`
+                        : `The drawer is over by Rs. ${variance.toLocaleString('en-PK')} — write why before closing.`,
+                )
+            }
 
             await run(
                 `UPDATE drawer_sessions
                  SET closed_at = UTC_TIMESTAMP(3), expected_amount = ?, counted_amount = ?,
-                     variance = ?, notes = ?
+                     variance = ?, carry_forward = ?, handover_amount = ?,
+                     notes = ?, denominations = ?
                  WHERE id = ?`,
-                [expected, counted, variance,
-                    String(notes ?? '').trim().slice(0, 191) || null, session.id],
+                [expected, counted, variance, carry, handover,
+                    why || null, breakdown ? JSON.stringify(breakdown) : null, session.id],
             )
+
+            /*
+             * The day's closing cash is whatever the LAST drawer shut on it
+             * left behind, so this overwrites rather than filling a blank —
+             * a second till closing at midnight restates the figure, which is
+             * correct: the day ends with what is in the till when the last
+             * one is locked.
+             */
+            await run(
+                `UPDATE business_days SET closing_cash = ?
+                 WHERE branch_id = ? AND business_date = ?`,
+                [carry, BRANCH_ID, dateOnly(session.business_date)],
+            )
+
             // The close belongs to the session's own trading day, however late
             // past midnight the count happens.
             await auditLog(run, dateOnly(session.business_date), 'drawer_close', {
                 session_id: session.id, cashier_role: user.role,
                 expected, counted, variance,
+                carry_forward: carry, handover,
+                ...(breakdown ? { denominations: breakdown } : {}),
+                ...(why ? { reason: why } : {}),
             })
             const rows = await run('SELECT * FROM drawer_sessions WHERE id = ?', [session.id])
             return rows[0]

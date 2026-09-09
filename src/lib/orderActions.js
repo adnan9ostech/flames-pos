@@ -176,9 +176,15 @@ export const settleOrder = async (orderId, {
  * CAN reverse a paid bill in the ledger, but offering that at the till is
  * a refund flow, which arrives with its own permissions.
  */
-export const cancelOrder = async (orderId, { reason, by } = {}) => {
+export const cancelOrder = async (orderId, { reason } = {}) => {
     try {
-        await requirePermission('void');
+        /*
+         * The return was being discarded and the browser's own `by` string was
+         * written to orders.cancelled_by instead — so a crafted call could sign
+         * somebody else's name to a void. Who did it is a fact the server holds;
+         * it is never asked of the client.
+         */
+        const actor = await requirePermission('void');
 
         const order = await getOrderById(orderId);
         if (order?.status === 'cancelled') {
@@ -191,7 +197,7 @@ export const cancelOrder = async (orderId, { reason, by } = {}) => {
             throw new Error('A reason is required to void an order.');
         }
 
-        const data = await voidOrder(orderId, reason.trim(), by || null);
+        const data = await voidOrder(orderId, reason.trim(), actor.name || actor.role);
         if (data) { fireInventoryAfterVoid(data); fireGlAfterVoid(data); }
         return { data };
     } catch (e) {

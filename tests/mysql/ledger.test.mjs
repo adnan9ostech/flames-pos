@@ -95,7 +95,7 @@ test('a. the ledger lists every posted line for the day, balanced, with totals o
     // Every row carries what the screen shows, and never both sides.
     for (const r of res.rows) {
         assert.match(r.voucher_no, /^(SV|SM)-\d{6}-\d{4}$/);
-        assert.match(r.account_number, /^\d{5}$/);
+        assert.match(r.account_number, /^\d{4}$/);
         assert.ok(r.account_name);
         assert.equal(r.business_date, day);
         assert.ok((r.debit > 0) !== (r.credit > 0), `line ${r.id} carries both or neither side`);
@@ -186,7 +186,7 @@ test('f. one voucher as a document: header, lines with account names, no reversa
     assert.equal(doc.lines.length, await count('SELECT COUNT(*) AS n FROM gl_journal_lines WHERE journal_id = ?', [sv.id]));
     assert.equal(sum(doc.lines, 'debit'), doc.debit_total);
     assert.equal(sum(doc.lines, 'credit'), doc.credit_total);
-    assert.ok(doc.lines.every((l) => /^\d{5}$/.test(l.account_number) && l.account_name));
+    assert.ok(doc.lines.every((l) => /^\d{4}$/.test(l.account_number) && l.account_name));
     assert.equal(doc.reversal, null);
     assert.equal(doc.reverses, null);
     assert.equal(doc.is_manual, false);

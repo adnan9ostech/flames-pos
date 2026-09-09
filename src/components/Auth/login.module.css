@@ -5,10 +5,19 @@
     justify-content: center;
     padding: 1.5rem;
     /* A warm wash off the top edge so the card sits in something rather than
-       floating on flat black. */
+       floating on flat black.
+
+       Dialled through a local knob rather than restating the gradient: on black
+       a 12% brand wash reads as warmth, on the warm-white page the same wash is
+       an orange stain across the top of the screen. */
+    --login-wash: var(--primary-soft);
     background:
-        radial-gradient(ellipse 80% 55% at 50% 0%, rgba(242, 101, 19, 0.13), transparent 70%),
+        radial-gradient(ellipse 80% 55% at 50% 0%, var(--login-wash), transparent 70%),
         var(--background);
+}
+
+[data-theme="light"] .page {
+    --login-wash: color-mix(in srgb, var(--primary) 4%, transparent);
 }
 
 .overlay {
@@ -18,7 +27,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.88);
+    background: var(--overlay);
     backdrop-filter: blur(4px);
 }
 
@@ -29,7 +38,7 @@
     border-radius: 1rem;
     background: var(--card);
     border: 1px solid var(--border);
-    box-shadow: 0 24px 70px -20px rgba(0, 0, 0, 0.9);
+    box-shadow: var(--shadow-lg);
 }
 
 .brand {
@@ -47,7 +56,14 @@
     border-radius: 999px;
     background: linear-gradient(135deg, var(--primary), var(--primary-hover));
     color: var(--primary-foreground);
-    box-shadow: 0 12px 32px -12px rgba(242, 101, 19, 0.75);
+    /* A coloured bloom under the mark. It only reads as glow against black —
+       on the light page the same shadow is a brown halo, so light takes the
+       neutral elevation token instead. */
+    box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--primary) 75%, transparent);
+}
+
+[data-theme="light"] .mark {
+    box-shadow: var(--shadow-md);
 }
 
 .title {
@@ -150,9 +166,9 @@
     gap: 0.5rem;
     padding: 0.8rem 1rem;
     border-radius: var(--radius);
-    background: rgba(220, 38, 38, 0.12);
-    border: 1px solid rgba(220, 38, 38, 0.4);
-    color: #fca5a5;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-text);
     font-size: 0.9rem;
     line-height: 1.45;
 }
@@ -186,7 +202,13 @@
 }
 
 .submit:disabled {
-    opacity: 0.5;
+    /*
+     * Real colours, not a fade. opacity composites toward whatever is behind,
+     * so a primary fill at 0.5 reads correctly dim on black but as a pale peach
+     * that still looks pressable on a light card.
+     */
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
     cursor: default;
 }
 

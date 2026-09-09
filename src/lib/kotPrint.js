@@ -1,8 +1,22 @@
 /*
- * Kitchen Order Ticket printing — one slip per category present in a round,
- * printed sequentially on the single thermal printer. v1 station = category:
- * four categories in a round means four cuts in a row, handed to sections by a
- * runner. A kitchen slip never shows a price.
+ * Kitchen Order Ticket printing — the round just sent, cut into slips and
+ * pushed through the single thermal printer one at a time. A kitchen slip
+ * never shows a price.
+ *
+ * TWO WAYS TO CUT A ROUND, chosen by store_settings.kot_mode:
+ *
+ *   'category'  groupRoundByCategory — one slip per SECTION present in the
+ *               round (v1: station = category). Four sections means four cuts,
+ *               each carrying that section's whole list.
+ *   'item'      groupRoundByItem — one slip per LINE, so a ticket travels with
+ *               the dish it names and can be spiked against it. This is the
+ *               default: it is what the owner asked for. It is also far more
+ *               paper — a 12-line order prints 12 tickets against maybe 4.
+ *
+ * Both produce the SAME slip shape, so KotSlips.jsx renders either without
+ * knowing which mode is on. Call buildKotSlips(mode, …) rather than picking a
+ * grouper by hand, so the till and the KDS reprint can never disagree about
+ * what a mode means.
  *
  * ===== Integration contract (for src/app/pos/page.js) =====
  *
@@ -18,7 +32,7 @@
  *
  *   const sentItems = cart;                       // snapshot; clearing the
  *                                                 // cart mid-queue is then safe
- *   const slips = groupRoundByCategory(sentItems, menuData.items, menuData.categories);
+ *   const slips = buildKotSlips(kotMode, sentItems, menuData.items, menuData.categories);
  *   const meta = {
  *       orderNumber: getOrderNumber(saved),       // human order number
  *       table: saved.table_number,                // null off the floor
@@ -26,6 +40,7 @@
  *       orderType: saved.order_type,              // 'dine-in' | 'takeaway' | 'delivery'
  *       roundNo,                                  // 1 for a new order
  *       at: new Date(),                           // fire time stamped on every slip
+ *       reprint: false,                           // true only off the KDS
  *   };
  *   await runPrintQueue(slips, (slip) => {
  *       // flushSync, not a queued set: printKotSlip() reads the DOM on the
@@ -46,37 +61,85 @@
  * callback so React keeps ownership of the DOM — this module only measures
  * and prints what the page has already rendered, exactly as printReceipt.js
  * does for the receipt.
+ *
+ * src/app/kds/page.js reuses the same three pieces (buildKotSlips →
+ * runPrintQueue → printKotSlip) to reprint a stored order, with
+ * meta.reprint = true so the paper says so and nothing is cooked twice.
  */
 
 // Lines whose dish or category no longer resolves still have to reach the
 // kitchen; they land on one catch-all slip under this name.
 const FALLBACK_CATEGORY = 'Kitchen';
 
-// Groups a round's items into slips, one per category, ordered by the menu's
-// category sort_order (fallback group last). Category resolves menu_item id →
-// menu_items.category_id → categories; the direct category_id a cart line
-// carries (the cart spreads the menu item) covers a dish deleted between
-// ringing and printing.
+/*
+ * The modes store_settings.kot_mode accepts. Anything else — an older row, a
+ * hand-edited column, a database that has never heard of the setting — reads
+ * as the default rather than printing nothing.
+ */
+export const KOT_MODES = ['category', 'item'];
+export const DEFAULT_KOT_MODE = 'item';
+
+export const normalizeKotMode = (mode) =>
+    KOT_MODES.includes(mode) ? mode : DEFAULT_KOT_MODE;
+
+// The one place a mode name turns into slips. Both callers (the till at send
+// time, the KDS on a reprint) go through here.
+export const buildKotSlips = (mode, roundItems, menuItems, categories) =>
+    normalizeKotMode(mode) === 'category'
+        ? groupRoundByCategory(roundItems, menuItems, categories)
+        : groupRoundByItem(roundItems, menuItems, categories);
+
+// Menu lookups both groupers need, built once per call rather than per line.
+const indexMenu = (menuItems, categories) => ({
+    dishById: new Map((menuItems || []).map((mi) => [String(mi.id), mi])),
+    catById: new Map((categories || []).map((c) => [String(c.id), c])),
+});
+
+// The station a line belongs to, or null for the catch-all. Category resolves
+// menu_item id → menu_items.category_id → categories; the direct category_id a
+// cart line carries (the cart spreads the menu item) covers a dish deleted
+// between ringing and printing.
+const stationFor = (line, dishById, catById) => {
+    const dish = dishById.get(String(line.id ?? line.menu_item_id ?? ''));
+    const catId = dish?.category_id ?? line.category_id ?? null;
+    return (catId != null ? catById.get(String(catId)) : null) || null;
+};
+
+// Infinity, so the catch-all always prints after the real stations regardless
+// of how sort_order is numbered.
+const sortOrderOf = (cat) => (cat ? (cat.sort_order ?? Number.MAX_SAFE_INTEGER) : Infinity);
+
+/*
+ * Station order, then name, then the order it was rung in. The identity guard
+ * is not decoration: two catch-all slips both sort at Infinity, and
+ * Infinity - Infinity is NaN — which sort() reads as "equal" only by accident,
+ * and which would silently swallow the tie-breakers behind it.
+ */
+const byStation = (a, b) =>
+    (a.sortOrder === b.sortOrder ? 0 : a.sortOrder - b.sortOrder)
+    || a.categoryName.localeCompare(b.categoryName)
+    || (a.seq - b.seq);
+
+// Drops the sort keys, leaving the slip the renderer consumes.
+const toSlip = ({ sortOrder, seq, ...slip }) => slip;
+
+// One slip per category present in the round, ordered by the menu's category
+// sort_order (fallback group last).
 // Returns [{categoryId, categoryName, items: [{qty, name, variant, modifiers, notes}]}].
 export const groupRoundByCategory = (roundItems, menuItems, categories) => {
-    const dishById = new Map((menuItems || []).map((mi) => [String(mi.id), mi]));
-    const catById = new Map((categories || []).map((c) => [String(c.id), c]));
+    const { dishById, catById } = indexMenu(menuItems, categories);
 
     const groups = new Map();
-    for (const line of roundItems || []) {
-        const dish = dishById.get(String(line.id ?? line.menu_item_id ?? ''));
-        const catId = dish?.category_id ?? line.category_id ?? null;
-        const cat = catId != null ? catById.get(String(catId)) : null;
-
+    for (const [seq, line] of (roundItems || []).entries()) {
+        const cat = stationFor(line, dishById, catById);
         const key = cat ? String(cat.id) : FALLBACK_CATEGORY;
         let group = groups.get(key);
         if (!group) {
             group = {
                 categoryId: cat ? cat.id : null,
                 categoryName: cat ? cat.name : FALLBACK_CATEGORY,
-                // Infinity, so the catch-all slip always prints after the real
-                // stations regardless of how sort_order is numbered.
-                sortOrder: cat ? (cat.sort_order ?? Number.MAX_SAFE_INTEGER) : Infinity,
+                sortOrder: sortOrderOf(cat),
+                seq,
                 items: [],
             };
             groups.set(key, group);
@@ -84,14 +147,49 @@ export const groupRoundByCategory = (roundItems, menuItems, categories) => {
         group.items.push(toSlipLine(line));
     }
 
-    return [...groups.values()]
-        .sort((a, b) => (a.sortOrder - b.sortOrder) || a.categoryName.localeCompare(b.categoryName))
-        .map(({ sortOrder, ...slip }) => slip);
+    return [...groups.values()].sort(byStation).map(toSlip);
+};
+
+/*
+ * One slip per LINE — the shape the owner asked for, so a ticket can travel
+ * with its dish.
+ *
+ * A line of qty 3 is ONE ticket reading "3×", not three tickets. Three
+ * identical karahis are one pan of work and one line on the bill, so three
+ * identical scraps of paper would tell the section nothing the one ticket does
+ * not, could not be told apart if two came back, and would treble the paper on
+ * exactly the orders that are already the longest. If a kitchen ever needs a
+ * ticket per plate, that is a third mode, not a reinterpretation of this one.
+ *
+ * Ordered by station, then by the order the lines were rung in, so the queue
+ * hands the runner a contiguous stack per section rather than making them sort
+ * a shuffled pile — the same ordering category mode prints in.
+ * Returns the same slip shape as groupRoundByCategory, one item long.
+ */
+export const groupRoundByItem = (roundItems, menuItems, categories) => {
+    const { dishById, catById } = indexMenu(menuItems, categories);
+
+    return (roundItems || [])
+        .map((line, seq) => {
+            const cat = stationFor(line, dishById, catById);
+            return {
+                categoryId: cat ? cat.id : null,
+                // Every ticket names its own station: with one dish per slip
+                // this line is the only thing telling the runner where it goes.
+                categoryName: cat ? cat.name : FALLBACK_CATEGORY,
+                sortOrder: sortOrderOf(cat),
+                seq,
+                items: [toSlipLine(line)],
+            };
+        })
+        .sort(byStation)
+        .map(toSlip);
 };
 
 // Accepts both a till cart line ({selectedVariant, selectedModifiers}) and a
-// stored order line ({variant, modifiers}) so a reprint from an order row can
-// reuse the same path later.
+// stored order line ({variant, modifiers}) — the KDS reprint feeds it the
+// stored snapshot, which carries selectedVariant as {name} and modifiers under
+// selectedModifiers, and both spellings are read here.
 const toSlipLine = (line) => {
     const variant = line.selectedVariant?.name ?? line.variant ?? null;
 

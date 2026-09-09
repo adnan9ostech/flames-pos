@@ -3,7 +3,9 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { businessDate, audit, requireId } from '@/lib/accounts/helpers.mjs'
-import { GROUP_KEYS, groupOf, LINK_CODES } from '@/lib/accounts/constants.mjs'
+import {
+    GROUP_KEYS, groupOf, LINK_CODES, ACCOUNT_NUMBER_RE, digitsLabel,
+} from '@/lib/accounts/constants.mjs'
 
 /*
  * The chart of accounts. Read by anyone with `accounts`; written only with
@@ -30,8 +32,9 @@ const toRow = (r) => ({
 /*
  * Validation lives server-side because the form is a hint, not a guarantee.
  * The numbering rule is enforced, not suggested: an income account numbered
- * 4xxxx would file itself under expenses on every report that groups by the
- * leading digit, and nobody would notice until the P&L was wrong.
+ * in the 5000s would file itself under cost of sales on every report that
+ * groups by the leading digit, and nobody would notice until the P&L was
+ * wrong. Four digits, standard series — see GROUPS in constants.mjs.
  */
 const cleanAccount = (input) => {
     const account_group = GROUP_KEYS.includes(input?.account_group) ? input.account_group : null
@@ -39,9 +42,12 @@ const cleanAccount = (input) => {
     const group = groupOf(account_group)
 
     const account_number = String(input?.account_number ?? '').trim()
-    if (!/^\d{5}$/.test(account_number)) throw new Error('Account number must be exactly five digits')
-    if (account_number[0] !== group.digit) {
-        throw new Error(`A${group.key === 'asset' || group.key === 'income' || group.key === 'expense' || group.key === 'equity' ? 'n' : ''} ${group.label.toLowerCase()} account must start with ${group.digit}`)
+    if (!ACCOUNT_NUMBER_RE.test(account_number)) {
+        throw new Error('Account number must be exactly four digits')
+    }
+    if (!group.digits.includes(account_number[0])) {
+        const article = group.key === 'liability' ? 'A' : 'An'
+        throw new Error(`${article} ${group.label.toLowerCase()} account is numbered ${digitsLabel(group)}`)
     }
 
     const name = String(input?.name ?? '').trim()

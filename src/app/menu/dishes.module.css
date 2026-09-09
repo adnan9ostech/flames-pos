@@ -1,0 +1,152 @@
+/*
+ * What the dish list and the dish editor need on top of menu.module.css.
+ * Everything shared with the other Menu screens lives there; this file is
+ * only the shapes these two screens own — the wide dish table, the reorder
+ * arrows, the size rows and the modifier picker.
+ */
+
+/* ---- The list ---- */
+
+/* Seven columns: photo, name, price, sizes, modifiers, available, actions.
+ * Wider than the shared 640px floor, so the card scrolls sideways on a till
+ * rather than crushing the price against the name. */
+.dishTable { min-width: 860px }
+
+.dishTableOrdered { min-width: 940px }
+
+/* The new dish the editor just created, lit for a few seconds so the eye
+ * finds it in a list of 125. */
+.rowNew td {
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    animation: fadeHighlight 4s ease-out forwards;
+}
+
+@keyframes fadeHighlight {
+    0%, 40% { background: color-mix(in srgb, var(--primary) 16%, transparent) }
+    100% { background: transparent }
+}
+
+/* Up / down, side by side: stacked they made the row taller than the photo. */
+.orderCell {
+    display: inline-flex;
+    gap: 0.25rem;
+    width: 1%;
+    white-space: nowrap;
+}
+
+.orderBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 40px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.orderBtn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary) }
+.orderBtn:disabled { opacity: var(--disabled-opacity); cursor: not-allowed }
+
+.thumbCell { width: 1%; padding-right: 0 !important }
+
+/* The dish name is a link into its editor: the whole row being clickable
+ * would fight the availability switch sitting inside it. */
+.dishLink {
+    color: inherit;
+    text-decoration: none;
+}
+.dishLink:hover { color: var(--primary) }
+
+.switchCell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.switchLabel { font-size: 0.75rem; color: var(--muted-foreground) }
+
+/* ---- The editor ---- */
+
+.editorCol {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+/* A custom size row: name | price | remove. */
+.sizeLine { grid-template-columns: minmax(0, 1fr) 9rem 44px }
+
+/* A size row whose name comes from the set: only the price is editable. */
+.sizeLineFixed { grid-template-columns: minmax(0, 1fr) 9rem }
+
+.sizeName {
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.tilePrice {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--background);
+}
+
+.tilePriceValue { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums }
+
+/* Modifier picker: one card per modifier, its options previewed under it. */
+.modList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.6rem;
+}
+
+.modCard {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--background);
+    cursor: pointer;
+    min-height: 44px;
+    transition: border-color 0.15s;
+}
+
+.modCard:hover { border-color: var(--primary) }
+.modCardOn { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent) }
+.modCard input { accent-color: var(--primary); width: 18px; height: 18px; margin-top: 0.15rem; flex-shrink: 0 }
+.modName { font-size: 0.85rem; font-weight: 700 }
+.modMeta { display: block; margin-top: 0.2rem; font-size: 0.72rem; color: var(--muted-foreground); line-height: 1.4 }
+
+.recipeLink { align-self: flex-start }
+
+/* The unsaved-changes bar sits with the form's own actions. */
+.dirtyNote {
+    font-size: 0.75rem;
+    color: var(--warning-text);
+    margin-right: auto;
+    align-self: center;
+}

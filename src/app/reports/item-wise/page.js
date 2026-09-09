@@ -11,18 +11,17 @@ import {
     CalendarRange, FileDown, Printer, Loader2, UtensilsCrossed,
     AlertTriangle, ChevronRight, ChevronDown
 } from 'lucide-react'
+/*
+ * SERIES is slot 2 of the app's validated categorical palette rather than the
+ * brand orange: --primary is chrome (buttons, active tabs), and data painted
+ * in it reads as another control.
+ */
+import { SERIES, GRID, AXIS_TEXT, LABEL_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs'
 
 // Money renders like the orders page: en-PK grouping, no decimals on screen.
 const rs = (x) => Math.round(Number(x) || 0).toLocaleString('en-PK')
 
 const TOP_N = 10
-
-/*
- * Slot 2 of the app's validated categorical palette rather than the brand
- * orange: --primary is chrome (buttons, active tabs), and data painted in it
- * reads as another control.
- */
-const SERIES = '#d95926'
 
 // Bar ends and the money axis are abbreviated so ten of them fit; the exact
 // rupee figure lives in the tooltip.
@@ -358,13 +357,13 @@ export default function ItemWiseSalesPage() {
                                     >
                                         {/* Only the value axis gets rules; the category
                                             side is already spelled out in words. */}
-                                        <CartesianGrid horizontal={false} stroke="#332c27" strokeDasharray="3 3" />
+                                        <CartesianGrid horizontal={false} stroke={GRID} strokeDasharray="3 3" />
                                         <XAxis
                                             type="number"
                                             domain={[0, 'dataMax']}
                                             allowDecimals={false}
                                             tickFormatter={rsShort}
-                                            tick={{ fill: '#a39a92', fontSize: 11 }}
+                                            tick={{ fill: AXIS_TEXT, fontSize: 11 }}
                                             tickLine={false}
                                             axisLine={false}
                                         />
@@ -373,12 +372,12 @@ export default function ItemWiseSalesPage() {
                                             dataKey="name"
                                             width={150}
                                             tickFormatter={shortName}
-                                            tick={{ fill: '#f8f4ee', fontSize: 11 }}
+                                            tick={{ fill: LABEL_TEXT, fontSize: 11 }}
                                             tickLine={false}
                                             axisLine={false}
                                         />
                                         <Tooltip
-                                            cursor={{ fill: 'rgba(248, 244, 238, 0.04)' }}
+                                            cursor={CURSOR_FILL}
                                             content={<ItemTooltip />}
                                         />
                                         <Bar
@@ -393,7 +392,7 @@ export default function ItemWiseSalesPage() {
                                                 position="right"
                                                 offset={8}
                                                 formatter={rsShort}
-                                                fill="#f8f4ee"
+                                                fill={LABEL_TEXT}
                                                 fontSize={11}
                                             />
                                         </Bar>

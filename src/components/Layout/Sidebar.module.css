@@ -51,6 +51,15 @@
  * collapsed rail crops to just that: an oversized render inside a narrow
  * window. Tailwind's preflight (max-width:100%; height:auto) would shrink
  * the render back down and show the squashed wordmark, so override both.
+ *
+ * These rules are pure geometry — no filter, no colour — so they are already
+ * theme-neutral and there is nothing here to scope to a theme. The asset
+ * itself is not: flames-by-the-indus-logo.svg paints its wordmark in `white`
+ * with only the leftmost flame in #F26513. The collapsed rail is fine (it
+ * crops to the orange flame), but the EXPANDED rail's wordmark is white ink
+ * on the light theme's near-white card. That needs a light-ink asset chosen
+ * in Sidebar.jsx; a CSS filter cannot darken the wordmark without also
+ * wrecking the brand orange beside it.
  */
 .logoMark {
     display: block;
@@ -84,7 +93,7 @@
 }
 
 .toggle:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--surface-raise);
     color: var(--foreground);
 }
 
@@ -152,7 +161,7 @@
 }
 
 .link:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--surface-raise);
     color: var(--foreground);
 }
 
@@ -184,7 +193,7 @@
 .footer {
     padding: 1rem;
     border-top: 1px solid var(--border);
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--surface-sunken);
     flex-shrink: 0;
 }
 
@@ -244,12 +253,12 @@
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--sidebar-muted, #6b7280);
+    color: var(--sidebar-muted);
 }
 
 .sectionRule {
     margin: 10px 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--border);
 }
 
 /* ---- Search trigger ---------------------------------------------------- */
@@ -323,3 +332,14 @@
 @media (hover: none) and (pointer: coarse) {
     .searchKbd { display: none }
 }
+
+/*
+ * Logo ink. The source SVG paints its wordmark white, so it is invisible on the
+ * light theme's card; -dark-ink.svg is the same artwork with the type recoloured
+ * (the flame stays brand orange in both). Only one is ever shown, and the other
+ * carries alt="" + aria-hidden so a screen reader hears the name once.
+ */
+.logoOnLight { display: none; }
+
+:root[data-theme="light"] .logoOnDark { display: none; }
+:root[data-theme="light"] .logoOnLight { display: block; }

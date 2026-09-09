@@ -88,6 +88,12 @@ export default function FloorPage() {
     }
 
     const rows = tab === 'waiters' ? waiters : tables;
+    /* The waiters tab shows four columns and the tables tab six; a row that
+       spans the table has to say which. A fixed colSpan={6} declared a
+       six-column table on the waiters tab — two columns no header ever
+       covered, which is what assistive tech reads and what a browser lays the
+       empty and inline-edit rows out against. */
+    const columnCount = tab === 'waiters' ? 4 : 6;
 
     return (
         <div className={styles.container}>
@@ -154,14 +160,14 @@ export default function FloorPage() {
                     </thead>
                     <tbody>
                         {rows.length === 0 && (
-                            <tr><td colSpan={6} className={styles.empty}>
+                            <tr><td colSpan={columnCount} className={styles.empty}>
                                 Nothing here yet — add the first one.
                             </td></tr>
                         )}
                         {rows.map((row) => (
                             editing === row.id ? (
                                 <tr key={row.id}>
-                                    <td colSpan={6}>
+                                    <td colSpan={columnCount}>
                                         <Form
                                             tab={tab} form={form} setForm={setForm}
                                             onSave={submit} onCancel={cancel} busy={busy}

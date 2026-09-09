@@ -3,6 +3,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { round2 } from '@/lib/cash/drawer.mjs'
 
 const BRANCH_ID = 1
 
@@ -30,6 +31,58 @@ const fetchPendingBills = async () =>
          WHERE payment_status = 'unpaid' AND status <> 'cancelled'
          ORDER BY created_at`,
     ))
+
+/*
+ * The day's cash position: what the till opened on, what every drawer closed
+ * on it counted, and what is being left for tomorrow. Read from the frozen
+ * drawer rows rather than recomputed, so the screen shows what was signed off
+ * and not what the numbers would say if they were summed again tonight.
+ *
+ * `open` is the drawer still unlocked, if any. A day closed over an open
+ * drawer has no count for the cash in it, which is why the close asks about
+ * it rather than quietly rolling past.
+ */
+const loadDayCash = async (businessDate) => {
+    const sessions = await query(
+        `SELECT id, cashier_role, opened_at, closed_at, opening_float,
+                expected_amount, counted_amount, variance, carry_forward, handover_amount
+         FROM drawer_sessions
+         WHERE branch_id = ? AND business_date = ?
+         ORDER BY opened_at`,
+        [BRANCH_ID, businessDate],
+    )
+    const dayRow = await query(
+        'SELECT opening_cash, closing_cash FROM business_days WHERE branch_id = ? AND business_date = ?',
+        [BRANCH_ID, businessDate],
+    )
+    const closed = sessions.filter((s) => s.closed_at)
+    const open = sessions.find((s) => !s.closed_at) ?? null
+    const sum = (pick) => round2(closed.reduce((t, s) => t + Number(pick(s) ?? 0), 0))
+
+    return {
+        // The stamped figures win; the first session's float stands in before
+        // the very first day-close has created a business_days row to stamp.
+        opening: dayRow[0]?.opening_cash != null
+            ? round2(dayRow[0].opening_cash)
+            : (sessions[0] ? round2(sessions[0].opening_float) : null),
+        closing: dayRow[0]?.closing_cash != null ? round2(dayRow[0].closing_cash) : null,
+        sessions: sessions.length,
+        closedSessions: closed.length,
+        expected: sum((s) => s.expected_amount),
+        counted: sum((s) => s.counted_amount),
+        variance: sum((s) => s.variance),
+        carryForward: closed.length ? round2(Number(closed[closed.length - 1].carry_forward ?? 0)) : null,
+        handover: sum((s) => s.handover_amount),
+        openSession: open
+            ? {
+                id: String(open.id),
+                cashier_role: open.cashier_role,
+                opened_at: open.opened_at.toISOString(),
+                opening_float: round2(open.opening_float),
+            }
+            : null,
+    }
+}
 
 /*
  * The whole screen in one shape, shared by the read action and the close —
@@ -60,7 +113,8 @@ const loadState = async () => {
         : { state: 'implicit', business_date: today, opened_at: null, stale: false }
 
     const history = (await query(
-        `SELECT bd.business_date, bd.opened_at, bd.closed_at, u.role AS closed_by_role
+        `SELECT bd.business_date, bd.opened_at, bd.closed_at, bd.opening_cash, bd.closing_cash,
+                u.role AS closed_by_role
          FROM business_days bd
          LEFT JOIN users u ON u.id = bd.closed_by
          WHERE bd.branch_id = ? AND bd.closed_at IS NOT NULL
@@ -71,6 +125,8 @@ const loadState = async () => {
         opened_at: r.opened_at ? r.opened_at.toISOString() : null,
         closed_at: r.closed_at ? r.closed_at.toISOString() : null,
         closed_by_role: r.closed_by_role ?? null,
+        opening_cash: r.opening_cash == null ? null : round2(r.opening_cash),
+        closing_cash: r.closing_cash == null ? null : round2(r.closing_cash),
     }))
 
     return {
@@ -78,6 +134,7 @@ const loadState = async () => {
         history,
         pendingBills: await fetchPendingBills(),
         ledgerGaps: await countLedgerGaps(openDay.business_date),
+        cash: await loadDayCash(openDay.business_date),
     }
 }
 
@@ -222,6 +279,30 @@ export async function closeBusinessDay({ force = false } = {}) {
             }
         }
 
+        /*
+         * The cash gate. Closing the day over an open drawer means the day's
+         * takings were never counted and tomorrow opens on a float nobody
+         * declared — the exact hole this screen exists to shut. A person
+         * pressing Close is asked to count first; `force` is the same genuine
+         * end-of-night override the unpaid-bills gate offers, and the audit
+         * row records that it was used.
+         *
+         * The scheduled close is the deliberate exception: a machine must
+         * never fabricate a count, and must never stall the calendar because
+         * somebody left a till unlocked. It warns and rolls on.
+         */
+        const openDrawers = await query(
+            `SELECT cashier_role FROM drawer_sessions
+             WHERE branch_id = ? AND closed_at IS NULL`,
+            [BRANCH_ID],
+        )
+        if (openDrawers.length > 0 && !force) {
+            const which = openDrawers.map((d) => d.cashier_role).join(', ')
+            return {
+                error: `The ${which} drawer is still open — count and close it so the day's cash is recorded, then close the day.`,
+            }
+        }
+
         // The callback's refusals are returned, not thrown, so its result has
         // to be inspected — a discarded return here would commit the close
         // and report success.
@@ -292,7 +373,11 @@ export async function closeBusinessDay({ force = false } = {}) {
                     closed: closedDate,
                     opened: nextDate,
                     pending_bills: pending.length,
-                    forced: Boolean(force) && pending.length > 0,
+                    open_drawers: openDrawers.length,
+                    forced: Boolean(force) && (pending.length > 0 || openDrawers.length > 0),
+                    ...(force && openDrawers.length > 0
+                        ? { uncounted_drawers: openDrawers.map((d) => d.cashier_role) }
+                        : {}),
                     // Which bills were knowingly carried past the close —
                     // tomorrow's "why is table 9 on yesterday's books" answer.
                     ...(force && pending.length > 0

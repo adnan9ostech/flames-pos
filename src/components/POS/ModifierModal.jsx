@@ -27,7 +27,10 @@ const defaultSelections = (item, modifiersData) => {
     item.modifiers.forEach(modId => {
         const mod = modifiersData?.[modId];
         if (mod && mod.type === 'select') {
-            initial[modId] = mod.options[1]; // Default to second option (usually Medium)
+            // Default to the second option (Medium, on a spice level) when
+            // there is one; a modifier with a single option defaults to it
+            // rather than to undefined, which priced as NaN.
+            initial[modId] = mod.options[1] ?? mod.options[0];
         } else if (mod && mod.type === 'multiselect') {
             initial[modId] = [];
         }

@@ -43,7 +43,7 @@ export const NAV_INDEX = [
     // ---- Reports ----
     {
         href: '/reports', label: 'Reports', icon: 'BarChart3', perm: 'reports',
-        section: 'Reports', nav: 'primary',
+        section: 'Reports', nav: 'backoffice',
         keywords: 'analytics dashboard stats overview revenue insights',
     },
     {
@@ -80,40 +80,79 @@ export const NAV_INDEX = [
     // ---- Back office: the morning-after reads and the master lists ----
     {
         href: '/drawer', label: 'Cash Drawer', icon: 'Wallet', perm: 'drawer',
-        section: 'Back office', nav: 'backoffice',
+        section: 'Cash & Day', nav: 'backoffice',
         keywords: 'cash float till count drawer session paid in paid out variance',
     },
     {
         href: '/dayclose', label: 'Day Close', icon: 'CalendarCheck', perm: 'dayclose',
-        section: 'Back office', nav: 'backoffice',
+        section: 'Cash & Day', nav: 'backoffice',
         keywords: 'end of day eod close day start day business day trading day night audit',
     },
+
+    // ---- Menu: what the till sells. Sits in the rail before the till-setup
+    // lists because it is opened far more often than any of them. ----
     {
-        href: '/floor', label: 'Waiters & Tables', icon: 'Armchair', perm: 'menu',
-        section: 'Back office', nav: 'backoffice',
+        href: '/menu', label: 'Menu', icon: 'UtensilsCrossed', perm: 'menu',
+        section: 'Menu', nav: 'backoffice',
+        keywords: 'menu management dishes items products edit menu prices food list catalogue archive',
+    },
+    {
+        href: '/menu/items/new', label: 'Add Dish', icon: 'FilePlus2', perm: 'menu',
+        section: 'Menu',
+        keywords: 'new dish add item create menu item new product add dish',
+    },
+    {
+        href: '/menu/categories', label: 'Categories', icon: 'Tags', perm: 'menu',
+        section: 'Menu',
+        keywords: 'menu categories sections groups sort order icons kot stations',
+    },
+    {
+        href: '/menu/variations', label: 'Sizes & Variations', icon: 'Layers', perm: 'menu',
+        section: 'Menu',
+        keywords: 'variations sizes half full portions pieces variant prices size prices',
+    },
+    {
+        href: '/menu/modifiers', label: 'Modifiers', icon: 'SlidersHorizontal', perm: 'menu',
+        section: 'Menu',
+        keywords: 'modifiers add-ons addons options extras spice level toppings choices',
+    },
+    {
+        href: '/menu/recipes', label: 'Recipes', icon: 'ChefHat', perm: 'menu',
+        section: 'Menu',
+        keywords: 'recipe costing bom ingredients per dish build unit cost',
+    },
+    {
+        href: '/menu/ingredients', label: 'Ingredients', icon: 'Carrot', perm: 'menu',
+        section: 'Menu',
+        keywords: 'ingredients ingredient price raw materials stock items unit cost purchase price',
+    },
+    {
+        href: '/floor', label: 'Waiters & Tables', icon: 'Armchair', perm: 'setup',
+        section: 'Setup', nav: 'backoffice',
         keywords: 'waiters servers staff tables floor plan seating covers areas',
     },
     {
         href: '/expenses', label: 'Expenses', icon: 'ReceiptText', perm: 'expenses',
-        section: 'Back office', nav: 'backoffice',
+        section: 'Cash & Day', nav: 'backoffice',
         keywords: 'expense spending costs vouchers payouts bills paid out petty cash',
     },
-    {
-        href: '/companies', label: 'Companies', icon: 'Building2', perm: 'cityledger',
-        section: 'Back office', nav: 'backoffice',
-        keywords: 'corporate bill to company accounts clients organisations customers on account',
-    },
-    {
-        href: '/cityledger', label: 'City Ledger', icon: 'BookText', perm: 'cityledger',
-        section: 'Back office', nav: 'backoffice',
-        keywords: 'btc credit receivable company invoices receipts aging statement',
-    },
-
-    // ---- Accounts: the double-entry ledger, modelled on ChowPOS ----
+    // ---- Accounts: the double-entry ledger, modelled on ChowPOS, and the
+    // receivables masters that feed it. The hub goes first: it is the door,
+    // and the rail draws this group in the order it is written here. ----
     {
         href: '/accounts', label: 'Accounts', icon: 'Calculator', perm: 'accounts',
         section: 'Accounts', nav: 'backoffice',
         keywords: 'accounting ledger gl books finance bookkeeping accountant',
+    },
+    {
+        href: '/companies', label: 'Companies', icon: 'Building2', perm: 'cityledger',
+        section: 'Accounts', nav: 'backoffice',
+        keywords: 'corporate bill to company accounts clients organisations customers on account',
+    },
+    {
+        href: '/cityledger', label: 'City Ledger', icon: 'BookText', perm: 'cityledger',
+        section: 'Accounts', nav: 'backoffice',
+        keywords: 'btc credit receivable company invoices receipts aging statement',
     },
     {
         href: '/accounts/chart', label: 'Chart of Accounts', icon: 'BookOpen', perm: 'accounts',
@@ -196,18 +235,18 @@ export const NAV_INDEX = [
         keywords: 'posting health unposted bills repost ledger gaps missing journals reconcile',
     },
     {
-        href: '/charges', label: 'Charges', icon: 'Percent', perm: 'menu',
-        section: 'Back office', nav: 'backoffice',
+        href: '/charges', label: 'Charges', icon: 'Percent', perm: 'setup',
+        section: 'Setup', nav: 'backoffice',
         keywords: 'service charge delivery fee surcharge extra charges',
     },
     {
-        href: '/discounts', label: 'Discounts', icon: 'BadgePercent', perm: 'menu',
-        section: 'Back office', nav: 'backoffice',
+        href: '/discounts', label: 'Discounts', icon: 'BadgePercent', perm: 'setup',
+        section: 'Setup', nav: 'backoffice',
         keywords: 'discount promo offers deals promotions vouchers happy hour',
     },
     {
         href: '/users', label: 'Users', icon: 'Users', perm: 'users',
-        section: 'Back office', nav: 'backoffice',
+        section: 'Setup', nav: 'backoffice',
         keywords: 'staff accounts logins permissions roles password reset team',
     },
 
@@ -220,17 +259,12 @@ export const NAV_INDEX = [
     {
         href: '/inventory/masters', label: 'Inventory Masters', icon: 'FileStack', perm: 'inventory',
         section: 'Inventory',
-        keywords: 'ingredients units warehouses item master stock items setup',
+        keywords: 'units warehouses item master stock setup',
     },
     {
         href: '/inventory/suppliers', label: 'Suppliers', icon: 'Truck', perm: 'inventory',
         section: 'Inventory',
         keywords: 'vendors supplier payments purchase payables procurement',
-    },
-    {
-        href: '/inventory/recipes', label: 'Recipes', icon: 'ChefHat', perm: 'inventory',
-        section: 'Inventory',
-        keywords: 'recipe costing bom ingredients per dish build unit cost',
     },
     {
         href: '/inventory/receiving', label: 'Stock Receiving', icon: 'PackageCheck', perm: 'inventory',
@@ -272,6 +306,44 @@ export const primaryNav = (perms = []) =>
 
 export const backOfficeNav = (perms = []) =>
     NAV_INDEX.filter((e) => e.nav === 'backoffice' && (!e.perm || perms.includes(e.perm)));
+
+/*
+ * The back-office rail, grouped.
+ *
+ * It used to be thirteen links under one "Back office" heading in the order
+ * they happened to be written — Menu between Day Close and Waiters, Accounts
+ * between City Ledger and Charges, Settings last because it was added last.
+ * Long enough to need scanning, unordered enough that scanning did not help.
+ *
+ * These are the same `section` values the search palette groups on, so a screen
+ * is filed in exactly one place and the rail and the palette cannot disagree
+ * about where it lives. Order is by how often a restaurant reaches for it:
+ * tonight's money, then what is sold, then the books, then the reading, then
+ * the things set once and left alone.
+ */
+export const SIDEBAR_GROUPS = [
+    { title: 'Cash & Day', sections: ['Cash & Day'] },
+    { title: 'Menu & Stock', sections: ['Menu', 'Inventory'] },
+    { title: 'Accounts', sections: ['Accounts'] },
+    { title: 'Reports', sections: ['Reports'] },
+    { title: 'Setup', sections: ['Setup'] },
+];
+
+/*
+ * The rail as sections, empty ones dropped. The final group is a catch-all:
+ * a screen added with a section nobody listed above still appears, under
+ * "More", rather than silently vanishing from the sidebar — which is the
+ * failure mode a hard-coded list of groups always has eventually.
+ */
+export const sidebarSections = (perms = []) => {
+    const items = backOfficeNav(perms);
+    const claimed = new Set(SIDEBAR_GROUPS.flatMap((g) => g.sections));
+    const groups = SIDEBAR_GROUPS
+        .map((g) => ({ title: g.title, items: items.filter((e) => g.sections.includes(e.section)) }))
+        .filter((g) => g.items.length > 0);
+    const rest = items.filter((e) => !claimed.has(e.section));
+    return rest.length > 0 ? [...groups, { title: 'More', items: rest }] : groups;
+};
 
 /* Everything this person may open — the search index. */
 export const searchableNav = (perms = []) =>
