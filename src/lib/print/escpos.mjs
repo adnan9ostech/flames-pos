@@ -72,6 +72,27 @@ export const row = (left, right, cols) => {
         .join('\n');
 };
 
+/*
+ * A line's label: the dish, and its size when the name does not already say it.
+ *
+ * The till's modifier modal composes the cart line's name as
+ * `Beef Seekh Kebab (12 pieces)` AND passes the variant separately, so
+ * `order_items` stores the size twice over — once inside `name`, once in
+ * `variant`. Appending it blindly printed "Beef Seekh Kebab (12 pieces) (12
+ * pieces)", which wrapped onto a second line and looked like a bug on the
+ * customer's copy, because it was one. Found on a bench render, 9 Sep 2026.
+ *
+ * The test is for the PARENTHESISED form the modal writes, not for the bare
+ * word: a "Chicken Handi" whose size is genuinely called "Handi" must still
+ * get its size printed.
+ */
+export const lineLabel = (name, variant) => {
+    const n = String(name ?? '').trim();
+    const v = String(variant ?? '').trim();
+    if (!v) return n;
+    return n.toLowerCase().includes(`(${v.toLowerCase()})`) ? n : `${n} (${v})`;
+};
+
 /* The Karachi wall-clock stamp the bill carries. */
 export const stampOf = (value) => new Date(value).toLocaleString('en-GB', {
     timeZone: 'Asia/Karachi',
@@ -105,7 +126,7 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
     out += line + '\n';
 
     for (const it of items) {
-        const name = `${it.qty} x ${it.name}${it.variant ? ` (${it.variant})` : ''}`;
+        const name = `${it.qty} x ${lineLabel(it.name, it.variant)}`;
         out += r(name, rupees(it.line_total));
     }
     out += line + '\n';
@@ -137,8 +158,7 @@ export const renderKotSlip = ({ slip, meta = {}, widthMm = 58 }) => {
     if (meta.at) out += `${stampOf(meta.at)}\n`;
     out += rule(cols) + '\n';
     for (const it of slip.items || []) {
-        out += CMD.bold + `${it.qty} x ${it.name}\n` + CMD.unbold;
-        if (it.variant) out += `    ${it.variant}\n`;
+        out += CMD.bold + `${it.qty} x ${lineLabel(it.name, it.variant)}\n` + CMD.unbold;
         if (it.modifiers) out += `    ${it.modifiers}\n`;
         if (it.notes) out += `    ** ${it.notes}\n`;
     }

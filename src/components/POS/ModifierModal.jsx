@@ -92,7 +92,7 @@ const ModifierModal = ({ item, modifiersData, onClose, onConfirm }) => {
             selectedVariant,
             selectedModifiers: selections,
             price: calculateTotal(),
-            name: `${item.name} ${selectedVariant ? `(${selectedVariant.name})` : ''}`
+            name: selectedVariant ? `${item.name} (${selectedVariant.name})` : item.name
         });
     };
 

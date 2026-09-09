@@ -74,11 +74,27 @@ const WIDTH = Number(arg('width', process.env.PRINTER_WIDTH_MM || 0)) || null;
 const QUEUE = arg('queue', process.env.PRINTER_QUEUE || '') || null;
 const TRANSPORT = QUEUE ? 'cups' : 'device';
 
-/* Is the named queue actually installed? `lpstat -p <q>` exits non-zero if not. */
+/*
+ * Is there a printer on the end of this queue, or only the queue?
+ *
+ * `lpstat -p` exits non-zero when the queue does not exist. That is the easy
+ * half. The hard half is that a queue whose printer has been unplugged still
+ * reports "is idle" — CUPS remembers the printer and says nothing — so an
+ * existence check alone answers `present: true` to a bare cable.
+ *
+ * This matters beyond tidiness: the till gates on `present` (see
+ * `thermalAgentReady`). Answering yes to an absent printer makes every print
+ * stall for the full deadline before falling back to the browser, on every
+ * bill, all evening. Once CUPS has tried and failed once it raises
+ * `offline-report` on the Alerts line, and from then on we answer honestly and
+ * the till goes straight to the browser.
+ */
 const queueExists = () => {
     if (!QUEUE) return false;
-    const r = spawnSync('lpstat', ['-p', QUEUE], { encoding: 'utf8' });
-    return r.status === 0;
+    const r = spawnSync('lpstat', ['-l', '-p', QUEUE], { encoding: 'utf8' });
+    if (r.status !== 0) return false;
+    const out = String(r.stdout || '');
+    return !/offline/i.test(out) && !/\bdisabled\b/i.test(out);
 };
 
 const { DB_NAME, DB_USER = 'root', DB_PASSWORD = '', DB_HOST = '127.0.0.1', DB_PORT = '3306', DB_SOCKET } = process.env;
@@ -104,36 +120,106 @@ const q = async (sql, params = []) => (await pool.query(sql, params))[0];
  * never drains, and the agent is wedged until somebody notices. The deadline
  * turns that into an error the till can fall back from.
  */
+/*
+ * KEEP THIS UNDER THE TILL'S OWN TIMEOUT (20s, `printReceiptViaAgent` in
+ * src/lib/thermalAgent.js). The till must hear the failure from us and fall
+ * back to browser printing; if it gives up first, it falls back anyway but
+ * nobody ever learns why the paper did not come out.
+ */
 const WRITE_DEADLINE_MS = Number(process.env.PRINT_WRITE_TIMEOUT_MS || 15000);
 
 /*
- * The CUPS path. `lp -o raw` passes the bytes through unfiltered, so the ESC/POS
- * the renderer produced is what the printer receives. Same deadline as the
- * serial write: a printer out of paper holds the job and lp waits on it.
+ * How long to wait for a spooled job to actually leave the queue, and how often
+ * to look. A 935-byte receipt prints in about a second over USB.
  */
-const spoolToQueue = async (payload) => await new Promise((resolve, reject) => {
+const POLL_MS = 400;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const lpstat = (args) => spawnSync('lpstat', args, { encoding: 'utf8' });
+
+/* Is this job still waiting? Once it prints, CUPS drops it from the list. */
+const jobIsQueued = (jobId) => {
+    const r = lpstat(['-W', 'not-completed', '-o', QUEUE]);
+    return r.status === 0 && String(r.stdout || '').includes(jobId);
+};
+
+/*
+ * Why a job did not go, in words a cashier can act on.
+ *
+ * `-l` is not optional here. A queue whose printer is absent still reports
+ * "is idle" on the state line; the only place CUPS admits the truth is the
+ * Alerts line, as `offline-report` (checked against this printer, 9 Sep 2026).
+ */
+const queueTrouble = () => {
+    const out = String(lpstat(['-l', '-p', QUEUE]).stdout || '');
+    if (/\bdisabled\b/i.test(out)) return 'the print queue is paused';
+    if (/offline/i.test(out)) return 'the printer is offline — check its power and cable';
+    return 'the printer did not take the job';
+};
+
+/* Hand the bytes to CUPS. Returns the job id it named, or null. */
+const runLp = async (payload) => await new Promise((resolve, reject) => {
     const child = spawn('lp', ['-d', QUEUE, '-o', 'raw'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let out = '';
     let err = '';
     const timer = setTimeout(() => {
         child.kill('SIGKILL');
-        const e = new Error('The printer stopped accepting data — check paper, power and the queue');
+        const e = new Error('the print system stopped responding');
         e.status = 504;
         reject(e);
     }, WRITE_DEADLINE_MS);
 
+    child.stdout.on('data', (d) => { out += d; });
     child.stderr.on('data', (d) => { err += d; });
     child.on('error', (e) => { clearTimeout(timer); reject(e); });
     child.on('close', (code) => {
         clearTimeout(timer);
-        if (code === 0) return resolve();
-        const e = new Error(`lp exited ${code}${err.trim() ? `: ${err.trim()}` : ''}`);
-        e.status = 502;
-        reject(e);
+        if (code !== 0) {
+            const e = new Error(`lp exited ${code}${err.trim() ? `: ${err.trim()}` : ''}`);
+            e.status = 502;
+            return reject(e);
+        }
+        // "request id is PrinterCMD_ESCPO_POS80_Printer_USB-20 (1 file(s))"
+        const m = out.match(/request id is (\S+)/);
+        resolve(m ? m[1] : null);
     });
     // ESC/POS is bytes, not text: latin1 keeps every code point below 256
     // exactly as the renderer emitted it.
     child.stdin.end(Buffer.from(payload, 'binary'));
 });
+
+/*
+ * The CUPS path. `lp -o raw` passes the bytes through unfiltered, so the ESC/POS
+ * the renderer produced is what the printer receives.
+ *
+ * SPOOLING IS ONLY HALF THE JOB. `lp` returns as soon as the scheduler accepts
+ * the file, not when paper comes out — measured 9 Sep 2026 with the printer
+ * unplugged entirely: `lp` exited 0 in 58ms and this agent told the till the
+ * bill was printed. A cashier who reads "printed" hands the customer nothing
+ * and does not try again, which is the worst way for a receipt to fail.
+ *
+ * So we wait for the job to LEAVE the queue, which is the only evidence CUPS
+ * offers that it really went. The serial transport gets this for free: a write
+ * to a device blocks until the printer accepts the bytes.
+ *
+ * A job that misses the deadline is CANCELLED, not left behind. A bill still
+ * sitting in the queue prints hours later, out of nowhere, the moment the
+ * printer is next plugged in — by which time it is somebody else's table.
+ */
+const spoolToQueue = async (payload) => {
+    const jobId = await runLp(payload);
+    // lp took it but named no job: nothing to wait on, and no evidence to give.
+    if (!jobId) return;
+
+    const deadline = Date.now() + WRITE_DEADLINE_MS;
+    while (Date.now() < deadline) {
+        await sleep(POLL_MS);
+        if (!jobIsQueued(jobId)) return;
+    }
+    spawnSync('cancel', [jobId], { encoding: 'utf8' });
+    const e = new Error(`The bill was not printed: ${queueTrouble()}.`);
+    e.status = 504;
+    throw e;
+};
 
 const writeWithDeadline = async (payload) => {
     const handle = await open(DEVICE, 'w');
@@ -246,7 +332,7 @@ server.listen(PORT, HOST, () => {
     console.log(present
         ? 'printer is present'
         : TRANSPORT === 'cups'
-            ? `WARNING: no queue named ${QUEUE} — \`lpstat -p\` lists them`
+            ? `WARNING: ${queueTrouble()} — \`lpstat -l -p ${QUEUE}\` says why`
             : `WARNING: nothing at ${DEVICE} yet`);
     console.log('  GET  /health');
     console.log('  POST /receipt   {"orderId": "<id or order number>", "reprint": false}');
