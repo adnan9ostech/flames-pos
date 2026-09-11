@@ -11,6 +11,7 @@ import { ROLES } from '@/lib/auth/permissions.mjs';
 import { primaryNav, sidebarSections } from '@/lib/navIndex.mjs';
 import { navIcon } from './navIcons';
 import CommandPalette from './CommandPalette';
+import NotificationBell from './NotificationBell';
 import ThemeSwitcher from './ThemeSwitcher';
 import { logout } from '@/app/logout/actions';
 
@@ -174,6 +175,14 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                     )}
                 </button>
             </div>
+
+            {/*
+              * Under search, above the rail: the bell has to be on every
+              * screen (the point is that nobody is watching the screen the
+              * problem belongs to), and the rail is the only furniture this
+              * app has on every screen.
+              */}
+            <NotificationBell collapsed={collapsed} />
 
             <nav className={styles.nav}>
                 {collapsed && (

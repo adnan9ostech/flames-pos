@@ -1,0 +1,162 @@
+/*
+ * The bell lives in the rail, under search. It has to read at a glance from
+ * across a counter, so the badge is a count and a colour rather than a dot.
+ */
+.wrap {
+    position: relative;
+    padding: 0.35rem 0.75rem 0.25rem;
+    flex-shrink: 0;
+}
+
+.collapsed .wrap { padding: 0.35rem 0.5rem 0.25rem; }
+
+.bell {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    /* Same 44px touch floor as search and the till's controls. */
+    min-height: 44px;
+    padding: 0 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.87rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.bell:hover { border-color: var(--primary); color: var(--foreground); }
+.collapsed .bell { justify-content: center; padding: 0; }
+
+.label { flex: 1; text-align: left; }
+
+.count {
+    min-width: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--danger, #dc2626);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.35rem;
+    text-align: center;
+}
+
+/* Collapsed, the number has no room beside the icon, so it rides the corner. */
+.collapsed .count {
+    position: absolute;
+    top: 0.15rem;
+    right: 0.3rem;
+    min-width: 1.1rem;
+    line-height: 1.1rem;
+    font-size: 0.66rem;
+}
+
+.panel {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    top: calc(100% - 0.1rem);
+    z-index: 60;
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface, var(--background));
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+/* Collapsed the rail is 84px wide; the panel would be unreadable inside it,
+   so it breaks out to the right instead of squeezing. */
+.collapsed .panel {
+    left: calc(100% - 0.25rem);
+    right: auto;
+    width: 22rem;
+    top: 0.35rem;
+}
+
+.head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.markAll {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: var(--primary);
+    font: inherit;
+    font-size: 0.75rem;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.item {
+    display: block;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    text-decoration: none;
+}
+
+.item:last-child { border-bottom: 0; }
+.item:hover { background: var(--background); }
+
+/* The unread marker is a bar down the left, not a background wash: the
+   severity colour already owns the row's colour and two signals fighting for
+   the same surface reads as neither. */
+.unseen { box-shadow: inset 3px 0 0 var(--primary); }
+
+.title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.body {
+    margin-top: 0.15rem;
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+}
+
+.when {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--muted-foreground);
+}
+
+.dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--muted-foreground);
+}
+
+.urgent { background: var(--danger, #dc2626); }
+.warn { background: var(--warning, #d97706); }
+.info { background: var(--primary); }
+
+.empty {
+    padding: 1.1rem 0.75rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}

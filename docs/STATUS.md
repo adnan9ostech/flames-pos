@@ -1006,6 +1006,56 @@ database already does. Diffing against all 222 would have invented 88 dishes.
 **Parity, checked after the run: 134 active dishes in Blink, 134 live here,
 every category count equal, and nothing on either side the other lacks.**
 
+## The notice board — 11 Sep 2026
+
+Migration `024_notifications.sql` (dev+test). Suite 138/138, build green.
+
+A bell in the rail, on every screen, for the things the system already knows
+are wrong and currently tells nobody: a receipt that did not print, a day left
+open overnight, an FBR invoice the queue gave up on, a table unpaid for hours,
+an ingredient under its reorder level. Deliberately NOT "an order was placed" —
+the till shows orders, and a bell that rings for normal work stops being read.
+
+- **Derived vs raised.** Four kinds are recomputed from live data on every read
+  (`src/lib/notifications/scan.mjs`) and, crucially, RESOLVED when the
+  condition stops being true — the list empties itself. `print_failed` is an
+  event with no live condition, so it is dismissed by hand or swept at the end
+  of its business day.
+- **Scanned on read, not on a timer.** This app runs no worker by the owner's
+  own decision (the day closes on a button). The route throttles the scan to
+  once per 30s per process and collapses concurrent scans, so six terminals
+  polling do not run six scans.
+- **One row per dedupe key, and the index is on `dedupe_key` alone.** The first
+  cut indexed `(dedupe_key, resolved_at)` to keep history; NULL never equals
+  NULL in a MySQL index, so ON DUPLICATE KEY never fired and every scan
+  inserted a fresh copy — caught by a two-scan test before it shipped. A key
+  that clears and comes back reopens its row and un-reads it. What happened is
+  `audit_log`'s job; the bell is what is wrong now.
+- Notices carry a `permission`, so a cashier is never told the FBR queue is
+  failing, and each links to the screen that can fix it.
+- Verified against dev data: it found the 4 Sep business day still open and a
+  41-hour unpaid tab; three scans left one row; settling the tab resolved it;
+  re-staling it reopened it unread.
+
+## Where Blink is still ahead — 11 Sep 2026
+
+Read off Blink's Master Settings and sidebar the same session. Worth building,
+roughly in order: **cash-change calculation at checkout** (type cash received,
+show change — Blink has it on, this till has nothing), **token numbers** for
+counter orders, **waste with a reason** (distinct from a void — it moves
+stock), **hide/flag items at zero stock** on the till, **grand-total rounding**,
+then deals/combos, a customer screen over the `customers` table already being
+filled, sub-recipes (a masala batch used by twenty dishes), purchase orders
+ahead of receiving, and a card reference number for reconciliation.
+
+Not worth building for one restaurant: everything multi-branch (branch-wise
+toggle, transfer/stock requests, warehouse stock, air inventory, branch
+devices, marketplace, rider management, BI report).
+
+Going the other way, this app already carries what Blink's screens do not show:
+double-entry accounting with journals, FBR Digital Invoicing, and day close +
+handover.
+
 ## Known cautions
 
 - Old MariaDB datadir preserved at

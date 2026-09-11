@@ -18,6 +18,7 @@ import { loadCartDraft, saveCartDraft, clearCartDraft } from '@/lib/cartDraft';
 import { getSettings } from '@/app/settings/actions';
 import { printReceipt, applyPaperWidth } from '@/lib/printReceipt';
 import { printReceiptViaAgent, printKotViaAgent, openCashDrawerViaAgent } from '@/lib/thermalAgent';
+import { reportEvent } from '@/app/notifications/actions';
 import { formatNumber as money, formatPriceRange } from '@/lib/money';
 
 import ModifierModal from '@/components/POS/ModifierModal';
@@ -575,6 +576,13 @@ export default function POSPage() {
          */
         if (printTransport === 'agent') {
             setNotice('Receipt not printed — the print agent is not running. Start it, then reprint from Orders.');
+            /*
+             * And on the notice board, because the cashier who saw this is
+             * about to serve the next table and the manager who can restart
+             * the agent is not standing here. Fire-and-forget: the sale is
+             * stored and paid for, and a notice board is not worth a throw.
+             */
+            reportEvent('print_failed', 'The till could not reach the print agent. Receipts can be reprinted from Orders once it is running.').catch(() => {});
             return;
         }
         printReceipt();
@@ -621,7 +629,10 @@ export default function POSPage() {
          */
         if (printTransport === 'agent') {
             const printed = await printKotViaAgent(order.id, { round: roundNo });
-            if (!printed) setNotice('Kitchen ticket not printed — the print agent is not running.');
+            if (!printed) {
+                setNotice('Kitchen ticket not printed — the print agent is not running.');
+                reportEvent('print_failed', 'A kitchen ticket did not print — the print agent is not running.').catch(() => {});
+            }
             return;
         }
 
