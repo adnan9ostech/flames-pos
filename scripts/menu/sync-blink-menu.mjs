@@ -95,7 +95,34 @@ try {
         await q('UPDATE menu_items SET price = ?, updated_at = UTC_TIMESTAMP(3) WHERE id = ?', [r.to, row.id]);
     }
 
-    console.log(`\n${APPLY ? 'added' : 'would add'} ${added}, ${APPLY ? 'repriced' : 'would reprice'} ${repriced}, ${present} already present`);
+    /*
+     * Duplicates the website import left behind, where Blink carries the dish
+     * once. ARCHIVED, never deleted — an order's lines point at this row, and
+     * the category is named so a same-named dish in the category Blink DOES
+     * keep it in can never be the one that disappears.
+     */
+    let archived = 0;
+    for (const a of doc.archive || []) {
+        const rows = await q(
+            `SELECT m.id, c.name AS category FROM menu_items m
+               LEFT JOIN categories c ON c.id = m.category_id
+              WHERE m.name = ? AND m.is_archived = 0`,
+            [a.name],
+        );
+        const target = rows.find((r) => (r.category || '') === a.category);
+        const kept = rows.find((r) => (r.category || '') === a.keep_in);
+        if (!target) { console.log(`  = ${a.name} [${a.category}] — not here, nothing to archive`); continue; }
+        if (!kept) {
+            console.log(`  ! ${a.name} — no copy left in ${a.keep_in}; archiving this one would lose the dish, left alone`);
+            continue;
+        }
+        console.log(`  - ${a.name} [${a.category}] archived — kept in ${a.keep_in}`);
+        archived++;
+        if (!APPLY) continue;
+        await q('UPDATE menu_items SET is_archived = 1, updated_at = UTC_TIMESTAMP(3) WHERE id = ?', [target.id]);
+    }
+
+    console.log(`\n${APPLY ? 'added' : 'would add'} ${added}, ${APPLY ? 'repriced' : 'would reprice'} ${repriced}, ${APPLY ? 'archived' : 'would archive'} ${archived}, ${present} already present`);
     if (!APPLY) console.log('nothing was written — re-run with --apply');
 } finally {
     await pool.end();

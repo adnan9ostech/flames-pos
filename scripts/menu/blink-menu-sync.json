@@ -80,5 +80,13 @@
    "to": 560.0,
    "why": "Blink is the till the restaurant actually rings on; the 415 came from the website export."
   }
+ ],
+ "archive": [
+  {
+   "name": "Channay",
+   "category": "Daal & Sabzi",
+   "keep_in": "Subah Ka Nashta",
+   "why": "Blink lists Channay once, under Subah Ka Nashta, and fills the Daal & Sabzi slot with Daal Channa Fry — which this menu also carries. The second Channay is an import duplicate. Archived, never deleted: order history points at the row."
+  }
  ]
 }

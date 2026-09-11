@@ -995,12 +995,16 @@ database already does. Diffing against all 222 would have invented 88 dishes.
       **88 variant prices** across the 44 sized dishes verified line by line
       against Blink's own Half/Full rows. Zero price differences left.
 
-Open question for the owner: **`Channay` exists twice here** — Daal & Sabzi and
-Subah Ka Nashta, both Rs 1,575. Blink has it once (Subah Ka Nashta) plus a
-separate `Daal Channa Fry` in Daal & Sabzi, which this menu also has. The
-Daal & Sabzi `Channay` looks like an import duplicate. Not touched: a dish row
-is never deleted (order history points at it), so the fix if he confirms is
-`is_archived = 1`, not a DELETE.
+- [x] **The duplicate `Channay` is archived** (owner: "jo Blink mein hai wo
+      rakho"). Blink lists it once, under Subah Ka Nashta, and fills the
+      Daal & Sabzi slot with `Daal Channa Fry`, which this menu also carries —
+      so the Daal & Sabzi copy was an import duplicate. `is_archived = 1`,
+      never a DELETE: order lines point at the row, and it had four of them.
+      The script archives only the named category's copy, and only while a copy
+      survives in the category Blink keeps it in.
+
+**Parity, checked after the run: 134 active dishes in Blink, 134 live here,
+every category count equal, and nothing on either side the other lacks.**
 
 ## Known cautions
 
