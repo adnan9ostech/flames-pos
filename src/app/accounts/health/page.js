@@ -96,7 +96,10 @@ export default function PostingHealthPage() {
 
     const legacy = data?.expenses ?? []
     const legacyTotal = legacy.reduce((s, e) => s + Number(e.amount), 0)
-    const gapCount = data ? data.orders.length + data.payments.length + data.journals.length + legacy.length : 0
+    const gapCount = data
+        ? data.orders.length + data.payments.length + data.journals.length + legacy.length
+            + (data.cogs?.length ?? 0) + (data.waste?.length ?? 0)
+        : 0
     const repostable = data ? new Set([...data.orders.map((o) => o.id), ...data.payments.map((p) => p.order_id)]).size : 0
 
     return (
@@ -247,6 +250,68 @@ export default function PostingHealthPage() {
                                                     </button>
                                                 </td>
                                             )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    {/*
+                      * 1b/1c. The cost half. Listed rather than repostable:
+                      * both hooks are idempotent and fire on their own, so a
+                      * row here means the posting FAILED (an account nobody
+                      * has mapped, usually) rather than that it was skipped —
+                      * and pressing a button would fail the same way until the
+                      * chart is fixed.
+                      */}
+                    <p className={styles.cardSection} style={{ marginBottom: '0.6rem' }}>
+                        Sales whose cost never reached the ledger · {data.cogs?.length ?? 0}
+                    </p>
+                    <div className={styles.listWrap} style={{ marginBottom: '1.5rem' }}>
+                        {(data.cogs?.length ?? 0) === 0 ? (
+                            <div className={styles.stateBlock}>
+                                <CheckCircle2 size={22} />
+                                <p>Every sale that consumed stock has booked its cost of sales.</p>
+                            </div>
+                        ) : (
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr><th>Bill</th><th>Day</th><th className={styles.alignRight}>Cost</th></tr>
+                                </thead>
+                                <tbody>
+                                    {data.cogs.map((r) => (
+                                        <tr key={r.id}>
+                                            <td className={styles.cellCode}>{r.label}</td>
+                                            <td className={styles.cellMuted}>{r.business_date}</td>
+                                            <td className={`${styles.cellNum} ${styles.cellStrong}`}>{rupees(r.cost)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    <p className={styles.cardSection} style={{ marginBottom: '0.6rem' }}>
+                        Waste with no journal · {data.waste?.length ?? 0}
+                    </p>
+                    <div className={styles.listWrap} style={{ marginBottom: '1.5rem' }}>
+                        {(data.waste?.length ?? 0) === 0 ? (
+                            <div className={styles.stateBlock}>
+                                <CheckCircle2 size={22} />
+                                <p>Every waste document has been written off.</p>
+                            </div>
+                        ) : (
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr><th>Reason</th><th>Day</th><th className={styles.alignRight}>Cost</th></tr>
+                                </thead>
+                                <tbody>
+                                    {data.waste.map((r) => (
+                                        <tr key={r.id}>
+                                            <td>{r.label}</td>
+                                            <td className={styles.cellMuted}>{r.business_date}</td>
+                                            <td className={`${styles.cellNum} ${styles.cellStrong}`}>{rupees(r.cost)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

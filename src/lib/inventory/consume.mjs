@@ -113,6 +113,15 @@ export const consumeForOrder = async (order) => {
                 businessDate,
             })));
         });
+
+        /*
+         * And the cost side, in the general ledger: Dr Cost of Sales, Cr
+         * Inventory. Outside the transaction above and fire-and-forget, for
+         * the same reason this whole module is — the money is taken, the food
+         * is gone, and neither may be undone by a bookkeeping fault.
+         */
+        const { afterConsumeGl } = await import('../accounts/stockPost.mjs');
+        await afterConsumeGl(order);
     } catch (e) {
         // Logged, never thrown: the sale already happened. A missed
         // consumption surfaces at the next count as variance, which is
@@ -154,6 +163,10 @@ export const reverseForOrder = async (order) => {
                 businessDate,
             })));
         });
+
+        // The cost comes back out of Cost of Sales with the stock.
+        const { afterConsumeReversalGl } = await import('../accounts/stockPost.mjs');
+        await afterConsumeReversalGl(order);
     } catch (e) {
         console.error(`[inventory] reverse for order ${order?.id} failed:`, e?.message ?? e);
     }

@@ -2,7 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
-import { postDishWaste } from '@/lib/inventory/waste.mjs'
+import { recordDishWaste } from '@/lib/inventory/waste.mjs'
 
 /*
  * Dish waste. The verb does the work — recipes, sub-recipes, the ledger, the
@@ -51,7 +51,7 @@ export async function getWasteBoard() {
 export async function recordWaste({ reason, lines } = {}) {
     try {
         const user = await requirePermission('inventory')
-        return { data: await postDishWaste({ reason, lines, userId: user.id }) }
+        return { data: await recordDishWaste({ reason, lines, userId: user.id }) }
     } catch (e) {
         return { error: e.message }
     }

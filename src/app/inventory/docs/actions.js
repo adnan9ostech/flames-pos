@@ -97,10 +97,27 @@ export async function createTransfer({ fromWarehouseId, toWarehouseId, lines, re
     }
 }
 
+/*
+ * Every stock document that changes what the shelf is worth also changes the
+ * books: a misc consumption and an adjustment are losses, a count can go
+ * either way. Fire-and-forget, like every ledger hook here — a posting fault
+ * must never un-post the stock movement it describes.
+ *
+ * Transfers are deliberately not booked: both warehouses sit in the same
+ * inventory account, so the journal would be a line against itself.
+ */
+const fireGlAfterStockDoc = (docId, userId) => {
+    import('@/lib/accounts/stockPost.mjs')
+        .then((m) => m.afterStockDocGl(docId, { userId }))
+        .catch(() => {})
+}
+
 export async function createAdjustment({ warehouseId, lines, reason } = {}) {
     try {
-        await requirePermission('inventory')
-        return { data: await adjustStock({ warehouseId, lines, reason }) }
+        const user = await requirePermission('inventory')
+        const data = await adjustStock({ warehouseId, lines, reason })
+        fireGlAfterStockDoc(data.id, user.id)
+        return { data }
     } catch (e) {
         return { error: e.message }
     }
@@ -108,8 +125,10 @@ export async function createAdjustment({ warehouseId, lines, reason } = {}) {
 
 export async function createMisc({ warehouseId, lines, reason } = {}) {
     try {
-        await requirePermission('inventory')
-        return { data: await miscConsumption({ warehouseId, lines, reason }) }
+        const user = await requirePermission('inventory')
+        const data = await miscConsumption({ warehouseId, lines, reason })
+        fireGlAfterStockDoc(data.id, user.id)
+        return { data }
     } catch (e) {
         return { error: e.message }
     }
@@ -117,8 +136,10 @@ export async function createMisc({ warehouseId, lines, reason } = {}) {
 
 export async function createCount({ warehouseId, lines } = {}) {
     try {
-        await requirePermission('inventory')
-        return { data: await postCount({ warehouseId, lines }) }
+        const user = await requirePermission('inventory')
+        const data = await postCount({ warehouseId, lines })
+        fireGlAfterStockDoc(data.id, user.id)
+        return { data }
     } catch (e) {
         return { error: e.message }
     }

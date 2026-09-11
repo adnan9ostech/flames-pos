@@ -1120,6 +1120,68 @@ under a real admin session with no runtime errors, `/api/menu` unchanged in
 shape bar its new fields, zero unbalanced journals, and every new setting
 reading off in the dev database.
 
+## The cost side of the books — 11 Sep 2026
+
+Migration 036. Suite **148/148**, build green. The real accounting gap, and it
+was the whole cost half of the ledger.
+
+Receiving booked Dr Inventory / Cr Supplier, and **nothing ever took it back
+out**. A sold dish moved its ingredients on the stock ledger and left the
+general ledger untouched, so the books showed revenue with no cost of sales, a
+gross margin of one hundred per cent, and an inventory balance that only ever
+climbed. Waste, spoilage and count variances were invisible the same way. The
+Gross Profit *report* was right all along — it costs recipes directly — but the
+ledger the accountant reads was not.
+
+`src/lib/accounts/stockPost.mjs` now books four events, all of them Cr
+Inventory:
+
+| event | entry |
+|---|---|
+| sale | Dr Cost of Sales (5000) |
+| void | the mirror — cost comes back out with the stock |
+| dish waste | Dr Inventory Variance and Wastage (5099) |
+| misc consumption, adjustment, count | Dr 5099, or Cr it when a count finds stock |
+
+- **Valued at `avg_cost` at posting time**, moments after the movement — the
+  same number the Gross Profit report and the stock valuation already use, so
+  the three agree with each other. Not period costing, and it does not pretend
+  to be.
+- **A transfer is deliberately not booked**: both warehouses sit in the same
+  inventory account, so the journal would be a line against itself.
+- Idempotent on `(source_type, source_id)`, gated on `gl_settings`, and
+  fire-and-forget like every other poster: a ledger fault must never un-sell a
+  dish or un-bin a dropped plate.
+- Waste lands on **5099**, not 5097 Wastage, because 5097 is switched OFF in
+  this chart and the resolver only returns active accounts. Migration 036 gives
+  5097 the `WASTAGE` link code anyway, so the day somebody activates it, waste
+  moves there by itself.
+- **Posting Health gained two checks** — sales whose cost never reached the
+  ledger, and waste documents with no journal. Listed rather than repostable:
+  both hooks are idempotent and fire on their own, so a row there means the
+  posting *failed* (an unmapped account, usually) and a button would fail the
+  same way until the chart is fixed.
+
+## Day close, checked against ChowPOS — 11 Sep 2026
+
+Nothing to take. The Bartlett's account exposes only POS, KDS and All Orders;
+there is no day-close screen in it to compare against, and this app's day close
+came out of the earlier ChowPOS walkthrough in the first place (phases F–J).
+
+What it has now, for the record: a cash gate (an open drawer blocks the close,
+with a `force` override that is audited), an unpaid-bill gate scoped to branch
+and business date and read inside the close transaction, a `FOR UPDATE` lock so
+two people pressing Close produce one close, and a guard against closing a day
+that has not happened yet. Its settings are `default_opening_float`,
+`cash_variance_tolerance`, the cash policy (017) and drawer carry-forward
+(015). Migration 014's `day_start_time` / `day_end_time` remain a vestige — the
+owner's decision is that the day closes on the button, never on a schedule.
+
+One thing ChowPOS's till does have that this one does not: **a channel picker**
+on the order (BART / Foodpanda), which tags where an order came from. Worth
+having the day third-party orders start arriving — it is the same idea as the
+named payment methods noted below.
+
 ## Two ideas worth stealing from ChowPOS (rms.roomy.pk) — 11 Sep 2026
 
 The Bartlett's account exposes only POS, KDS and All Orders — no back office —

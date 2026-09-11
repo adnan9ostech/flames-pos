@@ -122,3 +122,15 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
 
         return { id: docId, businessDate, cost: round2(lineCosts.reduce((a, b) => a + b, 0)) };
     });
+
+/*
+ * Post it, then book it: Dr Wastage, Cr Inventory. Separate from the verb and
+ * fire-and-forget, like every other ledger hook — food that has been binned
+ * cannot be un-binned because the books were busy.
+ */
+export const recordDishWaste = async (args) => {
+    const doc = await postDishWaste(args);
+    const { afterWasteGl } = await import('../accounts/stockPost.mjs');
+    await afterWasteGl(doc.id, { userId: args?.userId ?? null });
+    return doc;
+};

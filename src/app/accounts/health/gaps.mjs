@@ -31,6 +31,48 @@ export const unpostedOrders = () => query(
     [ORDER_SOURCE_TYPES.sale, ORDER_SOURCE_TYPES.saleReversal],
 );
 
+/*
+ * 1b. Bills whose ingredients left the shelf but whose COST never reached the
+ *     ledger. The mirror of check 1 on the other side of the margin: without
+ *     this, revenue posts, inventory keeps climbing, and the books show a
+ *     hundred per cent gross margin with nothing flagged anywhere.
+ *
+ *     Keyed on the stock rows rather than on the order, because that is the
+ *     honest test: a dish with no recipe consumes nothing and owes no journal,
+ *     and listing it would be an alarm nobody can act on.
+ */
+export const unpostedCogs = () => query(
+    `SELECT o.id, o.invoice_number, o.order_number, o.business_date, o.total,
+            ROUND(SUM(ABS(l.delta) * i.avg_cost), 2) AS cost
+       FROM stock_ledger l
+       JOIN inventory_items i ON i.id = l.inventory_item_id
+       JOIN orders o ON o.id = l.source_id
+       LEFT JOIN gl_journals j ON j.source_type = 'order_cogs' AND j.source_id = o.id
+      WHERE l.source_type = 'sale'
+        AND o.business_date >= ${START_DATE}
+        AND j.id IS NULL
+      GROUP BY o.id, o.invoice_number, o.order_number, o.business_date, o.total
+     HAVING cost > 0
+      ORDER BY o.business_date, o.order_number`,
+);
+
+/*
+ * 1c. Waste documents with no journal. Same shape, same reason: food that was
+ *     thrown away is a loss the P&L has to carry, and a document that never
+ *     posted is a loss nobody has been told about.
+ */
+export const unpostedWaste = () => query(
+    `SELECT d.id, d.business_date, d.reason, COALESCE(SUM(l.cost), 0) AS cost
+       FROM waste_docs d
+       LEFT JOIN waste_lines l ON l.waste_doc_id = d.id
+       LEFT JOIN gl_journals j ON j.source_type = 'dish_waste' AND j.source_id = CAST(d.id AS CHAR)
+      WHERE d.business_date >= ${START_DATE}
+        AND j.id IS NULL
+      GROUP BY d.id, d.business_date, d.reason
+     HAVING cost > 0
+      ORDER BY d.business_date, d.id`,
+);
+
 /* 2. Payments rows (the void's negative ones included) with no settlement journal. */
 export const unpostedPayments = () => query(
     `SELECT p.id, p.order_id, p.method, p.amount, p.paid_at,

@@ -652,3 +652,77 @@ test('20. rounding shaves the total down, and the ledger still balances', async 
         await q("UPDATE store_settings SET round_total = 'off'");
     }
 });
+
+test('21. the cost side reaches the ledger: COGS on a sale, Wastage on a bin', async () => {
+    const { receiveStock } = await import('../../src/lib/db/inventory.mjs');
+    const { consumeForOrder } = await import('../../src/lib/inventory/consume.mjs');
+    const { recordDishWaste } = await import('../../src/lib/inventory/waste.mjs');
+    const tag = randomUUID().slice(0, 8);
+
+    const sup = (await q('INSERT INTO suppliers (name, is_active) VALUES (?, 1)', [`GL Supplier ${tag}`])).insertId;
+    const item = (await q('INSERT INTO inventory_items (name, unit_id, is_active) VALUES (?, 1, 1)', [`GL Chicken ${tag}`])).insertId;
+    await receiveStock({ supplierId: sup, warehouseId: 1, lines: [{ itemId: item, qty: 20, unitCost: 1000 }] });
+
+    const dishId = randomUUID();
+    await q("INSERT INTO menu_items (id, name, price, variants, modifiers) VALUES (?, ?, 2000, '[]', '[]')", [dishId, `GL Dish ${tag}`]);
+    await q('INSERT INTO recipes (menu_item_id, notes) VALUES (?, NULL)', [dishId]);
+    await q("INSERT INTO recipe_lines (menu_item_id, variant_name, inventory_item_id, qty) VALUES (?, '', ?, 0.5)", [dishId, item]);
+
+    const order = await createOrder(
+        [{ id: dishId, name: `GL Dish ${tag}`, price: 2000, qty: 2 }],
+        { payment_status: 'paid', payment_mode: 'cash' },
+    );
+    await consumeForOrder(order);
+
+    const cogs = await one(
+        "SELECT id, debit_total, credit_total FROM gl_journals WHERE source_type = 'order_cogs' AND source_id = ?",
+        [order.id],
+    );
+    assert.ok(cogs, 'a sale now books its cost');
+    // 2 portions x 0.5kg x Rs 1,000.
+    assert.equal(Number(cogs.debit_total), 1000);
+    assert.equal(Number(cogs.debit_total), Number(cogs.credit_total), 'and balances');
+
+    const sides = await q(
+        `SELECT a.account_number, l.debit, l.credit FROM gl_journal_lines l
+           JOIN accounts a ON a.id = l.account_id WHERE l.journal_id = ? ORDER BY a.account_number`,
+        [cogs.id],
+    );
+    assert.equal(sides.length, 2);
+    // Dr the cost of sales account, Cr the stock control account.
+    assert.ok(sides.some((r) => r.account_number === '5000' && Number(r.debit) === 1000));
+    assert.ok(sides.some((r) => r.account_number === '1200' && Number(r.credit) === 1000));
+
+    // Firing twice is one journal: the hook is replayed on every settle path.
+    await consumeForOrder(order);
+    assert.equal(
+        Number((await one("SELECT COUNT(*) n FROM gl_journals WHERE source_type = 'order_cogs' AND source_id = ?", [order.id])).n),
+        1,
+    );
+
+    // And a binned dish is a loss, in its own account — not cost of sales.
+    const waste = await recordDishWaste({ reason: 'Dropped', lines: [{ menuItemId: dishId, qty: 1 }] });
+    const wasteJournal = await one(
+        "SELECT id, debit_total FROM gl_journals WHERE source_type = 'dish_waste' AND source_id = ?",
+        [String(waste.id)],
+    );
+    assert.ok(wasteJournal, 'waste reaches the ledger too');
+    assert.equal(Number(wasteJournal.debit_total), 500);
+    const wasteSides = await q(
+        `SELECT a.account_number, l.debit FROM gl_journal_lines l
+           JOIN accounts a ON a.id = l.account_id WHERE l.journal_id = ?`,
+        [wasteJournal.id],
+    );
+    /*
+     * 5099 Inventory Variance and Wastage, not 5000 Cost of Sales — waste is a
+     * loss, not a cost of selling something. It lands on 5099 rather than 5097
+     * Wastage because 5097 is switched OFF in this chart and the resolver only
+     * returns active accounts; switch it on and this moves there by itself
+     * (migration 036). What the test guards is that it is never cost of sales.
+     */
+    assert.ok(
+        wasteSides.some((r) => (r.account_number === '5099' || r.account_number === '5097') && Number(r.debit) === 500),
+        'waste books to the variance/wastage account',
+    );
+    assert.ok(!wasteSides.some((r) => r.account_number === '5000'), 'and never to cost of sales');
+});

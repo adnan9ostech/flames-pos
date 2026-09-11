@@ -3,7 +3,7 @@
 import { query } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { money, ymd } from '@/lib/accounts/helpers.mjs'
-import { unpostedOrders, unpostedPayments, brokenJournals, legacyExpenses } from './gaps.mjs'
+import { unpostedOrders, unpostedPayments, unpostedCogs, unpostedWaste, brokenJournals, legacyExpenses } from './gaps.mjs'
 
 /*
  * Posting Health: the safety net under a posting engine that never blocks a
@@ -69,10 +69,12 @@ const expenseRow = (e) => ({
 export async function getPostingHealth() {
     try {
         await requirePermission('accounts')
-        const [settings, orders, payments, journals, expenses] = await Promise.all([
+        const [settings, orders, payments, cogs, waste, journals, expenses] = await Promise.all([
             query('SELECT start_date, posting_enabled FROM gl_settings WHERE id = 1'),
             unpostedOrders(),
             unpostedPayments(),
+            unpostedCogs(),
+            unpostedWaste(),
             brokenJournals(),
             legacyExpenses(),
         ])
@@ -82,6 +84,20 @@ export async function getPostingHealth() {
                 postingEnabled: Boolean(settings[0]?.posting_enabled),
                 orders: orders.map(orderRow),
                 payments: payments.map(paymentRow),
+                // The cost half of the margin, and the food that never got
+                // sold at all — both of them losses the P&L has to carry.
+                cogs: cogs.map((r) => ({
+                    id: r.id,
+                    label: r.invoice_number || `#${r.order_number}`,
+                    business_date: ymd(r.business_date),
+                    cost: Number(r.cost),
+                })),
+                waste: waste.map((r) => ({
+                    id: r.id,
+                    label: r.reason,
+                    business_date: ymd(r.business_date),
+                    cost: Number(r.cost),
+                })),
                 journals: journals.map(journalRow),
                 expenses: expenses.map(expenseRow),
             },
