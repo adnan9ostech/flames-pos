@@ -272,6 +272,11 @@ export const NAV_INDEX = [
         keywords: 'vendors supplier payments purchase payables procurement',
     },
     {
+        href: '/inventory/purchase-orders', label: 'Purchase Orders', icon: 'ClipboardList', perm: 'inventory',
+        section: 'Inventory',
+        keywords: 'po order supplier buy procurement raise order agreed price expected delivery',
+    },
+    {
         href: '/inventory/receiving', label: 'Stock Receiving', icon: 'PackageCheck', perm: 'inventory',
         section: 'Inventory',
         keywords: 'grn goods received delivery note receive stock intake purchase receiving',

@@ -141,6 +141,7 @@ const insertDoc = async (conn, { docType, warehouseId, toWarehouseId = null, bus
  */
 export const receiveStock = async ({
     supplierId, warehouseId, draftId = null, supplierInvoice = null, lines = [], notes = null,
+    purchaseOrderId = null,
 } = {}) =>
     withTransaction(async (conn) => {
         const supplier = toId(supplierId, 'Pick a supplier');
@@ -163,6 +164,25 @@ export const receiveStock = async ({
         if (!supRows[0].is_active) throw new Error('That supplier is retired — reactivate it first');
         await checkWarehouse(conn, warehouse);
 
+        /*
+         * The purchase order this delivery answers, if it answers one. Locked
+         * and checked before the header lands, for the same reason the draft
+         * is: a stale id should fail with a sentence, not a foreign key.
+         *
+         * Only an OPEN order can be answered. A GRN posted against one that is
+         * already closed is either a duplicate or a second delivery somebody
+         * meant to raise a new order for, and both are worth stopping.
+         */
+        let po = null;
+        if (purchaseOrderId != null && purchaseOrderId !== '') {
+            po = toId(purchaseOrderId, 'That purchase order no longer exists');
+            const [poRows] = await conn.query(
+                'SELECT status FROM purchase_orders WHERE id = ? FOR UPDATE', [po],
+            );
+            if (poRows.length === 0) throw new Error('That purchase order no longer exists');
+            if (poRows[0].status !== 'open') throw new Error('That purchase order is already closed');
+        }
+
         // Validated (and locked) before the header lands, so a stale draft id
         // fails with words instead of a foreign-key error.
         let draft = null;
@@ -184,9 +204,10 @@ export const receiveStock = async ({
 
         const [res] = await conn.query(
             `INSERT INTO stock_receivings
-               (supplier_id, warehouse_id, draft_id, supplier_invoice, business_date, total, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [supplier, warehouse, draft,
+               (supplier_id, warehouse_id, draft_id, purchase_order_id, supplier_invoice,
+                business_date, total, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [supplier, warehouse, draft, po,
                 String(supplierInvoice ?? '').trim().slice(0, 64) || null,
                 businessDate, total,
                 String(notes ?? '').trim().slice(0, 191) || null],
@@ -216,6 +237,18 @@ export const receiveStock = async ({
             await conn.query(
                 'UPDATE inventory_items SET avg_cost = ?, updated_at = UTC_TIMESTAMP(3) WHERE id = ?',
                 [round4(newAvg), itemId],
+            );
+        }
+
+        /*
+         * And the order it answers is closed, one way. What actually arrived
+         * is on the GRN's own lines; the PO keeps what was promised, and the
+         * difference between the two is the conversation with the supplier.
+         */
+        if (po) {
+            await conn.query(
+                "UPDATE purchase_orders SET status = 'received', closed_at = UTC_TIMESTAMP(3) WHERE id = ?",
+                [po],
             );
         }
 

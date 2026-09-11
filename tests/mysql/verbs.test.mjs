@@ -348,3 +348,46 @@ test('13. a card sale keeps its terminal reference, and can be made to insist on
     );
     await q('UPDATE store_settings SET card_ref_required = 0');
 });
+
+test('14. a purchase order is answered once, by the delivery that arrives', async () => {
+    const { receiveStock } = await import('../../src/lib/db/inventory.mjs');
+    const supplier = (await q("INSERT INTO suppliers (name, is_active) VALUES ('PO Test Supplier', 1)")).insertId;
+    const item = (await q(
+        "INSERT INTO inventory_items (name, unit_id, reorder_level, is_active) VALUES ('PO Test Flour', 1, 0, 1)",
+    )).insertId;
+    const po = (await q(
+        `INSERT INTO purchase_orders (po_number, supplier_id, warehouse_id, total)
+         VALUES ('PO-TEST-01', ?, 1, 1200)`, [supplier],
+    )).insertId;
+    await q(
+        'INSERT INTO purchase_order_lines (purchase_order_id, inventory_item_id, qty, unit_cost) VALUES (?, ?, 10, 120)',
+        [po, item],
+    );
+
+    // What actually arrived: short, and dearer. Both are the GRN's truth, and
+    // the order keeps what was promised.
+    const grn = await receiveStock({
+        supplierId: supplier, warehouseId: 1, purchaseOrderId: po,
+        lines: [{ itemId: item, qty: 8, unitCost: 130 }],
+    });
+    assert.equal(
+        (await one('SELECT purchase_order_id FROM stock_receivings WHERE id = ?', [grn.id])).purchase_order_id,
+        po,
+    );
+    const closed = await one('SELECT status, closed_at FROM purchase_orders WHERE id = ?', [po]);
+    assert.equal(closed.status, 'received');
+    assert.ok(closed.closed_at, 'closing stamps when');
+    const line = await one('SELECT qty, unit_cost FROM purchase_order_lines WHERE purchase_order_id = ?', [po]);
+    assert.equal(Number(line.qty), 10, 'the order still says what was ordered');
+    assert.equal(Number(line.unit_cost), 120, 'and at the price agreed');
+
+    // A second delivery against the same order is refused: either a duplicate
+    // post or a delivery that needs its own order.
+    await assert.rejects(
+        receiveStock({
+            supplierId: supplier, warehouseId: 1, purchaseOrderId: po,
+            lines: [{ itemId: item, qty: 2, unitCost: 130 }],
+        }),
+        (e) => /already closed/.test(e.message),
+    );
+});

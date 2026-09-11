@@ -123,10 +123,10 @@ export async function getReceivingData() {
  * the audit trail all live in the kernel verb — this is the `inventory` gate and
  * the envelope.
  */
-export async function createReceiving({ supplierId, warehouseId, draftId, supplierInvoice, lines, notes } = {}) {
+export async function createReceiving({ supplierId, warehouseId, draftId, purchaseOrderId, supplierInvoice, lines, notes } = {}) {
     try {
         const user = await requirePermission('inventory')
-        const data = await receiveStock({ supplierId, warehouseId, draftId, supplierInvoice, lines, notes })
+        const data = await receiveStock({ supplierId, warehouseId, draftId, purchaseOrderId, supplierInvoice, lines, notes })
         fireGlAfterReceiving(data.id, user.id)
         return { data }
     } catch (e) {
