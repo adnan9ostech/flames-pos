@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { getSettings, updateSettings } from './actions'
 import { Save, Loader2, CreditCard, Building, MapPin, CheckCircle2, AlertTriangle, QrCode, Banknote, Scale, Phone } from 'lucide-react'
 import SettingsTabs from '@/components/settings/SettingsTabs'
-import { SettingSwitch } from '@/components/settings/controls'
+import { SettingSwitch, ChoiceGroup } from '@/components/settings/controls'
 
 // EMVCo caps these fields, and emvco.js silently truncates the name at 25 —
 // better to stop typing at the limit than to let a name look saved and then
@@ -23,6 +23,8 @@ const EMPTY = {
     cash_change: true,
     card_ref_required: false,
     token_mode: 'off',
+    stock_gate: 'off',
+    round_total: 'off',
     default_opening_float: 0,
     cash_variance_tolerance: 0,
 }
@@ -43,6 +45,8 @@ export default function SettingsPage() {
             next.cash_change = next.cash_change !== false
             next.card_ref_required = next.card_ref_required === true
             next.token_mode = next.token_mode === 'auto' ? 'auto' : 'off'
+            next.stock_gate = ['flag', 'hide'].includes(next.stock_gate) ? next.stock_gate : 'off'
+            next.round_total = ['1', '5'].includes(next.round_total) ? next.round_total : 'off'
             next.void_requires_pin = next.void_requires_pin === true
             // Cash policy: a row from before the columns existed reads as zero,
             // which is exactly today's behaviour — propose no float, explain
@@ -69,6 +73,8 @@ export default function SettingsPage() {
             || settings.cash_change !== saved.cash_change
             || settings.card_ref_required !== saved.card_ref_required
             || settings.token_mode !== saved.token_mode
+            || settings.stock_gate !== saved.stock_gate
+            || settings.round_total !== saved.round_total
             || settings.void_requires_pin !== saved.void_requires_pin
             || Number(settings.default_opening_float || 0) !== Number(saved.default_opening_float || 0)
             || Number(settings.cash_variance_tolerance || 0) !== Number(saved.cash_variance_tolerance || 0),
@@ -158,6 +164,34 @@ export default function SettingsPage() {
                     onToggle={() => setSettings(prev => ({ ...prev, cash_change: !prev.cash_change }))}
                 />
 
+                <div className="mb-6">
+                    <ChoiceGroup
+                        label="Rounding the grand total"
+                        hint="Always rounds DOWN, never up: shaving the tail is a discount, while rounding up charges money the bill did not say was owed. What comes off is shown on the receipt and posted to Discounts Allowed."
+                        options={[
+                            { value: 'off', label: 'No rounding', hint: 'The bill is the bill, to the rupee.' },
+                            { value: '5', label: 'Down to 5', hint: 'A 4,948 bill is charged 4,945. Saves hunting for coins nobody carries.' },
+                            { value: '1', label: 'Down to 1', hint: 'Totals are already whole rupees today (the tax is rounded), so this changes nothing until that does.' },
+                        ]}
+                        value={settings.round_total}
+                        onSelect={(mode) => setSettings(prev => ({ ...prev, round_total: mode }))}
+                    />
+                </div>
+
+                <div className="mb-6">
+                    <ChoiceGroup
+                        label="When the kitchen has run out of an ingredient"
+                        hint="Worked out from the stock room: a dish is out when something its recipe needs is at zero. An ingredient nobody has ever counted is never treated as finished, so this stays quiet until the shelves are actually being tracked."
+                        options={[
+                            { value: 'off', label: 'Say nothing', hint: 'The till never mentions stock. Right until the counts are trusted.' },
+                            { value: 'flag', label: 'Mark the dish', hint: 'A "No stock" tag on the tile, still tappable — the kitchen is often out on paper and fine in the pan.' },
+                            { value: 'hide', label: 'Hide the dish', hint: 'The tile disappears from the till. Only for a counter that trusts its counts.' },
+                        ]}
+                        value={settings.stock_gate}
+                        onSelect={(mode) => setSettings(prev => ({ ...prev, stock_gate: mode }))}
+                    />
+                </div>
+
                 <SettingSwitch
                     label="Give takeaway and delivery orders a token number"
                     hint="A short number, restarted every trading day, printed big on the receipt and shown on the kitchen screen — the number the counter shouts when the food is up. Dine-in orders keep their table instead. Leave off if nobody calls tokens: a number nobody will ever shout is worse than none."
@@ -197,6 +231,8 @@ export default function SettingsPage() {
                     <input type="hidden" name="cash_change" value={settings.cash_change ? 'true' : 'false'} />
                     <input type="hidden" name="card_ref_required" value={settings.card_ref_required ? 'true' : 'false'} />
                     <input type="hidden" name="token_mode" value={settings.token_mode} />
+                    <input type="hidden" name="stock_gate" value={settings.stock_gate} />
+                    <input type="hidden" name="round_total" value={settings.round_total} />
 
                     {/* Cash policy. Two numbers that shape every drawer close:
                         what it proposes to leave in the till overnight, and how

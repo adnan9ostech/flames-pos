@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import styles from './pos.module.css';
 import {
     getMenuItems, getCategories, addOrder, getModifiers, getWaiters,
-    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone, getDeals,
+    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone, getDeals, getStockGate,
 } from '@/lib/dataClient';
 import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/lib/kotPrint';
 import { explodeDeal, dealAppliesTo } from '@/lib/deals.mjs';
@@ -105,6 +105,11 @@ const CategoryIcon = ({ name, size = 18 }) => {
 export default function POSPage() {
     const role = useRole();
     const [menuData, setMenuData] = useState({ categories: [], items: [], modifiers: {}, deals: [] });
+    /*
+     * What the kitchen has run out of, and whether to say so. 'off' is the
+     * default and the shape a till that has never been told about stock keeps.
+     */
+    const [stockGate, setStockGate] = useState({ mode: 'off', outOfStock: [] });
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [cart, setCart] = useState([]);
@@ -223,6 +228,8 @@ export default function POSPage() {
     const [printTransport, setPrintTransport] = useState('agent');
     const [cashChange, setCashChange] = useState(true);
     const [cardRefRequired, setCardRefRequired] = useState(false);
+    // 0 = off, else the rupee step the grand total is rounded down to.
+    const [roundTo, setRoundTo] = useState(0);
     // When on, removing a line from the cart needs a manager PIN.
     const [voidRequiresPin, setVoidRequiresPin] = useState(false);
     // The line-removal a PIN dialog is standing in front of: { index }.
@@ -253,15 +260,17 @@ export default function POSPage() {
             setIsLoading(true);
             setLoadError(null);
             try {
-                const [categories, items, modifiers, deals] = await Promise.all([
+                const [categories, items, modifiers, deals, gate] = await Promise.all([
                     getCategories(),
                     getMenuItems(),
                     getModifiers(),
-                    getDeals()
+                    getDeals(),
+                    getStockGate()
                 ]);
 
                 console.debug('POS loadData:', { categoriesCount: categories.length, itemsCount: items.length, modifiersCount: Object.keys(modifiers).length });
                 setMenuData({ categories, items, modifiers, deals });
+                setStockGate(gate);
                 setLoadedItemCount(items.length);
             } catch (error) {
                 console.error("Failed to load POS data", error);
@@ -313,6 +322,7 @@ export default function POSPage() {
             setPrintTransport(s?.print_transport === 'browser' ? 'browser' : 'agent');
             setCashChange(s?.cash_change !== false);
             setCardRefRequired(s?.card_ref_required === true);
+            setRoundTo(s?.round_total === '1' ? 1 : s?.round_total === '5' ? 5 : 0);
             setVoidRequiresPin(s?.void_requires_pin === true);
             // The kitchen slips print before any receipt is mounted, so the
             // till has to publish the paper width itself.
@@ -442,8 +452,22 @@ export default function POSPage() {
             );
         }
 
+        // Hidden only where the store asked for it. Under 'flag' the tile
+        // stays and is marked — on a real service the kitchen is often out on
+        // paper and fine in the pan, and a cashier needs to be able to ring it.
+        if (stockGate.mode === 'hide' && stockGate.outOfStock.length) {
+            const gone = new Set(stockGate.outOfStock);
+            items = items.filter((item) => !gone.has(item.id));
+        }
+
         return items;
-    }, [menuData.items, activeCategory, searchQuery]);
+    }, [menuData.items, activeCategory, searchQuery, stockGate]);
+
+    // Marked, not blocked: tapping one still works.
+    const noStock = useMemo(
+        () => (stockGate.mode === 'flag' ? new Set(stockGate.outOfStock) : new Set()),
+        [stockGate],
+    );
 
     /*
      * Availability is no longer flipped from the till.
@@ -559,7 +583,16 @@ export default function POSPage() {
         [activeCharges, effectiveOrderType]
     );
 
-    const priceOpts = useMemo(() => ({ taxRate, charges: chargesForOrder }), [taxRate, chargesForOrder]);
+    /*
+     * `roundTo` is the till's copy of the store's rounding step, and it exists
+     * only so the customer sees the number the server is about to charge. The
+     * server reads its own — if the two ever disagreed the expected-total
+     * check would refuse the sale, which is exactly the protection wanted.
+     */
+    const priceOpts = useMemo(
+        () => ({ taxRate, charges: chargesForOrder, roundTo }),
+        [taxRate, chargesForOrder, roundTo],
+    );
 
     // Plans depend on the order type and the clock; refetch when the type
     // moves rather than pretending yesterday's list still applies.
@@ -1258,6 +1291,7 @@ export default function POSPage() {
                     })}
                     {activeCategory !== 'deals' && filteredItems.map(item => {
                         const soldOut = item.is_available === false;
+                        const outOfStock = noStock.has(item.id);
                         return (
                             <div
                                 key={item.id}
@@ -1287,6 +1321,11 @@ export default function POSPage() {
                                   * one place, one audit trail.
                                   */}
                                 {soldOut && <span className={styles.soldOutTag}>Sold out</span>}
+                                {!soldOut && outOfStock && (
+                                    <span className={styles.noStockTag} title="The stock room says an ingredient is finished">
+                                        No stock
+                                    </span>
+                                )}
                                 <div className={styles.itemContent}>
                                     <div className={styles.itemHeader}>
                                         <h3>{item.name}</h3>

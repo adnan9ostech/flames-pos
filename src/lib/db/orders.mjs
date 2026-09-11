@@ -44,6 +44,21 @@ const resolveBusinessDate = async (conn, branchId) => {
     return d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
 };
 
+/*
+ * How far the grand total is rounded down, in rupees. 0 is off, and off is the
+ * default — see migration 035 for why it only ever rounds down.
+ *
+ * Read here, on the server, and NOT taken from the till: the till's own copy
+ * is for showing the customer a number, and if the two ever disagreed the
+ * expected-total check would refuse the sale. The server's answer is the one
+ * that counts, and this is where it comes from.
+ */
+const getRoundingStep = async (conn) => {
+    const [rows] = await conn.query('SELECT round_total FROM store_settings LIMIT 1');
+    const mode = rows[0]?.round_total;
+    return mode === '1' ? 1 : mode === '5' ? 5 : 0;
+};
+
 const getTaxRates = async (conn) => {
     const [rows] = await conn.query(
         'SELECT tax_rate_cash, tax_rate_card FROM store_settings LIMIT 1',
@@ -168,6 +183,7 @@ const recomputeOrder = async (conn, orderId, { taxRate }) => {
             taxRate,
             discount: Number(order.discount) || 0,
             charges: await activeChargesFor(conn, order.order_type),
+            roundTo: await getRoundingStep(conn),
         },
     );
 
@@ -190,13 +206,13 @@ const recomputeOrder = async (conn, orderId, { taxRate }) => {
     await conn.query(
         `UPDATE orders SET
            items = ?, subtotal = ?, discount = ?, charges = ?, charges_total = ?,
-           tax = ?, total = ?,
+           tax = ?, rounding = ?, total = ?,
            updated_at = UTC_TIMESTAMP(3)
          WHERE id = ?`,
         [
             JSON.stringify(snapshot), totals.subtotal, totals.discount,
             JSON.stringify(totals.charges), totals.chargesTotal,
-            totals.tax, totals.total, orderId,
+            totals.tax, totals.rounding ?? 0, totals.total, orderId,
         ],
     );
     return fetchOrder(conn, orderId);

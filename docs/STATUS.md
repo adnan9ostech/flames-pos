@@ -1093,9 +1093,32 @@ owner picked off the gap list below, in the order he picked it.
   every foreign key was over BIGINT; it surfaced the moment `deals` tried to
   point at `menu_items`, and was straightened while the tables were empty.
 
-Still open from the list, in order: **token numbers** for counter orders,
-**waste with a reason** (distinct from a void — it moves stock), **hide or flag
-items at zero stock** on the till, and **grand-total rounding**.
+The last four followed the same day (migrations 032–035), and **all four ship
+OFF** so nothing that worked before changes until somebody asks:
+
+- **Waste** (032) — food cooked and then binned, recorded in DISHES (what the
+  person over the bin knows) and exploded through the recipe as a sale is.
+  Neither a sale nor a void; the ledger row says 'waste'; the reason is
+  compulsory. Entirely additive.
+- **Tokens** (033) — a short number for takeaway and delivery, restarted daily,
+  minted when the order is rung (that is when the customer is handed it),
+  double-size on the receipt and on the KDS. Dine-in excluded: it has a table.
+- **Stock gate** (034) — 'off' | 'flag' | 'hide'. The safety rule is about
+  ABSENCE, not zero: an ingredient with no stock movements at all is untracked
+  and can never close a dish. Without it, "we have not started counting flour"
+  and "we are out of flour" would be the same sentence in a restaurant that has
+  not opened.
+- **Rounding** (035) — always DOWN, never up: rounding up charges money the
+  bill did not say was owed. Computed last, after tax, so nothing is circular,
+  and posted to Discounts Allowed — which is both what it is and what keeps the
+  sale journal balanced (total + discount + rounding = revenue + charges + tax,
+  asserted in test 20). The server reads the step itself rather than trusting
+  the till; if the two disagreed the expected-total check would refuse the sale.
+
+**Verified after the lot**: suite 147/147, build green, all 30 screens rendered
+under a real admin session with no runtime errors, `/api/menu` unchanged in
+shape bar its new fields, zero unbalanced journals, and every new setting
+reading off in the dev database.
 
 ## Two ideas worth stealing from ChowPOS (rms.roomy.pk) — 11 Sep 2026
 

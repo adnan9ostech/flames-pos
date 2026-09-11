@@ -1283,3 +1283,24 @@
     color: var(--muted-foreground);
     text-decoration: line-through;
 }
+
+/*
+ * "No stock" is the stock room's opinion, not the menu's. It sits where the
+ * sold-out tag sits but reads quieter and in a different colour, because the
+ * tile is still tappable: on a real service the count is often behind the pan,
+ * and a cashier who is told the kitchen has it must be able to ring it.
+ */
+.noStockTag {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 2;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: var(--warning, #d97706);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}

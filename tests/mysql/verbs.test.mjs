@@ -578,3 +578,77 @@ test('18. tokens are minted for the counter only, and only when the store calls 
         await q("UPDATE store_settings SET token_mode = 'off'");
     }
 });
+
+test('19. the stock gate never hides a dish whose ingredients nobody counts', async () => {
+    const { getOutOfStockDishes } = await import('../../src/lib/db/reads.mjs');
+    const { receiveStock } = await import('../../src/lib/db/inventory.mjs');
+    const tag = randomUUID().slice(0, 8);
+
+    const sup = (await q('INSERT INTO suppliers (name, is_active) VALUES (?, 1)', [`Gate Supplier ${tag}`])).insertId;
+    const tracked = (await q('INSERT INTO inventory_items (name, unit_id, is_active) VALUES (?, 1, 1)', [`Gate Tracked ${tag}`])).insertId;
+    const untracked = (await q('INSERT INTO inventory_items (name, unit_id, is_active) VALUES (?, 1, 1)', [`Gate Untracked ${tag}`])).insertId;
+
+    const mkDish = async (name, itemId) => {
+        const id = randomUUID();
+        await q("INSERT INTO menu_items (id, name, price, variants, modifiers) VALUES (?, ?, 500, '[]', '[]')", [id, `${name} ${tag}`]);
+        await q('INSERT INTO recipes (menu_item_id, notes) VALUES (?, NULL)', [id]);
+        await q("INSERT INTO recipe_lines (menu_item_id, variant_name, inventory_item_id, qty) VALUES (?, '', ?, 1)", [id, itemId]);
+        return id;
+    };
+    const dishTracked = await mkDish('Gate Dish Tracked', tracked);
+    const dishUntracked = await mkDish('Gate Dish Untracked', untracked);
+
+    // Nothing has ever moved for either ingredient: neither dish is out. This
+    // is the case that matters — a restaurant before it opens.
+    let out = await getOutOfStockDishes();
+    assert.equal(out.includes(dishUntracked), false, 'an uncounted ingredient never closes a dish');
+    assert.equal(out.includes(dishTracked), false);
+
+    // Receive some, then consume all of it: now it is genuinely at zero.
+    await receiveStock({ supplierId: sup, warehouseId: 1, lines: [{ itemId: tracked, qty: 5, unitCost: 100 }] });
+    out = await getOutOfStockDishes();
+    assert.equal(out.includes(dishTracked), false, 'stock on the shelf keeps the dish on the menu');
+
+    const { postDishWaste } = await import('../../src/lib/inventory/waste.mjs');
+    await postDishWaste({ reason: 'Emptying the shelf for a test', lines: [{ menuItemId: dishTracked, qty: 5 }] });
+    out = await getOutOfStockDishes();
+    assert.equal(out.includes(dishTracked), true, 'at zero, the dish is out');
+    assert.equal(out.includes(dishUntracked), false, 'and the uncounted one still is not');
+});
+
+test('20. rounding shaves the total down, and the ledger still balances', async () => {
+    // Off by default: the bill is the bill.
+    const plain = await createOrder(
+        [{ name: 'Karahi', price: 4265, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash' },
+    );
+    assert.equal(Number(plain.rounding), 0);
+    const grossTotal = Number(plain.total);
+
+    await q("UPDATE store_settings SET round_total = '5'");
+    try {
+        const rounded = await createOrder(
+            [{ name: 'Karahi', price: 4265, qty: 1 }],
+            { payment_status: 'paid', payment_mode: 'cash' },
+        );
+        const expected = Math.floor(grossTotal / 5) * 5;
+        assert.equal(Number(rounded.total), expected, 'rounded DOWN to the nearest five');
+        assert.equal(Number(rounded.rounding), grossTotal - expected);
+        assert.ok(Number(rounded.total) <= grossTotal, 'never rounds up — that would be an overcharge');
+
+        // The accounting identity the sale journal is built on must still
+        // hold: what the guest owes, plus what was given away, equals what was
+        // earned. Rounding rides with the discount, which is what keeps it true.
+        const earned = Number(rounded.subtotal) + Number(rounded.charges_total) + Number(rounded.tax);
+        const givenAway = Number(rounded.discount) + Number(rounded.rounding);
+        assert.equal(Number(rounded.total) + givenAway, earned);
+
+        // And the till's own arithmetic agrees with the server's, which is what
+        // the expected-total check depends on.
+        const { calcTotals } = await import('../../src/lib/orderTotals.mjs');
+        const till = calcTotals([{ price: 4265, qty: 1 }], true, { taxRate: TAX.cash, roundTo: 5 });
+        assert.equal(till.total, Number(rounded.total));
+    } finally {
+        await q("UPDATE store_settings SET round_total = 'off'");
+    }
+});

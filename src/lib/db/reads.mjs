@@ -140,6 +140,54 @@ export const getOrdersPage = async ({
 };
 
 /*
+ * Dishes the kitchen has run out of, worked out from the shelf.
+ *
+ * A dish is out when any ingredient its recipe needs — down through
+ * sub-recipes — is TRACKED and at or below zero. "Tracked" is the whole safety
+ * of this: an ingredient with no stock movements at all has never been
+ * received, counted or consumed, so nobody is keeping its count, and it can
+ * never take a dish off the menu. Otherwise "we have not started counting
+ * flour" and "we are out of flour" would be the same sentence, and the wrong
+ * one would win — which, in a restaurant that has not opened yet, would be
+ * every dish on the menu.
+ *
+ * Returns ids. Whether the till marks them or hides them is
+ * `store_settings.stock_gate`, and the default is to do neither.
+ */
+export const getOutOfStockDishes = async () => {
+    const [recipeLines, subLines, onHand] = await Promise.all([
+        query('SELECT menu_item_id, inventory_item_id, qty FROM recipe_lines'),
+        query('SELECT parent_item_id, component_item_id, qty FROM sub_recipe_lines'),
+        query('SELECT inventory_item_id, SUM(delta) AS qty FROM stock_ledger GROUP BY inventory_item_id'),
+    ]);
+    if (recipeLines.length === 0 || onHand.length === 0) return [];
+
+    const { indexSubRecipes, expandToRaw } = await import('../inventory/subrecipe.mjs');
+    const subMap = indexSubRecipes(subLines);
+    // Only ingredients the ledger has ever heard of, and of those, the ones at
+    // or below zero.
+    const empty = new Set(
+        onHand.filter((r) => Number(r.qty) <= 0).map((r) => Number(r.inventory_item_id)),
+    );
+    if (empty.size === 0) return [];
+
+    const out = new Set();
+    const byDish = new Map();
+    for (const l of recipeLines) {
+        if (!byDish.has(l.menu_item_id)) byDish.set(l.menu_item_id, []);
+        byDish.get(l.menu_item_id).push({ itemId: Number(l.inventory_item_id), qty: Number(l.qty) });
+    }
+    for (const [dish, lines] of byDish) {
+        // Expanded, so a dish is out when the masala's chilli is out even
+        // though no tub of masala was ever on a shelf.
+        for (const raw of expandToRaw(lines, subMap)) {
+            if (empty.has(raw.itemId)) { out.add(dish); break; }
+        }
+    }
+    return [...out];
+};
+
+/*
  * The deals on offer, with their dishes. Read with the menu because that is
  * what a deal is — a way of selling the menu — and the till needs both in the
  * same breath to price one.

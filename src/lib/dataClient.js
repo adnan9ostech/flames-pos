@@ -64,6 +64,23 @@ export const getCategories = async () => {
     }
 };
 
+/*
+ * What the kitchen has run out of, and whether the till should say so. One
+ * object rather than two calls, because the list means nothing without the
+ * mode — an empty list and a switched-off gate look identical otherwise.
+ */
+export const getStockGate = async () => {
+    try {
+        const menu = await fetchJson('/api/menu');
+        return { mode: menu.stockGate || 'off', outOfStock: menu.outOfStock || [] };
+    } catch (e) {
+        console.error('Error fetching stock gate:', e);
+        // A failure must not empty the menu: the till behaves as if nobody
+        // asked about stock, which is how it behaved yesterday.
+        return { mode: 'off', outOfStock: [] };
+    }
+};
+
 export const getDeals = async () => {
     try {
         return (await fetchJson('/api/menu')).deals || [];

@@ -228,10 +228,20 @@ const saleLines = async (conn, order, settings, links) => {
 
     return [
         { account_id: settings.guest_ledger_account_id, debit: order.total, memo: where },
+        /*
+         * Discounts Allowed carries the rounding too, and that is not a fudge:
+         * the grand total only ever rounds DOWN (migration 035), so what is
+         * shaved off the tail is money given away, which is what this account
+         * is for. Posting it here is also what keeps the entry balanced —
+         * total + discount + rounding is exactly revenue + charges + tax.
+         */
         {
             account_id: settings.discount_account_id,
-            debit: order.discount,
-            memo: order.discount_reason ? `Discount · ${order.discount_reason}` : 'Discount',
+            debit: money(Number(order.discount || 0) + Number(order.rounding || 0)),
+            memo: [
+                order.discount_reason ? `Discount · ${order.discount_reason}` : (Number(order.discount) ? 'Discount' : null),
+                Number(order.rounding) ? `Rounding ${money(order.rounding)}` : null,
+            ].filter(Boolean).join(' · ') || 'Discount',
         },
         ...[...revenue].map(([account_id, amount]) => ({
             account_id, credit: amount, memo: `Items sold · ${items.length} line${items.length === 1 ? '' : 's'}`,

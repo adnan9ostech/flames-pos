@@ -16,7 +16,7 @@ export const DEFAULT_TAX_RATE = 0.16;
  * The percentage is an input; the money is the fact. Storing the percentage
  * would silently re-price a historical bill if anything else about it changed.
  */
-export const calcTotals = (items, includeTax = true, { taxRate = DEFAULT_TAX_RATE, discount = 0, charges = [] } = {}) => {
+export const calcTotals = (items, includeTax = true, { taxRate = DEFAULT_TAX_RATE, discount = 0, charges = [], roundTo = 0 } = {}) => {
     const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
     // Never negative, never more than the bill — an over-large discount would
@@ -44,6 +44,24 @@ export const calcTotals = (items, includeTax = true, { taxRate = DEFAULT_TAX_RAT
     const taxable = net + chargesBefore;
     const tax = includeTax ? Math.round(taxable * taxRate) : 0;
 
+    const gross = taxable + tax + chargesAfter;
+
+    /*
+     * The tail, shaved off the grand total.
+     *
+     * Last, after tax, so nothing here is circular — the bill is worked out
+     * exactly as it always was and only then is the total trimmed. And DOWN,
+     * always: rounding up charges the customer money the bill did not say they
+     * owed, which is an overcharge however small, while rounding down is a
+     * discount — a thing this system already understands end to end, and which
+     * is how the ledger posts it.
+     *
+     * roundTo 0 (the default) is off, and then every figure below is what it
+     * has always been, to the paisa.
+     */
+    const step = Number(roundTo) || 0;
+    const total = step > 0 ? Math.floor(gross / step) * step : gross;
+
     return {
         subtotal,
         discount: appliedDiscount,
@@ -51,7 +69,8 @@ export const calcTotals = (items, includeTax = true, { taxRate = DEFAULT_TAX_RAT
         chargesTotal: chargesBefore + chargesAfter,
         taxable,
         tax,
-        total: taxable + tax + chargesAfter,
+        rounding: Math.round((gross - total) * 100) / 100,
+        total,
     };
 };
 

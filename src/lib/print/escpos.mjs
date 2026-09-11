@@ -291,6 +291,11 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
     if (Number(order.tax) > 0) {
         out += r(`${settings.tax_label || 'GST'}${rate ? ` (${rate})` : ''}`, `Rs. ${rupees(order.tax)}`);
     }
+    // Shaved off the tail, and shown: a customer comparing the lines to the
+    // total must be able to see where the difference went.
+    if (Number(order.rounding) > 0) {
+        out += r('Rounding', `-Rs. ${rupees(order.rounding)}`);
+    }
     out += CMD.bold + row('TOTAL', `Rs. ${rupees(order.total)}`, cols) + CMD.unbold + '\n';
 
     /*

@@ -258,6 +258,12 @@ const ReceiptPreview = ({
                                 <span>Rs. {money(totals.tax)}</span>
                             </div>
                         )}
+                        {Number(totals.rounding) > 0 && (
+                            <div className={styles.row}>
+                                <span>Rounding:</span>
+                                <span>-Rs. {money(totals.rounding)}</span>
+                            </div>
+                        )}
                         <div className={`${styles.row} ${styles.grandTotal}`}>
                             <span>Total:</span>
                             <span>Rs. {money(totals.total)}</span>
