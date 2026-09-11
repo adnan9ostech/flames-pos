@@ -8,6 +8,7 @@ import { usePermissions } from '@/components/Layout/AppLayout'
 import {
     Boxes, ChefHat, Truck, ArrowRightLeft, BarChart3,
     Wallet, AlertTriangle, PackageSearch, Loader2, ChevronRight,
+    ClipboardList, Trash2,
 } from 'lucide-react'
 
 /* Every inventory surface hangs off this hub. */
@@ -25,8 +26,16 @@ const SURFACES = [
         blurb: 'In Menu — what one sold portion of each size consumes',
     },
     {
+        href: '/inventory/purchase-orders', Icon: ClipboardList, title: 'Purchase Orders',
+        blurb: 'What was ordered, at what price, for when — before it arrives',
+    },
+    {
         href: '/inventory/receiving', Icon: Truck, title: 'Receiving',
         blurb: 'Goods in — sets average cost and the supplier payable',
+    },
+    {
+        href: '/inventory/waste', Icon: Trash2, title: 'Waste',
+        blurb: 'Food cooked and then binned, with a reason — not a void',
     },
     {
         href: '/inventory/docs', Icon: ArrowRightLeft, title: 'Stock Documents',

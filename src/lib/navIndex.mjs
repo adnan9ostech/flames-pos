@@ -346,6 +346,39 @@ export const backOfficeNav = (perms = []) =>
  * tonight's money, then what is sold, then the books, then the reading, then
  * the things set once and left alone.
  */
+/*
+ * The screens that live UNDER a rail entry.
+ *
+ * Two thirds of this app is not on the rail: forty-odd screens — Purchase
+ * Orders, Waste, Sub-recipes, Deals, Trial Balance, Posting Health — are
+ * reachable only through a hub page's tiles or by knowing to press Ctrl-K.
+ * That is the complaint "kuch cheezen andar hi andar hoti hain": they exist,
+ * they work, and nobody can find them.
+ *
+ * Putting all sixty on the rail would trade one problem for a worse one. So
+ * the rail stays short and GROWS WHERE YOU ARE: open Inventory and its own
+ * screens appear underneath it, indented, until you leave. One click from
+ * anywhere inside a section to anything else in it.
+ *
+ * Derived from the href rather than from a hand-kept parent field, because a
+ * hand-kept one is a second place to forget: /inventory/waste is under
+ * /inventory by construction, and a new screen joins the rail the moment its
+ * route exists. Entries that are already ON the rail are excluded — a child
+ * that is its own rail row would render twice.
+ */
+export const childrenOf = (href, perms = []) => {
+    if (!href || href === '/') return [];
+    const prefix = `${href}/`;
+    return NAV_INDEX.filter((e) => (
+        e.href.startsWith(prefix)
+        && !e.nav
+        && (!e.perm || perms.includes(e.perm))
+        // One level only. /accounts/reports/trial-balance belongs to the
+        // Account Reports page, not to a rail that would then be thirty rows.
+        && !e.href.slice(prefix.length).includes('/')
+    ));
+};
+
 export const SIDEBAR_GROUPS = [
     { title: 'Cash & Day', sections: ['Cash & Day'] },
     { title: 'Menu & Stock', sections: ['Menu', 'Inventory'] },

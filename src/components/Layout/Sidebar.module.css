@@ -343,3 +343,24 @@
 
 :root[data-theme="light"] .logoOnDark { display: none; }
 :root[data-theme="light"] .logoOnLight { display: block; }
+
+/*
+ * A screen that lives under the rail row above it, shown only while you are
+ * inside that section. Indented and a shade quieter so the parent still reads
+ * as the section and these as its contents — and the left rule ties the run
+ * together, which a plain indent alone does not do once there are seven of
+ * them.
+ */
+.childLink {
+    margin-left: 1.15rem;
+    width: calc(100% - 1.15rem);
+    padding-left: 0.7rem;
+    border-left: 1px solid var(--border);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.childLink.active {
+    border-left-color: var(--primary);
+}

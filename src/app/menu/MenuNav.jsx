@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import styles from './menuNav.module.css';
 
 /*
- * The section strip: six stops, each a list screen. "Add" lives on each list
+ * The section strip: eight stops, each a list screen. "Add" lives on each list
  * as its own button, where a person expects it once the list is in front of
  * them. Prefix matching, so /menu/items/abc lights "Dishes"; the dish list
  * itself is the section root and matches exactly.
@@ -15,6 +15,8 @@ const SECTIONS = [
     ['/menu/variations', 'Sizes & Variations'],
     ['/menu/modifiers', 'Modifiers'],
     ['/menu/recipes', 'Recipes'],
+    ['/menu/sub-recipes', 'Sub-recipes'],
+    ['/menu/deals', 'Deals'],
     ['/menu/ingredients', 'Ingredients'],
 ];
 

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { ROLES } from '@/lib/auth/permissions.mjs';
-import { primaryNav, sidebarSections } from '@/lib/navIndex.mjs';
+import { primaryNav, sidebarSections, childrenOf } from '@/lib/navIndex.mjs';
 import { navIcon } from './navIcons';
 import CommandPalette from './CommandPalette';
 import NotificationBell from './NotificationBell';
@@ -50,21 +50,48 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
 
     const closeSearch = useCallback(() => setSearchOpen(false), []);
 
-    const navLink = ({ href, label, icon, newTab }) => {
+    const navLink = ({ href, label, icon, newTab, child = false }) => {
         const Icon = navIcon(icon);
+        // A child row lights only on its own page; a parent lights for the
+        // whole section under it, which is what tells you where you are.
+        const here = child
+            ? pathname === href
+            : pathname === href || pathname.startsWith(`${href}/`);
         return (
         <Link
             key={href}
             href={href}
-            /* startsWith keeps a nested page (/inventory/recipes) lighting its
-               section, while '/' alone can't match everything. */
-            className={`${styles.link} ${pathname === href || pathname.startsWith(`${href}/`) ? styles.active : ''}`}
+            className={`${styles.link} ${child ? styles.childLink : ''} ${here ? styles.active : ''}`}
             title={collapsed ? label : undefined}
             {...(newTab ? { target: '_blank' } : {})}
         >
-            <Icon className={styles.icon} size={iconSize} />
+            <Icon className={styles.icon} size={child ? iconSize - 2 : iconSize} />
             {!collapsed && <span className={styles.label}>{label}</span>}
         </Link>
+        );
+    };
+
+    /*
+     * A rail row, plus what lives under it while you are in there.
+     *
+     * Two thirds of this app is off the rail — Purchase Orders, Waste, Deals,
+     * Sub-recipes, Trial Balance — reachable only from a hub page's tiles or
+     * by knowing about Ctrl-K. Listing all sixty screens would trade that for
+     * an unreadable rail, so the rail GROWS WHERE YOU ARE instead: open
+     * Inventory and its own screens appear underneath it until you leave.
+     *
+     * Collapsed, it does not expand: 84px has no room for a second level, and
+     * the icons would be a column of identical circles.
+     */
+    const navRow = (entry) => {
+        const inside = pathname === entry.href || pathname.startsWith(`${entry.href}/`);
+        const kids = inside && !collapsed ? childrenOf(entry.href, perms) : [];
+        if (kids.length === 0) return navLink(entry);
+        return (
+            <Fragment key={entry.href}>
+                {navLink(entry)}
+                {kids.map((k) => navLink({ ...k, child: true }))}
+            </Fragment>
         );
     };
 
@@ -197,7 +224,7 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                     </button>
                 )}
 
-                {links.map(navLink)}
+                {links.map(navRow)}
 
                 {/* One heading per category rather than one "Back office" for
                     all thirteen. Collapsed, the headings become the rules that
@@ -207,7 +234,7 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                     <Fragment key={group.title}>
                         {!collapsed && <p className={styles.sectionLabel}>{group.title}</p>}
                         {collapsed && <div className={styles.sectionRule} />}
-                        {group.items.map(navLink)}
+                        {group.items.map(navRow)}
                     </Fragment>
                 ))}
             </nav>
