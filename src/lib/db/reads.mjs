@@ -38,7 +38,7 @@ const KITCHEN_STATUSES = ['new', 'preparing', 'ready'];
 // Exactly the columns a ticket renders — totals and customer details stay
 // off a screen that displays none of them.
 const KITCHEN_COLUMNS =
-    'id, order_number, status, order_type, table_number, waiter_name, ' +
+    'id, order_number, token_no, status, order_type, table_number, waiter_name, ' +
     'payment_status, items, notes, round_count, created_at, last_round_at';
 
 // Every live order reaches the kitchen the moment it is sent, paid or not: a

@@ -265,6 +265,15 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
 
     out += `${stampOf(order.paid_at || order.created_at)}\n`;
     out += `Order #${order.order_number}${order.table_number ? `  Table ${order.table_number}` : ''}\n`;
+
+    /*
+     * The token, in double size, because this is the one number on the slip a
+     * customer has to read across a counter while holding a tray. Only where
+     * one was minted — a dine-in bill has a table instead.
+     */
+    if (order.token_no != null) {
+        out += CMD.center + CMD.big + `TOKEN ${order.token_no}\n` + CMD.normal + CMD.left;
+    }
     if (order.waiter_name) out += `Served by ${order.waiter_name}\n`;
     out += line + '\n';
 
@@ -346,7 +355,7 @@ export const renderKotSlip = ({ slip, meta = {}, widthMm = 58, settings = {} }) 
     const cols = columnsFor(widthMm);
     let out = CMD.init + CMD.center + CMD.big + `${slip.categoryName}\n` + CMD.normal;
     out += CMD.left + rule(cols) + '\n';
-    out += `Order #${meta.orderNumber ?? ''}${meta.table ? `  Table ${meta.table}` : ''}\n`;
+    out += `Order #${meta.orderNumber ?? ''}${meta.table ? `  Table ${meta.table}` : ''}${meta.tokenNo != null ? `  TOKEN ${meta.tokenNo}` : ''}\n`;
     if (meta.waiter) out += `${meta.waiter}\n`;
     out += `${meta.orderType || ''}${meta.roundNo ? `  Round ${meta.roundNo}` : ''}\n`;
     if (meta.at) out += `${stampOf(meta.at)}\n`;

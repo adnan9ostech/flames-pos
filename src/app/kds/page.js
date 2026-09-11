@@ -248,6 +248,7 @@ export default function KDSPage() {
                                 slips,
                                 meta: {
                                     orderNumber: getOrderNumber(o),
+                                    tokenNo: o.token_no,
                                     table: o.table_number,
                                     waiter: o.waiter_name,
                                     orderType: o.order_type,
@@ -388,6 +389,7 @@ export default function KDSPage() {
         const slips = buildKotSlips(kotMode, order.items, menu.items, menu.categories);
         await feedSlipsToPrinter(slips, {
             orderNumber: getOrderNumber(order),
+            tokenNo: order.token_no,
             table: order.table_number,
             waiter: order.waiter_name,
             orderType: order.order_type,
@@ -501,6 +503,8 @@ export default function KDSPage() {
                                             </div>
                                             <div className={styles.ticketMeta}>
                                                 {ORDER_TYPE_LABEL[order.order_type] || order.order_type}
+                                                {/* The number the pass will shout when this is up. */}
+                                                {order.token_no != null && ` · Token ${order.token_no}`}
                                                 {order.table_number && ` · ${order.table_number}`}
                                                 {order.payment_status === 'unpaid' && ' · open tab'}
                                             </div>

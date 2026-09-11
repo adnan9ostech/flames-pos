@@ -499,3 +499,82 @@ test('16. a deal rings as its dishes plus a discount, priced live off the menu',
     const dear = explodeDeal({ ...deal, price: listTotal + 500 }, items);
     assert.equal(dear.saving, 0);
 });
+
+test('17. wasted food leaves the shelf with a reason, and is not a sale', async () => {
+    const { postDishWaste } = await import('../../src/lib/inventory/waste.mjs');
+    const { receiveStock } = await import('../../src/lib/db/inventory.mjs');
+    const tag = randomUUID().slice(0, 8);
+
+    const sup = (await q('INSERT INTO suppliers (name, is_active) VALUES (?, 1)', [`Waste Supplier ${tag}`])).insertId;
+    const chicken = (await q(
+        'INSERT INTO inventory_items (name, unit_id, is_active) VALUES (?, 1, 1)', [`Waste Chicken ${tag}`],
+    )).insertId;
+    await receiveStock({ supplierId: sup, warehouseId: 1, lines: [{ itemId: chicken, qty: 10, unitCost: 900 }] });
+
+    const dishId = randomUUID();
+    await q(
+        "INSERT INTO menu_items (id, name, price, variants, modifiers) VALUES (?, ?, 1500, '[]', '[]')",
+        [dishId, `Waste Karahi ${tag}`],
+    );
+    await q('INSERT INTO recipes (menu_item_id, notes) VALUES (?, NULL)', [dishId]);
+    await q(
+        "INSERT INTO recipe_lines (menu_item_id, variant_name, inventory_item_id, qty) VALUES (?, '', ?, 0.4)",
+        [dishId, chicken],
+    );
+
+    const before = Number((await one(
+        'SELECT COALESCE(SUM(delta), 0) AS q FROM stock_ledger WHERE inventory_item_id = ?', [chicken],
+    )).q);
+
+    const doc = await postDishWaste({ reason: 'Dropped', lines: [{ menuItemId: dishId, qty: 2 }], userId: null });
+    assert.equal(doc.cost, 2 * 0.4 * 900, 'the loss is priced at what the ingredients cost');
+
+    const after = Number((await one(
+        'SELECT COALESCE(SUM(delta), 0) AS q FROM stock_ledger WHERE inventory_item_id = ?', [chicken],
+    )).q);
+    assert.equal(Math.round((before - after) * 1000) / 1000, 0.8, 'two wasted dishes took 0.8kg off the shelf');
+
+    const row = await one(
+        "SELECT source_type FROM stock_ledger WHERE inventory_item_id = ? ORDER BY id DESC LIMIT 1", [chicken],
+    );
+    assert.equal(row.source_type, 'waste', 'not a sale, and not a void');
+
+    // The reason is the point of the document, so an empty one is refused.
+    await assert.rejects(
+        postDishWaste({ reason: '   ', lines: [{ menuItemId: dishId, qty: 1 }] }),
+        (e) => /needs a reason/.test(e.message),
+    );
+});
+
+test('18. tokens are minted for the counter only, and only when the store calls them', async () => {
+    // Off by default: nothing changes for a restaurant that does not call them.
+    const quiet = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', order_type: 'takeaway' },
+    );
+    assert.equal(quiet.token_no, null, 'off means no number at all, not zero');
+
+    await q("UPDATE store_settings SET token_mode = 'auto'");
+    try {
+        const first = await createOrder(
+            [{ name: 'Karahi', price: 1000, qty: 1 }],
+            { payment_status: 'paid', payment_mode: 'cash', order_type: 'takeaway' },
+        );
+        const second = await createOrder(
+            [{ name: 'Karahi', price: 1000, qty: 1 }],
+            { payment_status: 'unpaid', order_type: 'delivery' },
+        );
+        assert.ok(Number(first.token_no) > 0);
+        assert.equal(Number(second.token_no), Number(first.token_no) + 1, 'one counter, in order');
+
+        // A dine-in bill has a table to be called by; two names for one bill
+        // on one slip helps nobody.
+        const dineIn = await createOrder(
+            [{ name: 'Karahi', price: 1000, qty: 1 }],
+            { payment_status: 'unpaid', order_type: 'dine-in', table_number: '6' },
+        );
+        assert.equal(dineIn.token_no, null);
+    } finally {
+        await q("UPDATE store_settings SET token_mode = 'off'");
+    }
+});

@@ -22,6 +22,7 @@ const EMPTY = {
     void_requires_pin: false,
     cash_change: true,
     card_ref_required: false,
+    token_mode: 'off',
     default_opening_float: 0,
     cash_variance_tolerance: 0,
 }
@@ -41,6 +42,7 @@ export default function SettingsPage() {
             next.qr_enabled = next.qr_enabled !== false
             next.cash_change = next.cash_change !== false
             next.card_ref_required = next.card_ref_required === true
+            next.token_mode = next.token_mode === 'auto' ? 'auto' : 'off'
             next.void_requires_pin = next.void_requires_pin === true
             // Cash policy: a row from before the columns existed reads as zero,
             // which is exactly today's behaviour — propose no float, explain
@@ -66,6 +68,7 @@ export default function SettingsPage() {
             || settings.qr_enabled !== saved.qr_enabled
             || settings.cash_change !== saved.cash_change
             || settings.card_ref_required !== saved.card_ref_required
+            || settings.token_mode !== saved.token_mode
             || settings.void_requires_pin !== saved.void_requires_pin
             || Number(settings.default_opening_float || 0) !== Number(saved.default_opening_float || 0)
             || Number(settings.cash_variance_tolerance || 0) !== Number(saved.cash_variance_tolerance || 0),
@@ -156,6 +159,13 @@ export default function SettingsPage() {
                 />
 
                 <SettingSwitch
+                    label="Give takeaway and delivery orders a token number"
+                    hint="A short number, restarted every trading day, printed big on the receipt and shown on the kitchen screen — the number the counter shouts when the food is up. Dine-in orders keep their table instead. Leave off if nobody calls tokens: a number nobody will ever shout is worse than none."
+                    checked={settings.token_mode === 'auto'}
+                    onToggle={() => setSettings(prev => ({ ...prev, token_mode: prev.token_mode === 'auto' ? 'off' : 'auto' }))}
+                />
+
+                <SettingSwitch
                     label="Require the card slip's reference on card sales"
                     hint="The approval code or last four digits off the terminal slip, stored against the sale and printed on the receipt — so a card batch that does not agree at close can be traced to the bill instead of matched by hand. The box is offered on every card sale either way; this makes it compulsory."
                     checked={settings.card_ref_required}
@@ -186,6 +196,7 @@ export default function SettingsPage() {
                     <input type="hidden" name="void_requires_pin" value={settings.void_requires_pin ? 'true' : 'false'} />
                     <input type="hidden" name="cash_change" value={settings.cash_change ? 'true' : 'false'} />
                     <input type="hidden" name="card_ref_required" value={settings.card_ref_required ? 'true' : 'false'} />
+                    <input type="hidden" name="token_mode" value={settings.token_mode} />
 
                     {/* Cash policy. Two numbers that shape every drawer close:
                         what it proposes to leave in the till overnight, and how

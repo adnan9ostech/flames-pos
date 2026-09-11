@@ -292,6 +292,11 @@ export const NAV_INDEX = [
         keywords: 'grn goods received delivery note receive stock intake purchase receiving',
     },
     {
+        href: '/inventory/waste', label: 'Waste', icon: 'Trash2', perm: 'inventory',
+        section: 'Inventory',
+        keywords: 'wastage spoilage dropped sent back binned thrown away staff meal loss',
+    },
+    {
         href: '/inventory/docs', label: 'Stock Documents', icon: 'ClipboardCheck', perm: 'inventory',
         section: 'Inventory',
         keywords: 'stock docs transfers adjustments counts wastage demand draft',

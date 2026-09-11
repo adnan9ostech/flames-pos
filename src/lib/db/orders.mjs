@@ -453,6 +453,36 @@ const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, pay
             throw e;
         }
 
+        /*
+         * The token, where the store calls them and the customer is waiting.
+         *
+         * Takeaway and delivery only: a dine-in bill already has a table, and
+         * two names for one bill on one slip helps nobody. Minted here rather
+         * than at settle because the customer is handed it when they order,
+         * not when they pay — and an open takeaway tab must carry the same
+         * number the counter will shout.
+         *
+         * Same counter shape as the invoice number: the upsert X-locks the
+         * row until commit, so two tills ringing at the same moment queue
+         * instead of both taking 12.
+         */
+        const orderType = opts.order_type || 'dine-in';
+        if (orderType !== 'dine-in') {
+            const [[cfg] = []] = await conn.query('SELECT token_mode FROM store_settings LIMIT 1');
+            if (cfg?.token_mode === 'auto') {
+                await conn.query(
+                    `INSERT INTO token_counters (branch_id, day, last_no) VALUES (?, ?, 1)
+                     ON DUPLICATE KEY UPDATE last_no = last_no + 1`,
+                    [branchId, businessDate],
+                );
+                const [[{ last_no }]] = await conn.query(
+                    'SELECT last_no FROM token_counters WHERE branch_id = ? AND day = ?',
+                    [branchId, businessDate],
+                );
+                await conn.query('UPDATE orders SET token_no = ? WHERE id = ?', [last_no, orderId]);
+            }
+        }
+
         const roundId = randomUUID();
         await conn.query(
             `INSERT INTO order_rounds (id, order_id, branch_id, round_no, fired_at, client_request_id)

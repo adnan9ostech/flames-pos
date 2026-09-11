@@ -337,6 +337,7 @@ const printKot = async (orderRef, { round = null, reprint = false } = {}) => {
     const slips = buildKotSlips(settings.kot_mode, roundItems, menuItems, categories);
     const meta = {
         orderNumber: order.order_number,
+        tokenNo: order.token_no,
         table: order.table_number,
         waiter: order.waiter_name,
         orderType: order.order_type,
