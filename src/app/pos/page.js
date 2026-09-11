@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import styles from './pos.module.css';
 import {
     getMenuItems, getCategories, addOrder, getModifiers, getWaiters,
-    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone, getDeals, getStockGate,
+    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone, getDeals, getStockGate, getSalesChannels,
 } from '@/lib/dataClient';
 import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/lib/kotPrint';
 import { explodeDeal, dealAppliesTo } from '@/lib/deals.mjs';
@@ -230,6 +230,13 @@ export default function POSPage() {
     const [cardRefRequired, setCardRefRequired] = useState(false);
     // 0 = off, else the rupee step the grand total is rounded down to.
     const [roundTo, setRoundTo] = useState(0);
+    /*
+     * Where this order came from. Only ever shown when the restaurant has more
+     * than one channel — until it lists on an aggregator, every bill is a
+     * walk-in and a picker with one option is furniture.
+     */
+    const [channels, setChannels] = useState([]);
+    const [channelId, setChannelId] = useState(null);
     // When on, removing a line from the cart needs a manager PIN.
     const [voidRequiresPin, setVoidRequiresPin] = useState(false);
     // The line-removal a PIN dialog is standing in front of: { index }.
@@ -260,17 +267,22 @@ export default function POSPage() {
             setIsLoading(true);
             setLoadError(null);
             try {
-                const [categories, items, modifiers, deals, gate] = await Promise.all([
+                const [categories, items, modifiers, deals, gate, channels] = await Promise.all([
                     getCategories(),
                     getMenuItems(),
                     getModifiers(),
                     getDeals(),
-                    getStockGate()
+                    getStockGate(),
+                    getSalesChannels()
                 ]);
 
                 console.debug('POS loadData:', { categoriesCount: categories.length, itemsCount: items.length, modifiersCount: Object.keys(modifiers).length });
                 setMenuData({ categories, items, modifiers, deals });
                 setStockGate(gate);
+                setChannels(channels);
+                // The default is where a new bill starts; the cashier moves it
+                // only for the orders that did not walk in.
+                setChannelId((prev) => prev ?? channels.find((c) => c.is_default)?.id ?? channels[0]?.id ?? null);
                 setLoadedItemCount(items.length);
             } catch (error) {
                 console.error("Failed to load POS data", error);
@@ -920,6 +932,7 @@ export default function POSPage() {
                 // Only a cash sale has a tender; the server stores both halves
                 // or neither.
                 cash_received: paymentMode === 'cash' ? (cashReceived || null) : null,
+                channel_id: channelId,
                 card_reference: paymentMode === 'card' ? (cardRef || null) : null
             });
             /*
@@ -956,6 +969,7 @@ export default function POSPage() {
         try {
             const created = await addOrder({
                 items: cart.map(item => ({ ...item, round: 1 })),
+                channel_id: channelId,
                 client_request_id: requestId,
                 ...billColumns(billTotals),
                 // Same expression handlePayNow uses. Without it a tab opened
@@ -1432,6 +1446,25 @@ export default function POSPage() {
                                 >
                                     <Icon size={16} aria-hidden="true" />
                                     {label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Where it came from. Hidden entirely while a walk-in is
+                        the only channel — a picker with one option is
+                        furniture. */}
+                    {channels.length > 1 && (
+                        <div className={styles.channelRow}>
+                            <span className={styles.channelLabel}>From</span>
+                            {channels.map((c) => (
+                                <button
+                                    key={c.id}
+                                    type="button"
+                                    className={`${styles.channelBtn} ${channelId === c.id ? styles.channelActive : ''}`}
+                                    onClick={() => setChannelId(c.id)}
+                                >
+                                    {c.name}
                                 </button>
                             ))}
                         </div>

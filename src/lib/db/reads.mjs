@@ -98,6 +98,7 @@ const PAGE_SORTS = {
 export const getOrdersPage = async ({
     page = 1, pageSize = 25, status = 'all', orderType = 'all',
     from = null, to = null, sort = 'newest', search = '',
+    channel = 'all', paymentMode = 'all',
 } = {}) => {
     const where = [];
     const params = [];
@@ -107,37 +108,71 @@ export const getOrdersPage = async ({
     const term = String(search).trim().replace(/[,()*%\\_]/g, '');
     if (term) {
         const like = `%${term}%`;
-        where.push(`(order_number LIKE ? OR customer_name LIKE ?
-                     OR customer_phone LIKE ? OR table_number LIKE ?)`);
+        where.push(`(o.order_number LIKE ? OR o.customer_name LIKE ?
+                     OR o.customer_phone LIKE ? OR o.table_number LIKE ?)`);
         params.push(like, like, like, like);
     }
 
     if (status === 'unpaid') {
         // An open tab can be at any kitchen stage, including served, and
         // still owe money.
-        where.push(`payment_status = 'unpaid' AND status <> 'cancelled'`);
+        where.push(`o.payment_status = 'unpaid' AND o.status <> 'cancelled'`);
     } else if (status !== 'all') {
-        where.push('status = ?');
+        where.push('o.status = ?');
         params.push(status);
     }
-    if (orderType !== 'all') { where.push('order_type = ?'); params.push(orderType); }
-    if (from) { where.push('created_at >= ?'); params.push(new Date(from)); }
-    if (to) { where.push('created_at <= ?'); params.push(new Date(to)); }
+    if (orderType !== 'all') { where.push('o.order_type = ?'); params.push(orderType); }
+    // Where it came from, and how it was paid — the two questions a
+    // reconciliation actually asks of a day's orders.
+    if (channel !== 'all') { where.push('o.channel_id = ?'); params.push(Number(channel)); }
+    if (paymentMode !== 'all') { where.push('o.payment_mode = ?'); params.push(paymentMode); }
+    if (from) { where.push('o.created_at >= ?'); params.push(new Date(from)); }
+    if (to) { where.push('o.created_at <= ?'); params.push(new Date(to)); }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const [column, dir] = PAGE_SORTS[sort] || PAGE_SORTS.newest;
     // Tie-break on id so equal values can't shuffle rows between pages.
     const orderSql = column === 'created_at'
-        ? `ORDER BY created_at ${dir}, id ASC`
-        : `ORDER BY total ${dir}, created_at DESC, id ASC`;
+        ? `ORDER BY o.created_at ${dir}, o.id ASC`
+        : `ORDER BY o.total ${dir}, o.created_at DESC, o.id ASC`;
 
-    const countRows = await query(`SELECT COUNT(*) AS n FROM orders ${whereSql}`, params);
+    const countRows = await query(`SELECT COUNT(*) AS n FROM orders o ${whereSql}`, params);
     const rows = await query(
-        `SELECT * FROM orders ${whereSql} ${orderSql} LIMIT ? OFFSET ?`,
+        `SELECT o.*, ch.name AS channel_name FROM orders o
+           LEFT JOIN sales_channels ch ON ch.id = o.channel_id
+         ${whereSql} ${orderSql} LIMIT ? OFFSET ?`,
         [...params, Number(pageSize), (Number(page) - 1) * Number(pageSize)],
     );
-    return { rows: serializeRows('orders', rows), total: countRows[0].n };
+    /*
+     * The whole filtered set, not just this page: a cashier reconciling the
+     * evening needs "what does this filter add up to", and paging through it
+     * with a calculator is not that. Two aggregates, same WHERE.
+     */
+    const [sums] = await query(
+        `SELECT COALESCE(SUM(CASE WHEN o.status <> 'cancelled' THEN o.total END), 0) AS revenue,
+                COALESCE(SUM(CASE WHEN o.status <> 'cancelled' AND o.payment_status = 'unpaid' THEN o.total END), 0) AS unpaid
+           FROM orders o ${whereSql}`,
+        params,
+    );
+    return {
+        rows: serializeRows('orders', rows),
+        total: countRows[0].n,
+        revenue: Number(sums?.revenue ?? 0),
+        unpaid: Number(sums?.unpaid ?? 0),
+    };
 };
+
+/*
+ * Where orders can come from. Active only, default first — the till stamps the
+ * first of these on a new bill unless the cashier says otherwise.
+ */
+export const getSalesChannels = async () => serializeRows(
+    'sales_channels',
+    await query(
+        `SELECT id, name, is_default FROM sales_channels
+          WHERE is_active = 1 ORDER BY is_default DESC, sort_order, id`,
+    ),
+);
 
 /*
  * Dishes the kitchen has run out of, worked out from the shelf.

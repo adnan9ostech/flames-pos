@@ -14,6 +14,7 @@ const TABS = [
     { key: 'general', label: 'General', href: '/settings' },
     { key: 'kitchen', label: 'Kitchen & Printer', href: '/settings/kitchen' },
     { key: 'charges', label: 'Charges', href: '/charges' },
+    { key: 'channels', label: 'Sales Channels', href: '/settings/channels' },
     { key: 'tax', label: 'Tax & FBR', href: '/settings/tax' },
 ]
 

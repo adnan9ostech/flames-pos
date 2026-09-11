@@ -1162,6 +1162,36 @@ Inventory:
   posting *failed* (an unmapped account, usually) and a button would fail the
   same way until the chart is fixed.
 
+## Channels, order management, PDF and a rail you can navigate — 11 Sep 2026
+
+Migration 037. Suite **149/149**, build green, every touched screen rendered
+under a real session.
+
+- **Sales channels.** `sales_channels` + `orders.channel_id`. The till shows a
+  picker only once there is more than one channel (until the restaurant lists
+  somewhere, every bill is a walk-in and a one-option picker is furniture), the
+  Orders screen filters on it, and the detail panel names it. A new order that
+  names no channel takes the DEFAULT rather than NULL; bills that predate the
+  column stay NULL, because nobody asked them. Settings → Sales Channels adds
+  Foodpanda and friends; a channel with orders against it is switched off, not
+  deleted. **Commission and the aggregator receivable are deliberately not
+  built** — that is a receivable, a settlement and a deduction, i.e. the shape
+  City Ledger already has, and a commission column nobody posts is a number
+  that lies on a report.
+- **Order management.** Two filters that reconciliation actually asks for —
+  payment method and channel — plus, next to the row count, **what the current
+  filter adds up to across every page of it**, voids excluded, with the unpaid
+  share called out.
+- **PDF.** Four of the six reports could not print at all; Handover and
+  Item-wise each had their own copy of the print CSS. There is now one
+  `PrintButton` and one `.print-root` block in globals.css, and Daily Sales,
+  Hourly, Gross Profit, Menu Analytics and Orders all carry it. It is
+  `window.print()` on purpose: every browser saves a PDF, the output is real
+  searchable text rather than a picture of a table, and it adds no library to a
+  till that ships to a shared cPanel box.
+- **Navigation.** The rail now grows where you are — see the commit; forty-odd
+  screens were reachable only by Ctrl-K or a hub tile.
+
 ## Day close, checked against ChowPOS — 11 Sep 2026
 
 Nothing to take. The Bartlett's account exposes only POS, KDS and All Orders;

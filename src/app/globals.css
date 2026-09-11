@@ -587,6 +587,58 @@ h6 {
   }
 }
 
+/*
+ * A REPORT, PRINTED — and printed is also how this app makes a PDF, because
+ * every browser's print dialog can save one. Four of the six reports used to
+ * print the screen exactly as it stood: sidebar, dark background, the lot.
+ *
+ * A page opts in by putting `print-root` on the part worth printing (see
+ * components/Reports/PrintButton). Everything else — the rail, the filter
+ * strip, the buttons — carries `no-print` or is chrome this hides outright.
+ *
+ * Forced to black on white rather than trusting the theme: a dark-mode report
+ * sent to a printer is either a page of toner or, with backgrounds dropped,
+ * pale grey text on white. Neither is a document anybody keeps.
+ */
+@media print {
+  body { background: #fff !important; }
+  aside { display: none !important; }
+  .no-print { display: none !important; }
+  main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .print-root,
+  .print-root * {
+    color: #111 !important;
+    box-shadow: none !important;
+  }
+  .print-root {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  /* Cards keep their edges but lose their fill — a tinted block is toner. */
+  .print-root [class*="card"],
+  .print-root [class*="Card"],
+  .print-root [class*="panel"] {
+    background: #fff !important;
+    border-color: #ddd !important;
+    break-inside: avoid;
+  }
+  /* SVG text takes fill, not color, so charts print with white labels
+     without this. Bars are ink, not decoration: keep the colour. */
+  .print-root svg text { fill: #111 !important; }
+  .print-root [class*="chart"] {
+    break-inside: avoid;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .print-root table { break-inside: auto; }
+  .print-root tr { break-inside: avoid; }
+  .print-root thead { display: table-header-group; }
+  @page { size: A4; margin: 12mm; }
+}
+
 @media print {
   /*
    * Hide everything, then re-show one subtree — but only when a receipt is

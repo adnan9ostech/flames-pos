@@ -35,6 +35,8 @@ export async function GET(request) {
             to: sp.get('to') || null,
             sort: sp.get('sort') || 'newest',
             search: sp.get('search') || '',
+            channel: sp.get('channel') || 'all',
+            paymentMode: sp.get('paymentMode') || 'all',
         });
         return Response.json(data, { headers: NO_STORE });
     } catch (e) {

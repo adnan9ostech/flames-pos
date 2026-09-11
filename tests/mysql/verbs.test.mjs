@@ -726,3 +726,37 @@ test('21. the cost side reaches the ledger: COGS on a sale, Wastage on a bin', a
     );
     assert.ok(!wasteSides.some((r) => r.account_number === '5000'), 'and never to cost of sales');
 });
+
+test('22. an order is stamped with the channel it came from', async () => {
+    const tag = randomUUID().slice(0, 6);
+    const panda = (await q(
+        'INSERT INTO sales_channels (name, is_active, sort_order) VALUES (?, 1, 9)', [`Panda ${tag}`],
+    )).insertId;
+
+    // Told where it came from, it says so.
+    const app = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', order_type: 'delivery', channel_id: panda },
+    );
+    assert.equal(Number(app.channel_id), panda);
+
+    // Not told, it takes the default rather than NULL: for a NEW order,
+    // "nobody said" and "walk-in" are the same thing.
+    const walkIn = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash' },
+    );
+    const fallback = await one('SELECT id FROM sales_channels WHERE is_default = 1 LIMIT 1');
+    assert.equal(Number(walkIn.channel_id), Number(fallback.id));
+
+    // A channel that no longer exists cannot strand an order off the till.
+    const ghost = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', channel_id: 999999 },
+    );
+    assert.equal(Number(ghost.channel_id), Number(fallback.id));
+
+    // Switched off rather than deleted: orders now point at it, which is the
+    // same rule the Channels screen follows.
+    await q('UPDATE sales_channels SET is_active = 0 WHERE id = ?', [panda]);
+});

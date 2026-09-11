@@ -15,6 +15,7 @@ import { CalendarRange, Loader2, Clock3, AlertTriangle } from 'lucide-react'
  * brand chrome.
  */
 import { SERIES, GRID, AXIS_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs'
+import PrintButton from '@/components/Reports/PrintButton'
 
 // Money renders like the orders page: en-PK grouping, no decimals on screen.
 const rs = (x) => Math.round(Number(x) || 0).toLocaleString('en-PK')
@@ -114,7 +115,7 @@ export default function HourlySalesPage() {
     const hasRevenue = peak !== null && peak.revenue > 0
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} print-root`}>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <h1 className={styles.title}>Hourly Sales</h1>
@@ -122,6 +123,7 @@ export default function HourlySalesPage() {
                         <span className={styles.dayNote}>Business day {report.businessDate}</span>
                     )}
                 </div>
+                <PrintButton />
             </div>
 
             <div className={styles.toolbar}>

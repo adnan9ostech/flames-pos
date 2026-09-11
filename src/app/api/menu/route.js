@@ -3,7 +3,7 @@
  * screen ever wants just one of them. Public by design — the /customer page
  * renders this with no session, matching the old anon-read RLS policy.
  */
-import { getCategories, getMenuItems, getModifiers, getDeals, getOutOfStockDishes, getStoreSettings } from '@/lib/db/reads.mjs';
+import { getCategories, getMenuItems, getModifiers, getDeals, getOutOfStockDishes, getStoreSettings, getSalesChannels } from '@/lib/db/reads.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +18,9 @@ export async function GET() {
             getDeals(),
             getStoreSettings(),
         ]);
+        // Read with the menu because the till needs it in the same breath —
+        // it is a property of the order being rung, like the order type.
+        const channels = await getSalesChannels();
         /*
          * The shelf, only when somebody asked. Skipped entirely when the gate
          * is off — which is the default — so the usual menu load stays three
@@ -26,7 +29,7 @@ export async function GET() {
         const stockGate = ['flag', 'hide'].includes(settings?.stock_gate) ? settings.stock_gate : 'off';
         const outOfStock = stockGate === 'off' ? [] : await getOutOfStockDishes();
         return Response.json(
-            { categories, items, modifiers, deals, stockGate, outOfStock },
+            { categories, items, modifiers, deals, channels, stockGate, outOfStock },
             { headers: NO_STORE },
         );
     } catch (e) {

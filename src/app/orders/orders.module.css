@@ -857,3 +857,11 @@
     border-color: var(--primary);
     box-shadow: 0 0 0 1px var(--primary);
 }
+
+/* What the current filter adds up to, beside the row count. Quieter than the
+   count itself: the range is the answer, the money is the follow-up. */
+.resultSum {
+    margin-left: 0.35rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}

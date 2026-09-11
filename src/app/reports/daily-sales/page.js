@@ -18,6 +18,7 @@ import {
  * brand chrome.
  */
 import { SERIES, AXIS_TEXT, LABEL_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs'
+import PrintButton from '@/components/Reports/PrintButton'
 
 const TYPE_LABEL = { 'dine-in': 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery' }
 
@@ -174,7 +175,7 @@ export default function DailySalesPage() {
     }
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} print-root`}>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <h1 className={styles.title}>Daily Sales</h1>
@@ -182,6 +183,7 @@ export default function DailySalesPage() {
                         <span className={styles.dayNote}>Business day {report.businessDate}</span>
                     )}
                 </div>
+                <PrintButton />
             </div>
 
             <div className={styles.toolbar}>

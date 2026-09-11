@@ -81,6 +81,15 @@ export const getStockGate = async () => {
     }
 };
 
+export const getSalesChannels = async () => {
+    try {
+        return (await fetchJson('/api/menu')).channels || [];
+    } catch (e) {
+        console.error('Error fetching channels:', e);
+        return [];
+    }
+};
+
 export const getDeals = async () => {
     try {
         return (await fetchJson('/api/menu')).deals || [];
@@ -164,6 +173,8 @@ export const getOrdersPage = async ({
     to = null,
     sort = 'newest',
     search = '',
+    channel = 'all',
+    paymentMode = 'all',
 } = {}) => {
     try {
         const params = new URLSearchParams({
@@ -173,14 +184,16 @@ export const getOrdersPage = async ({
             orderType,
             sort,
             search,
+            channel: String(channel),
+            paymentMode,
         });
         if (from) params.set('from', from);
         if (to) params.set('to', to);
-        const { rows, total } = await fetchJson(`/api/orders?${params}`);
-        return { rows: rows || [], total: total ?? 0 };
+        const { rows, total, revenue, unpaid } = await fetchJson(`/api/orders?${params}`);
+        return { rows: rows || [], total: total ?? 0, revenue: revenue ?? 0, unpaid: unpaid ?? 0 };
     } catch (e) {
         console.error('Error fetching orders page:', e);
-        return { rows: [], total: 0 };
+        return { rows: [], total: 0, revenue: 0, unpaid: 0 };
     }
 };
 

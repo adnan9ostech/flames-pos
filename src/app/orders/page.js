@@ -7,8 +7,9 @@ import {
 import styles from './orders.module.css';
 import {
     getOrdersPage, getUnpaidOrdersCount, bumpOrder, getMenuItems,
-    cancelOrder, ORDERS_PAGE_SIZES
+    cancelOrder, ORDERS_PAGE_SIZES, getSalesChannels
 } from '@/lib/dataClient';
+import PrintButton from '@/components/Reports/PrintButton';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
 import OrderDetail from './OrderDetail';
 import { printReceipt } from '@/lib/printReceipt';
@@ -122,6 +123,18 @@ export default function OrdersPage() {
     const { can } = usePermissions();
     const [orders, setOrders] = useState([]);
     const [total, setTotal] = useState(0);
+    /*
+     * What the current filter adds up to, over the WHOLE set rather than this
+     * page: reconciling an evening means "what does this come to", and paging
+     * through it with a calculator is not an answer.
+     */
+    const [sums, setSums] = useState({ revenue: 0, unpaid: 0 });
+    // Where orders came from, and how they were paid — the two questions a
+    // reconciliation asks. The channel filter hides itself until there is more
+    // than one channel to choose between.
+    const [channels, setChannels] = useState([]);
+    const [channel, setChannel] = useState('all');
+    const [paymentMode, setPaymentMode] = useState('all');
     const [unpaidCount, setUnpaidCount] = useState(0);
     const [itemImages, setItemImages] = useState({});
     const [view, setView] = useState('grid');
@@ -170,12 +183,16 @@ export default function OrdersPage() {
     const load = useCallback(async () => {
         setIsFetching(true);
         try {
-            const [{ rows, total: count }, unpaid] = await Promise.all([
-                getOrdersPage({ page, pageSize, status: activeTab, orderType, from: fromISO, to: toISO, sort, search }),
+            const [{ rows, total: count, revenue, unpaid: owed }, unpaid] = await Promise.all([
+                getOrdersPage({
+                    page, pageSize, status: activeTab, orderType,
+                    from: fromISO, to: toISO, sort, search, channel, paymentMode,
+                }),
                 getUnpaidOrdersCount(),
             ]);
             setOrders(rows);
             setTotal(count);
+            setSums({ revenue, unpaid: owed });
             setUnpaidCount(unpaid);
             // Whatever moved the orders table moved this too — the open detail
             // panel reloads off it rather than holding a stale row.
@@ -186,7 +203,13 @@ export default function OrdersPage() {
             setIsLoading(false);
             setIsFetching(false);
         }
-    }, [page, pageSize, activeTab, orderType, fromISO, toISO, sort, search]);
+    }, [page, pageSize, activeTab, orderType, fromISO, toISO, sort, search, channel, paymentMode]);
+
+    // The channel list, once: it changes when somebody edits Settings, not
+    // while a shift is running.
+    useEffect(() => {
+        getSalesChannels().then(setChannels).catch(() => {});
+    }, []);
 
     // Debounce the search box, and send the query back to page 1 — a term that
     // matches three orders has no page 4.
@@ -260,12 +283,15 @@ export default function OrdersPage() {
         setCustomTo('');
         setSearchInput('');
         setSearch('');
+        setChannel('all');
+        setPaymentMode('all');
         setPage(1);
     };
 
     const filtersActive =
         activeTab !== 'all' || orderType !== 'all' || sort !== 'newest'
-        || period !== 'all' || search.trim() !== '';
+        || period !== 'all' || search.trim() !== ''
+        || channel !== 'all' || paymentMode !== 'all';
 
     /*
      * Voiding is admin-only. Staff can advance a ticket but not make a sale
@@ -447,7 +473,7 @@ export default function OrdersPage() {
     };
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} print-root`}>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <h1 className={styles.title}>Orders</h1>
@@ -560,6 +586,40 @@ export default function OrdersPage() {
                     </select>
                 </label>
 
+                {/* How it was paid — the filter a card batch or a cash count
+                    is actually reconciled against. */}
+                <label className={styles.control}>
+                    <select
+                        className={styles.select}
+                        value={paymentMode}
+                        onChange={(e) => applyFilter(setPaymentMode)(e.target.value)}
+                        aria-label="Payment method"
+                    >
+                        <option value="all">Any payment</option>
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="city_ledger">City ledger</option>
+                    </select>
+                </label>
+
+                {/* Hidden until there is more than one channel: a filter with
+                    one option is furniture, same as the till's picker. */}
+                {channels.length > 1 && (
+                    <label className={styles.control}>
+                        <select
+                            className={styles.select}
+                            value={channel}
+                            onChange={(e) => applyFilter(setChannel)(e.target.value)}
+                            aria-label="Sales channel"
+                        >
+                            <option value="all">Any channel</option>
+                            {channels.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </label>
+                )}
+
                 <label className={styles.control}>
                     <ArrowUpDown size={14} aria-hidden="true" />
                     <select
@@ -584,7 +644,16 @@ export default function OrdersPage() {
                 <div className={styles.resultCount}>
                     {isFetching && !isLoading && <Loader2 className={styles.inlineSpinner} size={13} />}
                     {total === 0 ? 'No orders' : `${firstRow}–${lastRow} of ${total}`}
+                    {/* What this filter comes to, over every page of it —
+                        voids excluded, because a cancelled bill is not money. */}
+                    {total > 0 && (
+                        <span className={styles.resultSum}>
+                            · Rs. {money(sums.revenue)}
+                            {sums.unpaid > 0 && ` · Rs. ${money(sums.unpaid)} unpaid`}
+                        </span>
+                    )}
                 </div>
+                <PrintButton label="Save as PDF" />
             </div>
 
             {isLoading ? (

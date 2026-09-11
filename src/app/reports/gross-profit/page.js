@@ -11,6 +11,7 @@ import {
 /* Chart tokens. Single series, so slot 2 of the categorical palette — the
    brand orange is chrome, and a chart drawn in it reads as a button. */
 import { SERIES, AXIS_TEXT, GRID, LABEL_TEXT, CURSOR_FILL } from '@/lib/reports/chartTheme.mjs';
+import PrintButton from '@/components/Reports/PrintButton';
 
 /*
  * Business dates on the Karachi calendar, matching orders.business_date —
@@ -125,7 +126,7 @@ export default function GrossProfitPage() {
     const chartHeight = Math.max(140, chartItems.length * 30 + 24);
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} print-root`}>
             <div className={styles.header}>
                 <div>
                     <h1 className={styles.title}>Gross Profit</h1>
@@ -133,6 +134,7 @@ export default function GrossProfitPage() {
                         Revenue against recipe cost per dish, worst margin first — settled orders only.
                     </p>
                 </div>
+                <PrintButton />
             </div>
 
             <div className={styles.toolbar}>

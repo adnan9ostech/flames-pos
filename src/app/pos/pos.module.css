@@ -1304,3 +1304,46 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
 }
+
+/*
+ * Where the order came from. A quiet row under the order-type tabs, not a
+ * second set of them: the order type changes how the bill is priced and taxed,
+ * the channel only records who sent it — so it must not compete for the same
+ * attention.
+ */
+.channelRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+}
+
+.channelLabel {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-right: 0.15rem;
+}
+
+.channelBtn {
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface, transparent);
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.channelBtn:hover { border-color: var(--primary); color: var(--foreground); }
+
+.channelActive {
+    background: var(--selected);
+    border-color: var(--selected-border);
+    color: var(--selected-foreground);
+}

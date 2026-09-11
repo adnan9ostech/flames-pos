@@ -6,7 +6,7 @@ import {
     Landmark, Truck, ChefHat, PackageCheck, FileStack, ClipboardCheck,
     Calculator, BookOpen, ScrollText, Files, FilePlus2, FolderOpen, Hash,
     FileSpreadsheet, Scale, Banknote, HeartPulse,
-    UtensilsCrossed, Tags, Layers, SlidersHorizontal, Carrot, Trash2,
+    UtensilsCrossed, Tags, Layers, SlidersHorizontal, Carrot, Trash2, Share2,
     Circle,
 } from 'lucide-react';
 
@@ -27,7 +27,7 @@ const ICONS = {
     Landmark, Truck, ChefHat, PackageCheck, FileStack, ClipboardCheck,
     Calculator, BookOpen, ScrollText, Files, FilePlus2, FolderOpen, Hash,
     FileSpreadsheet, Scale, Banknote, HeartPulse,
-    UtensilsCrossed, Tags, Layers, SlidersHorizontal, Carrot, Trash2,
+    UtensilsCrossed, Tags, Layers, SlidersHorizontal, Carrot, Trash2, Share2,
 };
 
 /* A missing glyph must never take a nav row down with it. */

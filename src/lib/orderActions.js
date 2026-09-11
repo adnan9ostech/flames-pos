@@ -79,6 +79,7 @@ export const addOrder = async (order) => {
                 payment_status: order.payment_status,
                 payment_mode: order.payment_mode,
                 cash_received: order.cash_received,
+                channel_id: order.channel_id,
                 card_reference: order.card_reference,
                 order_number: order.order_number,
                 order_type: order.order_type,

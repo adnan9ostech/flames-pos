@@ -313,7 +313,12 @@ export const NAV_INDEX = [
         section: 'Setup', nav: 'backoffice',
         keywords: 'preferences configuration store details printing receipt setup',
     },
-    {
+        {
+        href: '/settings/channels', label: 'Sales Channels', icon: 'Share2', perm: 'settings',
+        section: 'Setup',
+        keywords: 'foodpanda careem aggregator third party online source where order came from channel',
+    },
+{
         href: '/settings/tax', label: 'Tax Settings', icon: 'Landmark', perm: 'settings',
         section: 'Setup',
         keywords: 'tax fbr gst sales tax rate digital invoicing card rate cash rate ntn',

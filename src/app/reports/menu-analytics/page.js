@@ -19,6 +19,7 @@ import {
 import {
     SLOTS, SERIES, OTHER, GRID, AXIS_TEXT, LABEL_TEXT, CURSOR_FILL,
 } from '@/lib/reports/chartTheme.mjs';
+import PrintButton from '@/components/Reports/PrintButton';
 
 /*
  * All dates here are business dates on the Karachi calendar — the trading
@@ -391,7 +392,7 @@ export default function MenuAnalyticsPage() {
     };
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} print-root`}>
             <div className={styles.header}>
                 <div>
                     <h1 className={styles.title}>Menu Analytics</h1>
@@ -399,6 +400,8 @@ export default function MenuAnalyticsPage() {
                         What sold, what rode along with it, and what got voided — settled orders only.
                     </p>
                 </div>
+
+                <PrintButton />
 
                 <div className={styles.filters}>
                     {TABS.map((t) => (

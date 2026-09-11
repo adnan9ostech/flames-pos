@@ -34,7 +34,14 @@ export async function getOrderDetail(orderId) {
         // into five queries — refuse anything that isn't the shape of an id.
         if (!UUID_RE.test(id)) return { error: 'That order no longer exists' }
 
-        const [row] = await query('SELECT * FROM orders WHERE id = ?', [id])
+        const [row] = await query(
+            // The channel joined in, so the panel can say where the bill came
+            // from without a second round trip.
+            `SELECT o.*, ch.name AS channel_name FROM orders o
+               LEFT JOIN sales_channels ch ON ch.id = o.channel_id
+              WHERE o.id = ?`,
+            [id],
+        )
         if (!row) return { error: 'That order no longer exists' }
         const order = serializeRow('orders', row)
 

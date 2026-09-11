@@ -10,7 +10,7 @@ import {
     X, UtensilsCrossed, ShoppingBag, Bike, Armchair, UserRound, ChefHat,
     Wallet, Printer, Ban, ArrowRight, Loader2, History, Layers, StickyNote,
     AlertTriangle, CheckCircle2
-} from 'lucide-react';
+, Share2 } from 'lucide-react';
 
 /*
  * One order, opened.
@@ -233,6 +233,17 @@ export default function OrderDetail({
                                         <span className={styles.metaChip}>
                                             <Armchair size={13} aria-hidden="true" />
                                             Table {order.table_number}
+                                        </span>
+                                    )}
+                                    {/* Where it came from. Only shown when the
+                                        bill actually carries one — the orders
+                                        taken before the column existed do not,
+                                        and a chip reading "Walk-in" on a guess
+                                        would be inventing history. */}
+                                    {order.channel_name && (
+                                        <span className={styles.metaChip}>
+                                            <Share2 size={13} aria-hidden="true" />
+                                            {order.channel_name}
                                         </span>
                                     )}
                                     {order.waiter_name && (

@@ -482,6 +482,27 @@ const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, pay
          * row until commit, so two tills ringing at the same moment queue
          * instead of both taking 12.
          */
+        /*
+         * Where the order came from. The till sends one; a caller that does
+         * not (an older client, a script) gets the default channel rather than
+         * NULL, because "nobody said" and "walk-in" are the same thing for a
+         * new order — unlike the bills that predate the column, which stay
+         * NULL and should.
+         */
+        const [[channel] = []] = await conn.query(
+            // The one asked for if it exists, else the default — the ORDER BY
+            // does both. Filtering on the id instead would leave an order with
+            // NO channel whenever the till sent one that had since been
+            // deleted, which is the opposite of a fallback.
+            `SELECT id FROM sales_channels
+              WHERE is_active = 1
+              ORDER BY (id = ?) DESC, is_default DESC, sort_order, id LIMIT 1`,
+            [opts.channel_id ?? null],
+        );
+        if (channel) {
+            await conn.query('UPDATE orders SET channel_id = ? WHERE id = ?', [channel.id, orderId]);
+        }
+
         const orderType = opts.order_type || 'dine-in';
         if (orderType !== 'dine-in') {
             const [[cfg] = []] = await conn.query('SELECT token_mode FROM store_settings LIMIT 1');
