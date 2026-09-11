@@ -453,3 +453,49 @@ test('15. a sub-recipe is a phantom: the spices leave the shelf, not the masala'
     assert.equal(byItem.get(salt), -0.04);
     assert.equal(byItem.has(masala), false, 'nothing is taken from a tub that was never bought');
 });
+
+test('16. a deal rings as its dishes plus a discount, priced live off the menu', async () => {
+    const { explodeDeal, dealAppliesTo } = await import('../../src/lib/deals.mjs');
+    // Two dishes of this test's own: the reset seeds fewer than two, and a
+    // deal needs a set.
+    const tag = randomUUID().slice(0, 8);
+    const mk = async (name, price) => {
+        const id = randomUUID();
+        await q(
+            "INSERT INTO menu_items (id, name, price, variants, modifiers) VALUES (?, ?, ?, '[]', '[]')",
+            [id, `${name} ${tag}`, price],
+        );
+        return { id, name: `${name} ${tag}`, price, variants: [] };
+    };
+    const a = await mk('Deal Karahi', 1000);
+    const b = await mk('Deal Naan', 100);
+    const items = [a, b];
+
+    const deal = {
+        name: 'Test Platter',
+        price: 100,
+        order_types: '["dine-in"]',
+        lines: [
+            { menu_item_id: a.id, variant_name: '', qty: 1 },
+            { menu_item_id: b.id, variant_name: '', qty: 2 },
+        ],
+    };
+    const { lines, listTotal, saving } = explodeDeal(deal, items);
+
+    assert.equal(lines.length, 2);
+    assert.equal(listTotal, Number(a.price) + Number(b.price) * 2);
+    assert.equal(saving, listTotal - 100, 'the saving is the live menu price against the deal price');
+    // Every line carries the dish, so the kitchen ticket and the recipe
+    // consumption behave exactly as they would for a dish rung on its own.
+    assert.ok(lines.every((l) => l.id && l.notes === 'Test Platter'));
+    // And two taps are two sets rather than one set at double quantity.
+    assert.notEqual(explodeDeal(deal, items).lines[0].uniqueId, lines[0].uniqueId);
+
+    assert.equal(dealAppliesTo(deal, 'dine-in'), true);
+    assert.equal(dealAppliesTo(deal, 'delivery'), false, 'scoped like a charge');
+    assert.equal(dealAppliesTo({ order_types: '[]' }, 'delivery'), true, 'empty means every type');
+
+    // A deal priced above its own dishes saves nothing rather than adding money.
+    const dear = explodeDeal({ ...deal, price: listTotal + 500 }, items);
+    assert.equal(dear.saving, 0);
+});

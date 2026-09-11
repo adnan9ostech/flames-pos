@@ -1060,6 +1060,60 @@ customer's copy and the restaurant's.
   receipt prints neither line.
 - Switched by `store_settings.cash_change` (Settings → General), on by default.
 
+## The Blink gap list, built — 11 Sep 2026
+
+Migrations 025–031 (dev+test). Suite **143/143**, build green. Everything the
+owner picked off the gap list below, in the order he picked it.
+
+- **Cash change** (025) — the checkout asks what was handed over, the server
+  works out the change inside the settle transaction, both halves print, a
+  short tender is refused. Card and city-ledger store neither column.
+- **Kitchen notes + KOT QR** (026) — the column and the slip already existed;
+  there was no way to type one. The QR ships OFF: a centimetre of roll per
+  ticket earns nothing until somebody scans them.
+- **Card reference** (027) — the terminal slip's number, on the PAYMENT (a bill
+  could one day be settled across two cards), printed on both copies,
+  compulsory only if the store says so.
+- **Customers** — a screen over the table the till has filled since day one.
+  Phone search compares digits to digits. Read-only: the row is written by the
+  sale.
+- **Purchase orders** (028) — what was ordered, at what price, for when.
+  Receiving goes through the same kernel verb as every delivery, with the
+  order's id attached; the verb closes it. Status moves one way.
+- **Sub-recipes** (029) — an ingredient made of ingredients, as a PHANTOM:
+  never held, never counted, exploded on consumption. Its cost is cached onto
+  its own `avg_cost` so every screen that already prices a recipe is right
+  without being taught anything.
+- **Deals** (030) — a set of dishes for one price. Ringing one puts the dishes
+  on the bill at menu price and the difference into the order's discount, so
+  the kitchen gets real tickets, the stock room consumes real recipes, and the
+  money math needs no new concept. The saving is computed live, never stored.
+- **Collations aligned** (031) — four tables added that day were written
+  utf8mb4_unicode_ci out of habit against a 0900_ai_ci schema. Harmless while
+  every foreign key was over BIGINT; it surfaced the moment `deals` tried to
+  point at `menu_items`, and was straightened while the tables were empty.
+
+Still open from the list, in order: **token numbers** for counter orders,
+**waste with a reason** (distinct from a void — it moves stock), **hide or flag
+items at zero stock** on the till, and **grand-total rounding**.
+
+## Two ideas worth stealing from ChowPOS (rms.roomy.pk) — 11 Sep 2026
+
+The Bartlett's account exposes only POS, KDS and All Orders — no back office —
+so there was little to learn beyond the till itself, which the earlier
+walkthrough had already mined for phases F–J. Two things on that till are worth
+having:
+
+- **Delivery charge as a per-order field**, not a fixed charge row. Distance
+  varies; this restaurant's Rs. 150 is a placeholder that a cashier currently
+  cannot adjust.
+- **Named payment methods** — its dropdown reads "Credit Card (UBL)", not
+  "Card". Tagging a card sale with the acquiring bank or terminal pairs exactly
+  with the card reference added today and would make a card batch reconcilable
+  without opening a single bill.
+
+Its checkout button, for what it is worth, says **Complete Sale**.
+
 ## Where Blink is still ahead — 11 Sep 2026
 
 Read off Blink's Master Settings and sidebar the same session. Worth building,

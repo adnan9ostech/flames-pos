@@ -1273,3 +1273,13 @@
 @media print {
     .viewToggle { display: none }
 }
+
+/* What the same dishes would have cost, struck through beside a deal's price:
+   the saving is the reason anybody taps a deal, so it is on the tile. */
+.dealWas {
+    margin-left: 0.4rem;
+    font-size: 0.8em;
+    font-weight: 400;
+    color: var(--muted-foreground);
+    text-decoration: line-through;
+}

@@ -127,6 +127,11 @@ export const NAV_INDEX = [
         keywords: 'batch masala paste stock prep base semi finished sub recipe phantom made in house',
     },
     {
+        href: '/menu/deals', label: 'Deals', icon: 'Tags', perm: 'menu',
+        section: 'Menu',
+        keywords: 'combo platter set meal bundle offer promotion family deal value meal',
+    },
+    {
         href: '/menu/ingredients', label: 'Ingredients', icon: 'Carrot', perm: 'menu',
         section: 'Menu',
         keywords: 'ingredients ingredient price raw materials stock items unit cost purchase price',

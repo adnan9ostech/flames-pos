@@ -4,9 +4,10 @@ import { flushSync } from 'react-dom';
 import styles from './pos.module.css';
 import {
     getMenuItems, getCategories, addOrder, getModifiers, getWaiters,
-    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone,
+    getOpenTabs, appendRoundToOrder, settleOrder, getTaxRates, findCustomerByPhone, getDeals,
 } from '@/lib/dataClient';
 import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/lib/kotPrint';
+import { explodeDeal, dealAppliesTo } from '@/lib/deals.mjs';
 import { listActiveCharges } from '@/app/charges/actions';
 import { approveVoid } from './voidActions';
 import { applicablePlans } from '@/app/discounts/actions';
@@ -103,7 +104,7 @@ const CategoryIcon = ({ name, size = 18 }) => {
 
 export default function POSPage() {
     const role = useRole();
-    const [menuData, setMenuData] = useState({ categories: [], items: [], modifiers: {} });
+    const [menuData, setMenuData] = useState({ categories: [], items: [], modifiers: {}, deals: [] });
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [cart, setCart] = useState([]);
@@ -252,14 +253,15 @@ export default function POSPage() {
             setIsLoading(true);
             setLoadError(null);
             try {
-                const [categories, items, modifiers] = await Promise.all([
+                const [categories, items, modifiers, deals] = await Promise.all([
                     getCategories(),
                     getMenuItems(),
-                    getModifiers()
+                    getModifiers(),
+                    getDeals()
                 ]);
 
                 console.debug('POS loadData:', { categoriesCount: categories.length, itemsCount: items.length, modifiersCount: Object.keys(modifiers).length });
-                setMenuData({ categories, items, modifiers });
+                setMenuData({ categories, items, modifiers, deals });
                 setLoadedItemCount(items.length);
             } catch (error) {
                 console.error("Failed to load POS data", error);
@@ -385,6 +387,46 @@ export default function POSPage() {
         () => openTabs.find(t => t.id === activeTabId) || null,
         [openTabs, activeTabId]
     );
+
+    /*
+     * The deals this order type may have. Scoped the same way charges are, so
+     * a dine-in platter does not appear on a delivery ticket that cannot
+     * honour it.
+     */
+    const availableDeals = useMemo(
+        () => (menuData.deals || []).filter((d) => dealAppliesTo(d, orderType) && d.lines?.length),
+        [menuData.deals, orderType],
+    );
+
+    /*
+     * Ring a deal.
+     *
+     * Its dishes go into the cart at their ordinary prices and the difference
+     * goes onto the order's discount — see src/lib/deals.mjs. Nothing here
+     * invents a price: the saving is worked out live against today's menu, so
+     * a deal cannot quietly drift as its dishes are repriced.
+     */
+    const addDeal = (deal) => {
+        const { lines, saving } = explodeDeal(deal, menuData.items);
+        if (!lines.length) {
+            setNotice(`${deal.name} has no dishes on the menu any more — fix it on the Deals screen.`);
+            return;
+        }
+        ensureRequestId();
+        setCart((prev) => [...prev, ...lines]);
+        if (saving > 0) {
+            // Added to whatever discount is already on the bill, rather than
+            // replacing it: two deals and a manual discount are one number the
+            // cashier can see and explain.
+            setDiscountMode('amount');
+            setDiscountValue((prev) => String((Number(prev) || 0) + saving));
+            setDiscountReason((prev) => (prev ? `${prev} + ${deal.name}` : `Deal: ${deal.name}`));
+            setShowDiscount(true);
+        }
+        setNotice(saving > 0
+            ? `${deal.name} added — Rs. ${money(saving)} off.`
+            : `${deal.name} added.`);
+    };
 
     // Filter items based on category and search
     const filteredItems = useMemo(() => {
@@ -1162,6 +1204,16 @@ export default function POSPage() {
                     >
                         All
                     </button>
+                    {/* Deals first, and only when there are any for this order
+                        type: a tab that is always empty is worse than no tab. */}
+                    {availableDeals.length > 0 && (
+                        <button
+                            className={`${styles.categoryTab} ${activeCategory === 'deals' ? styles.active : ''}`}
+                            onClick={() => setActiveCategory('deals')}
+                        >
+                            Deals
+                        </button>
+                    )}
                     {menuData.categories.map(cat => (
                         <button
                             key={cat.id}
@@ -1178,7 +1230,33 @@ export default function POSPage() {
                     same cards, so a dish behaves identically either way —
                     same tap to add, same 86 switch, same sold-out state. */}
                 <div className={`${styles.menuGrid} ${viewMode === 'list' ? styles.menuList : ''}`}>
-                    {filteredItems.map(item => {
+                    {activeCategory === 'deals' && availableDeals.map((deal) => {
+                        const { listTotal, saving } = explodeDeal(deal, menuData.items);
+                        return (
+                            <div
+                                key={deal.id}
+                                className={styles.menuItem}
+                                onClick={() => addDeal(deal)}
+                            >
+                                <div className={styles.itemContent}>
+                                    <div className={styles.itemHeader}>
+                                        <h3>{deal.name}</h3>
+                                        <span className={styles.itemPrice}>
+                                            Rs. {money(deal.price)}
+                                            {saving > 0 && (
+                                                <span className={styles.dealWas}> Rs. {money(listTotal)}</span>
+                                            )}
+                                        </span>
+                                    </div>
+                                    <p className={styles.itemDesc}>
+                                        {deal.description
+                                            || deal.lines.map((l) => `${l.qty}× ${menuData.items.find((i) => i.id === l.menu_item_id)?.name ?? ''}`).join(', ')}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {activeCategory !== 'deals' && filteredItems.map(item => {
                         const soldOut = item.is_available === false;
                         return (
                             <div

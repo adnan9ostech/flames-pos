@@ -64,6 +64,15 @@ export const getCategories = async () => {
     }
 };
 
+export const getDeals = async () => {
+    try {
+        return (await fetchJson('/api/menu')).deals || [];
+    } catch (e) {
+        console.error('Error fetching deals:', e);
+        return [];
+    }
+};
+
 export const getMenuItems = async () => {
     try {
         return (await fetchJson('/api/menu')).items || [];

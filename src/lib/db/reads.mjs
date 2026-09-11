@@ -139,6 +139,35 @@ export const getOrdersPage = async ({
     return { rows: serializeRows('orders', rows), total: countRows[0].n };
 };
 
+/*
+ * The deals on offer, with their dishes. Read with the menu because that is
+ * what a deal is — a way of selling the menu — and the till needs both in the
+ * same breath to price one.
+ *
+ * Only active deals, and only lines whose dish is still on the menu: a deal
+ * quietly missing a component would ring up short and nobody would know why.
+ */
+export const getDeals = async () => {
+    const deals = await query(
+        `SELECT id, name, description, price, order_types, sort_order
+           FROM deals WHERE is_active = 1 ORDER BY sort_order, name`,
+    );
+    if (deals.length === 0) return [];
+    const lines = await query(
+        `SELECT dl.deal_id, dl.menu_item_id, dl.variant_name, dl.qty
+           FROM deal_lines dl
+           JOIN menu_items m ON m.id = dl.menu_item_id AND m.is_archived = 0
+          WHERE dl.deal_id IN (?)
+          ORDER BY dl.id`,
+        [deals.map((d) => d.id)],
+    );
+    return deals.map((d) => ({
+        ...d,
+        price: Number(d.price),
+        lines: lines.filter((l) => l.deal_id === d.id),
+    }));
+};
+
 export const findCustomerByPhone = async (phone) => {
     if (!phone) return null;
     const rows = await query('SELECT * FROM customers WHERE phone = ?', [phone]);
