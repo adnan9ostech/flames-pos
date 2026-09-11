@@ -79,6 +79,7 @@ export const addOrder = async (order) => {
                 payment_status: order.payment_status,
                 payment_mode: order.payment_mode,
                 cash_received: order.cash_received,
+                card_reference: order.card_reference,
                 order_number: order.order_number,
                 order_type: order.order_type,
                 include_tax: order.include_tax,
@@ -143,7 +144,7 @@ export const appendRoundToOrder = async (orderId, newItems, details = {}, { clie
 
 export const settleOrder = async (orderId, {
     paymentMode = 'cash', includeTax, discount, discountReason,
-    expectedTotal, clientRequestId, companyId, cashReceived,
+    expectedTotal, clientRequestId, companyId, cashReceived, cardReference,
 } = {}) => {
     try {
         await requireUser();
@@ -151,6 +152,7 @@ export const settleOrder = async (orderId, {
             method: paymentMode,
             companyId: companyId || null,
             cashReceived: cashReceived ?? null,
+            cardReference: cardReference ?? null,
             discount: discount ?? null,
             discountReason: discountReason ?? null,
             includeTax: includeTax ?? null,

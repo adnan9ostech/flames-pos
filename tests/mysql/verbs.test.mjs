@@ -320,3 +320,31 @@ test('12. a cash tender stores both halves, refuses a short one, and never touch
     assert.equal(Number(settled.cash_received), 5000);
     assert.equal(Number(settled.change_due), 5000 - Number(settled.total));
 });
+
+test('13. a card sale keeps its terminal reference, and can be made to insist on one', async () => {
+    const o = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'card', card_reference: ' 4821 ' },
+    );
+    const pay = await one('SELECT method, reference FROM payments WHERE order_id = ?', [o.id]);
+    assert.equal(pay.method, 'card');
+    assert.equal(pay.reference, '4821', 'trimmed, and kept on the payment rather than the order');
+
+    // A cash sale has no slip, so nothing is stored even if one is sent.
+    const cash = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', card_reference: '9999' },
+    );
+    assert.equal((await one('SELECT reference FROM payments WHERE order_id = ?', [cash.id])).reference, null);
+
+    // With the store insisting, a card sale without one is refused outright.
+    await q('UPDATE store_settings SET card_ref_required = 1');
+    await assert.rejects(
+        createOrder(
+            [{ name: 'Karahi', price: 1000, qty: 1 }],
+            { payment_status: 'paid', payment_mode: 'card' },
+        ),
+        (e) => /needs the reference from the terminal slip/.test(e.message),
+    );
+    await q('UPDATE store_settings SET card_ref_required = 0');
+});

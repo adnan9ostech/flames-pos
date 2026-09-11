@@ -44,7 +44,12 @@ const ReceiptPreview = ({
      * to the server. `null` for card, city ledger, a reprint, or a counter
      * that has turned the prompt off — and then none of this renders.
      */
-    cashReceived = null, onCashReceived = null
+    cashReceived = null, onCashReceived = null,
+    /*
+     * The card slip's reference, on the same terms: the page holds it, and
+     * these are null unless this is a card sale on a counter that asks.
+     */
+    cardRef = null, onCardRef = null, cardRefRequired = false
 }) => {
     const [settings, setSettings] = useState(null);
     /*
@@ -74,6 +79,10 @@ const ReceiptPreview = ({
     const typed = cashReceived !== '' && cashReceived != null;
     const short = typed && Number(cashReceived) < due;
     const changeDue = typed ? Math.max(0, Number(cashReceived) - due) : 0;
+    // A required reference that has not been typed blocks the close, for the
+    // same reason a short tender does: the server refuses it either way, and
+    // meeting that refusal after the customer has gone helps nobody.
+    const cardRefMissing = Boolean(onCardRef && cardRefRequired && !String(cardRef || '').trim());
     const quickTenders = [...new Set(
         [Math.ceil(due), ...[100, 500, 1000, 5000].map((note) => Math.ceil(due / note) * note)],
     )].slice(0, 4);
@@ -374,9 +383,38 @@ const ReceiptPreview = ({
                     </div>
                 )}
 
+                {/*
+                  * The card slip's number. Same working area as the cash pad
+                  * and never both at once — a bill is settled one way.
+                  */}
+                {onCardRef && (
+                    <div className={styles.cashPad}>
+                        <div className={styles.cashRow}>
+                            <label className={styles.cashLabel} htmlFor="cardRef">
+                                Card ref{cardRefRequired ? '' : ' (optional)'}
+                            </label>
+                            <input
+                                id="cardRef"
+                                className={styles.cashInput}
+                                type="text"
+                                maxLength={32}
+                                placeholder="Approval code or last 4"
+                                value={cardRef ?? ''}
+                                onChange={(e) => onCardRef(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        {cardRefRequired && !String(cardRef || '').trim() && (
+                            <p className={`${styles.changeLine} ${styles.changeShort}`}>
+                                Take this off the terminal slip before closing the sale
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 <div className={styles.actions}>
                     <button className={styles.cancelBtn} onClick={onClose} disabled={busy}>Back</button>
-                    <button className={styles.printBtn} onClick={onPrint} disabled={busy || !settingsLoaded || short}>
+                    <button className={styles.printBtn} onClick={onPrint} disabled={busy || !settingsLoaded || short || cardRefMissing}>
                         {busy ? 'Saving…' : !settingsLoaded ? 'Loading…' : (printLabel || 'Print & Close')}
                     </button>
                 </div>

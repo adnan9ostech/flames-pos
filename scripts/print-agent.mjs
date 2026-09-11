@@ -263,6 +263,14 @@ const printBill = async (orderRef, { reprint = false } = {}) => {
         [order.id],
     );
     const settings = (await q('SELECT * FROM store_settings LIMIT 1'))[0] || {};
+    // The card slip's reference lives on the payment, not the order — it is a
+    // fact about the tender — so the bill picks it up here rather than the
+    // renderer going looking for it.
+    const [card] = await q(
+        "SELECT reference FROM payments WHERE order_id = ? AND method = 'card' AND reference IS NOT NULL LIMIT 1",
+        [order.id],
+    );
+    if (card?.reference) order.card_reference = card.reference;
     const widthMm = WIDTH || Number(settings.receipt_width_mm) || 58;
     // Customer copy then restaurant copy, each ending in its own cut. An older
     // settings row with no column prints the pair, which is the house practice.

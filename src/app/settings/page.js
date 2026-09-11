@@ -21,6 +21,7 @@ const EMPTY = {
     qr_enabled: true,
     void_requires_pin: false,
     cash_change: true,
+    card_ref_required: false,
     default_opening_float: 0,
     cash_variance_tolerance: 0,
 }
@@ -39,6 +40,7 @@ export default function SettingsPage() {
             // toggle can't render as off against a database that has no opinion.
             next.qr_enabled = next.qr_enabled !== false
             next.cash_change = next.cash_change !== false
+            next.card_ref_required = next.card_ref_required === true
             next.void_requires_pin = next.void_requires_pin === true
             // Cash policy: a row from before the columns existed reads as zero,
             // which is exactly today's behaviour — propose no float, explain
@@ -63,6 +65,7 @@ export default function SettingsPage() {
             .some(k => (settings[k] || '').trim() !== (saved[k] || '').trim())
             || settings.qr_enabled !== saved.qr_enabled
             || settings.cash_change !== saved.cash_change
+            || settings.card_ref_required !== saved.card_ref_required
             || settings.void_requires_pin !== saved.void_requires_pin
             || Number(settings.default_opening_float || 0) !== Number(saved.default_opening_float || 0)
             || Number(settings.cash_variance_tolerance || 0) !== Number(saved.cash_variance_tolerance || 0),
@@ -153,6 +156,13 @@ export default function SettingsPage() {
                 />
 
                 <SettingSwitch
+                    label="Require the card slip's reference on card sales"
+                    hint="The approval code or last four digits off the terminal slip, stored against the sale and printed on the receipt — so a card batch that does not agree at close can be traced to the bill instead of matched by hand. The box is offered on every card sale either way; this makes it compulsory."
+                    checked={settings.card_ref_required}
+                    onToggle={() => setSettings(prev => ({ ...prev, card_ref_required: !prev.card_ref_required }))}
+                />
+
+                <SettingSwitch
                     label="Ask for a manager PIN to remove an item"
                     hint="Taking a line off a bill then needs someone who can void (a manager or admin) to enter their PIN. Stops items being quietly dropped off a cart — the person removing the line needs the PIN even if they are signed in themselves."
                     checked={settings.void_requires_pin}
@@ -175,6 +185,7 @@ export default function SettingsPage() {
                     <input type="hidden" name="qr_enabled" value={settings.qr_enabled ? 'true' : 'false'} />
                     <input type="hidden" name="void_requires_pin" value={settings.void_requires_pin ? 'true' : 'false'} />
                     <input type="hidden" name="cash_change" value={settings.cash_change ? 'true' : 'false'} />
+                    <input type="hidden" name="card_ref_required" value={settings.card_ref_required ? 'true' : 'false'} />
 
                     {/* Cash policy. Two numbers that shape every drawer close:
                         what it proposes to leave in the till overnight, and how

@@ -222,7 +222,7 @@ class TwinExists extends Error {
 const settleOrderTx = async (conn, orderId, {
     method = 'cash', discount = null, discountReason = null,
     includeTax = null, expectedTotal = null, clientRequestId = null,
-    companyId = null, cashReceived = null,
+    companyId = null, cashReceived = null, cardReference = null,
 } = {}) => {
     if (!['cash', 'card', 'city_ledger'].includes(method)) {
         throw new Error(`Unknown payment method ${method}`);
@@ -308,11 +308,26 @@ const settleOrderTx = async (conn, orderId, {
         );
     }
 
+    /*
+     * The card slip's number, when this was a card sale. Kept against the
+     * payment rather than the order: it is a fact about the tender, and the
+     * store can insist on it so the terminal's batch can be reconciled at
+     * close without matching slips to bills by amount and time.
+     */
+    let reference = null;
+    if (method === 'card') {
+        reference = String(cardReference ?? '').trim().slice(0, 32) || null;
+        const [[cfg] = []] = await conn.query('SELECT card_ref_required FROM store_settings LIMIT 1');
+        if (cfg?.card_ref_required && !reference) {
+            throw new Error('This card sale needs the reference from the terminal slip');
+        }
+    }
+
     await conn.query(
-        `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id, company_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id, company_id, reference)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [randomUUID(), orderId, order.branch_id, method, order.total, clientRequestId,
-         method === 'city_ledger' ? companyId : null],
+         method === 'city_ledger' ? companyId : null, reference],
     );
 
     /*
@@ -465,6 +480,7 @@ const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, pay
                 method: opts.payment_mode || 'cash',
                 companyId: opts.company_id || null,
                 cashReceived: opts.cash_received ?? null,
+                cardReference: opts.card_reference ?? null,
                 expectedTotal,
                 clientRequestId,
             });

@@ -294,6 +294,15 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
      * fact — printing "Change Rs. 0" there would be a claim about money that
      * never crossed the counter.
      */
+    /*
+     * The card slip's reference, where one was taken. On the customer's copy
+     * it is what they match against their own slip; on the restaurant's it is
+     * what makes the terminal's batch reconcilable at close.
+     */
+    if (order.card_reference) {
+        out += r('Card ref', String(order.card_reference));
+    }
+
     if (order.cash_received != null) {
         out += r('Cash', `Rs. ${rupees(order.cash_received)}`);
         out += CMD.bold + row('Change', `Rs. ${rupees(order.change_due || 0)}`, cols) + CMD.unbold + '\n';

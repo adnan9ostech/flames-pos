@@ -42,6 +42,9 @@ export async function updateSettings(formData) {
         // Default ON: an unchecked box submits nothing, and this restaurant is
         // cash-first, so absence must not quietly switch the change maths off.
         const cash_change = formData.get('cash_change') !== 'false'
+        // Off unless asked for: a box nobody fills that blocks the checkout is
+        // worse than no box at all.
+        const card_ref_required = formData.get('card_ref_required') === 'true'
 
         /*
          * Cash policy. The standing float is what a drawer close proposes to
@@ -67,23 +70,23 @@ export async function updateSettings(formData) {
             await query(
                 `UPDATE store_settings SET
                    merchant_name = ?, merchant_city = ?, merchant_address = ?, merchant_phone = ?, raast_id = ?,
-                   qr_enabled = ?, void_requires_pin = ?, cash_change = ?,
+                   qr_enabled = ?, void_requires_pin = ?, cash_change = ?, card_ref_required = ?,
                    default_opening_float = ?, cash_variance_tolerance = ?,
                    updated_at = UTC_TIMESTAMP(3)
                  WHERE id = ?`,
                 [merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
-                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0,
+                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0, card_ref_required ? 1 : 0,
                     default_opening_float, cash_variance_tolerance, existing.id],
             )
         } else {
             await query(
                 `INSERT INTO store_settings
                    (id, merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
-                    qr_enabled, void_requires_pin, cash_change,
+                    qr_enabled, void_requires_pin, cash_change, card_ref_required,
                     default_opening_float, cash_variance_tolerance)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [randomUUID(), merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
-                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0,
+                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0, card_ref_required ? 1 : 0,
                     default_opening_float, cash_variance_tolerance],
             )
         }

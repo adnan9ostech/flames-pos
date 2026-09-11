@@ -124,6 +124,8 @@ export default function POSPage() {
      * half-typed "50" must not be normalised under the cursor.
      */
     const [cashReceived, setCashReceived] = useState('');
+    // The card slip's reference, typed at the same moment and cleared with it.
+    const [cardRef, setCardRef] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [notice, setNotice] = useState('');
 
@@ -219,6 +221,7 @@ export default function POSPage() {
      */
     const [printTransport, setPrintTransport] = useState('agent');
     const [cashChange, setCashChange] = useState(true);
+    const [cardRefRequired, setCardRefRequired] = useState(false);
     // When on, removing a line from the cart needs a manager PIN.
     const [voidRequiresPin, setVoidRequiresPin] = useState(false);
     // The line-removal a PIN dialog is standing in front of: { index }.
@@ -307,6 +310,7 @@ export default function POSPage() {
             setKotRoute(s?.kot_route === 'till' ? 'till' : 'kds');
             setPrintTransport(s?.print_transport === 'browser' ? 'browser' : 'agent');
             setCashChange(s?.cash_change !== false);
+            setCardRefRequired(s?.card_ref_required === true);
             setVoidRequiresPin(s?.void_requires_pin === true);
             // The kitchen slips print before any receipt is mounted, so the
             // till has to publish the paper width itself.
@@ -706,6 +710,7 @@ export default function POSPage() {
         setCompany(null);
         setPaymentMode('cash');
         setCashReceived('');
+        setCardRef('');
         requestIdRef.current = null;
         roundRequestIdRef.current = null;
         settleRequestIdRef.current = null;
@@ -839,7 +844,8 @@ export default function POSPage() {
                 payment_mode: paymentMode,
                 // Only a cash sale has a tender; the server stores both halves
                 // or neither.
-                cash_received: paymentMode === 'cash' ? (cashReceived || null) : null
+                cash_received: paymentMode === 'cash' ? (cashReceived || null) : null,
+                card_reference: paymentMode === 'card' ? (cardRef || null) : null
             });
             /*
              * The server minted the invoice number inside the settle; the
@@ -951,6 +957,7 @@ export default function POSPage() {
             const settled = await settleOrder(tab.id, {
                 paymentMode,
                 cashReceived: paymentMode === 'cash' ? (cashReceived || null) : null,
+                cardReference: paymentMode === 'card' ? (cardRef || null) : null,
                 companyId: paymentMode === 'city_ledger' ? company.id : undefined,
                 includeTax,
                 discount: discountAmount,
@@ -1063,6 +1070,12 @@ export default function POSPage() {
                        city-ledger checkouts keep the one-tap flow they had. */
                     cashReceived={cashChange && paymentMode === 'cash' ? cashReceived : null}
                     onCashReceived={cashChange && paymentMode === 'cash' ? setCashReceived : null}
+                    /* And the card slip's number, on a card sale. Offered even
+                       when it is not compulsory — a cashier who has the slip in
+                       hand may as well type it. */
+                    cardRef={paymentMode === 'card' ? cardRef : null}
+                    onCardRef={paymentMode === 'card' ? setCardRef : null}
+                    cardRefRequired={cardRefRequired}
                     role={role}
                     busy={isSending}
                     onClose={() => setReceiptMode(null)}
