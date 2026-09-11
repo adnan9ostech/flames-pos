@@ -130,7 +130,7 @@ const ReceiptPreview = ({
                             alt="Flames by the Indus"
                             className={styles.logoImg}
                         />
-                        <p>{settings?.merchant_name || 'Flames by the Indus'} - {settings?.merchant_city || 'Islamabad'}</p>
+                        <p>{settings?.merchant_name || 'Flames by the Indus'} - {settings?.merchant_address || settings?.merchant_city || 'Islamabad'}</p>
                         <p>NTN: 1234567-8 | STRN: 1234567890123</p>
                         {includeTax && (
                             <div className={styles.fbrHeader}>

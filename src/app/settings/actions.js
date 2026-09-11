@@ -6,9 +6,6 @@ import { revalidatePath } from 'next/cache'
 import { query } from '@/lib/db/pool.mjs'
 import { getStoreSettings } from '@/lib/db/reads.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
-// The mode names live with the code that prints slips, so the form, the till
-// and the KDS can never drift onto different spellings of the same setting.
-import { KOT_MODES, DEFAULT_KOT_MODE } from '@/lib/kotPrint'
 
 export async function getSettings() {
     // Returns null on any failure, auth included — the page already treats
@@ -33,25 +30,15 @@ export async function updateSettings(formData) {
 
         const merchant_name = clean('merchant_name')
         const merchant_city = clean('merchant_city')
+        const merchant_address = clean('merchant_address')
+        const merchant_phone = clean('merchant_phone')
         const raast_id = clean('raast_id')
 
         // Sent as an explicit "true"/"false" string rather than a bare checkbox:
         // an unchecked checkbox submits nothing at all, which is indistinguishable
         // from the field not being on the form.
         const qr_enabled = formData.get('qr_enabled') !== 'false'
-        const auto_print = formData.get('auto_print') !== 'false'
-
-        // Millimetres of paper. Only the two widths that are actually sold are
-        // accepted — anything else is a typo, and a receipt laid out at a width
-        // the printer does not have is one that comes out clipped.
-        const width = Number(formData.get('receipt_width_mm'))
-        const receipt_width_mm = width === 58 ? 58 : 80
-
-        // How a round is cut into kitchen tickets. Anything the printer code
-        // does not recognise falls back rather than storing a mode that would
-        // print nothing.
-        const submittedMode = String(formData.get('kot_mode') || '')
-        const kot_mode = KOT_MODES.includes(submittedMode) ? submittedMode : DEFAULT_KOT_MODE
+        const void_requires_pin = formData.get('void_requires_pin') === 'true'
 
         /*
          * Cash policy. The standing float is what a drawer close proposes to
@@ -76,23 +63,23 @@ export async function updateSettings(formData) {
         if (existing) {
             await query(
                 `UPDATE store_settings SET
-                   merchant_name = ?, merchant_city = ?, raast_id = ?,
-                   qr_enabled = ?, auto_print = ?, receipt_width_mm = ?,
-                   kot_mode = ?, default_opening_float = ?, cash_variance_tolerance = ?,
+                   merchant_name = ?, merchant_city = ?, merchant_address = ?, merchant_phone = ?, raast_id = ?,
+                   qr_enabled = ?, void_requires_pin = ?,
+                   default_opening_float = ?, cash_variance_tolerance = ?,
                    updated_at = UTC_TIMESTAMP(3)
                  WHERE id = ?`,
-                [merchant_name, merchant_city, raast_id,
-                    qr_enabled ? 1 : 0, auto_print ? 1 : 0, receipt_width_mm,
-                    kot_mode, default_opening_float, cash_variance_tolerance, existing.id],
+                [merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
+                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0,
+                    default_opening_float, cash_variance_tolerance, existing.id],
             )
         } else {
             await query(
                 `INSERT INTO store_settings
-                   (id, merchant_name, merchant_city, raast_id, qr_enabled, auto_print,
-                    receipt_width_mm, kot_mode, default_opening_float, cash_variance_tolerance)
+                   (id, merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
+                    qr_enabled, void_requires_pin, default_opening_float, cash_variance_tolerance)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [randomUUID(), merchant_name, merchant_city, raast_id,
-                    qr_enabled ? 1 : 0, auto_print ? 1 : 0, receipt_width_mm, kot_mode,
+                [randomUUID(), merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
+                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0,
                     default_opening_float, cash_variance_tolerance],
             )
         }

@@ -32,7 +32,8 @@ import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import mysql from 'mysql2/promise';
-import { renderReceipt, asPlainText } from '../src/lib/print/escpos.mjs';
+import { renderReceiptJob, renderKotSlip, asPlainText, drawerKick } from '../src/lib/print/escpos.mjs';
+import { buildKotSlips } from '../src/lib/kotPrint.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 for (const file of ['.env.local', '.env.production']) {
@@ -263,7 +264,10 @@ const printBill = async (orderRef, { reprint = false } = {}) => {
     );
     const settings = (await q('SELECT * FROM store_settings LIMIT 1'))[0] || {};
     const widthMm = WIDTH || Number(settings.receipt_width_mm) || 58;
-    const payload = renderReceipt({ order, items, settings, widthMm, reprint });
+    // Customer copy then restaurant copy, each ending in its own cut. An older
+    // settings row with no column prints the pair, which is the house practice.
+    const copies = settings.receipt_copies == null ? 2 : Number(settings.receipt_copies);
+    const payload = renderReceiptJob({ order, items, settings, widthMm, reprint, copies });
 
     if (TRANSPORT === 'cups') {
         await spoolToQueue(payload);
@@ -275,6 +279,128 @@ const printBill = async (orderRef, { reprint = false } = {}) => {
         order: order.order_number, total: Number(order.total),
         widthMm, bytes: payload.length, via: TRANSPORT,
     };
+};
+
+/*
+ * Kitchen tickets, rendered from the database exactly as the bill is.
+ *
+ * `round` prints only that round's lines (a round just fired); omitting it
+ * prints the whole order, which is what a reprint from the KDS wants. The cut
+ * is per slip — renderKotSlip ends each one — so the whole round goes as ONE
+ * spooled job and the printer cuts between the sections itself. Spooling each
+ * slip separately raced: CUPS interleaved two jobs and handed the runner a
+ * shuffled pile.
+ */
+const printKot = async (orderRef, { round = null, reprint = false } = {}) => {
+    const orders = await q(
+        'SELECT * FROM orders WHERE id = ? OR order_number = ? LIMIT 1',
+        [orderRef, orderRef],
+    );
+    if (!orders.length) { const e = new Error('No such order'); e.status = 404; throw e; }
+    const order = orders[0];
+
+    const params = [order.id];
+    let sql = `SELECT round_no, menu_item_id, name, variant, modifiers, qty, notes
+               FROM order_items WHERE order_id = ?`;
+    if (round != null) { sql += ' AND round_no = ?'; params.push(Number(round)); }
+    sql += ' ORDER BY round_no, seq';
+    const lines = await q(sql, params);
+    if (!lines.length) { const e = new Error('Nothing to print for that round'); e.status = 404; throw e; }
+
+    // buildKotSlips resolves a line's station through menu_items.category_id,
+    // so it needs the menu as well as the lines. Only the columns it reads.
+    const menuItems = await q('SELECT id, category_id FROM menu_items');
+    const categories = await q('SELECT id, name, sort_order FROM categories');
+
+    const settings = (await q('SELECT * FROM store_settings LIMIT 1'))[0] || {};
+    const widthMm = WIDTH || Number(settings.receipt_width_mm) || 58;
+
+    // The line shape buildKotSlips expects: `id` is the menu item, and the
+    // stored `modifiers`/`variant` spellings are the ones toSlipLine reads.
+    const roundItems = lines.map((l) => ({
+        id: l.menu_item_id,
+        name: l.name,
+        variant: l.variant,
+        modifiers: l.modifiers,
+        qty: Number(l.qty) || 1,
+        notes: l.notes,
+    }));
+
+    const slips = buildKotSlips(settings.kot_mode, roundItems, menuItems, categories);
+    const meta = {
+        orderNumber: order.order_number,
+        table: order.table_number,
+        waiter: order.waiter_name,
+        orderType: order.order_type,
+        roundNo: round != null ? Number(round) : (order.round_count || 1),
+        at: new Date(),
+        reprint,
+    };
+    const payload = slips.map((slip) => renderKotSlip({ slip, meta, widthMm })).join('');
+
+    if (TRANSPORT === 'cups') {
+        await spoolToQueue(payload);
+    } else {
+        if (!existsSync(DEVICE)) { const e = new Error(`No printer at ${DEVICE}`); e.status = 503; throw e; }
+        await writeWithDeadline(payload);
+    }
+    return {
+        order: order.order_number, slips: slips.length, round: meta.roundNo,
+        widthMm, bytes: payload.length, via: TRANSPORT,
+    };
+};
+
+/*
+ * Open the cash drawer.
+ *
+ * The drawer hangs off the printer, so this agent is the only thing on the
+ * machine that can reach it, and the decision of WHETHER to open belongs here
+ * rather than in the till: the till would have to know the payment mode, the
+ * setting and the wiring, and every terminal would have to agree. It posts the
+ * bill it just took money for and this answers.
+ *
+ * `force` is a person pressing "Open drawer" — an explicit act, so it obeys no
+ * setting but the wiring. Everything else is judged from store_settings:
+ * 'never' opens nothing, 'always' opens on any completed sale, and 'cash' —
+ * the default — opens only when cash actually crossed the counter. A card or
+ * city-ledger bill leaving the drawer shut is the whole point of the setting.
+ *
+ * Never fires for a reprint: the caller simply does not ask on one.
+ */
+const kickDrawer = async (orderRef = null, { force = false } = {}) => {
+    const settings = (await q('SELECT * FROM store_settings LIMIT 1'))[0] || {};
+    const mode = settings.drawer_kick == null ? 'cash' : String(settings.drawer_kick);
+
+    if (!force) {
+        if (mode === 'never') return { opened: false, reason: 'the drawer is set never to open on a sale' };
+        if (mode !== 'always') {
+            if (!orderRef) return { opened: false, reason: 'no bill given, and the drawer opens on cash sales only' };
+            const rows = await q(
+                'SELECT payment_mode FROM orders WHERE id = ? OR order_number = ? LIMIT 1',
+                [orderRef, orderRef],
+            );
+            if (!rows.length) { const e = new Error('No such bill'); e.status = 404; throw e; }
+            // A split bill is stored as payment rows, and one cash row among
+            // them is still cash at the counter, so the drawer must open.
+            const cashRows = await q(
+                "SELECT 1 FROM payments WHERE order_id = (SELECT id FROM orders WHERE id = ? OR order_number = ? LIMIT 1) AND method = 'cash' LIMIT 1",
+                [orderRef, orderRef],
+            );
+            const paidCash = rows[0].payment_mode === 'cash' || cashRows.length > 0;
+            if (!paidCash) {
+                return { opened: false, reason: `paid by ${rows[0].payment_mode || 'another mode'}` };
+            }
+        }
+    }
+
+    const payload = drawerKick(settings.drawer_pin);
+    if (TRANSPORT === 'cups') {
+        await spoolToQueue(payload);
+    } else {
+        if (!existsSync(DEVICE)) { const e = new Error(`No printer at ${DEVICE}`); e.status = 503; throw e; }
+        await writeWithDeadline(payload);
+    }
+    return { opened: true, pin: Number(settings.drawer_pin) || 2, via: TRANSPORT };
 };
 
 // Only the till's own pages may ask for a print. A page from anywhere else
@@ -316,6 +442,45 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, headers);
             return res.end(JSON.stringify({ printed: true, ...out }));
         }
+        if (url.pathname === '/kot' && req.method === 'POST') {
+            const body = await new Promise((resolve, reject) => {
+                let raw = '';
+                req.on('data', (c) => {
+                    raw += c;
+                    if (raw.length > 4096) { req.destroy(); reject(new Error('Too large')); }
+                });
+                req.on('end', () => { try { resolve(JSON.parse(raw || '{}')); } catch { resolve({}); } });
+                req.on('error', reject);
+            });
+            const ref = String(body.orderId ?? body.order ?? '').trim();
+            if (!ref) { res.writeHead(400, headers); return res.end(JSON.stringify({ error: 'orderId is required' })); }
+            const out = await enqueue(() => printKot(ref, {
+                // null, not undefined: an absent round means the whole order.
+                round: body.round == null ? null : Number(body.round),
+                reprint: Boolean(body.reprint),
+            }));
+            console.log(`printed ${out.slips} kitchen slip(s) for order ${out.order} round ${out.round}, ${out.bytes} bytes`);
+            res.writeHead(200, headers);
+            return res.end(JSON.stringify({ printed: true, ...out }));
+        }
+        if (url.pathname === '/drawer' && req.method === 'POST') {
+            const body = await new Promise((resolve, reject) => {
+                let raw = '';
+                req.on('data', (c) => {
+                    raw += c;
+                    if (raw.length > 4096) { req.destroy(); reject(new Error('Too large')); }
+                });
+                req.on('end', () => { try { resolve(JSON.parse(raw || '{}')); } catch { resolve({}); } });
+                req.on('error', reject);
+            });
+            const ref = String(body.orderId ?? body.order ?? '').trim() || null;
+            const out = await enqueue(() => kickDrawer(ref, { force: Boolean(body.force) }));
+            console.log(out.opened
+                ? `opened the cash drawer${ref ? ` for order ${ref}` : ''} (pin ${out.pin})`
+                : `cash drawer left shut: ${out.reason}`);
+            res.writeHead(200, headers);
+            return res.end(JSON.stringify(out));
+        }
         res.writeHead(404, headers);
         res.end(JSON.stringify({ error: 'Not found' }));
     } catch (e) {
@@ -336,6 +501,8 @@ server.listen(PORT, HOST, () => {
             : `WARNING: nothing at ${DEVICE} yet`);
     console.log('  GET  /health');
     console.log('  POST /receipt   {"orderId": "<id or order number>", "reprint": false}');
+    console.log('  POST /kot       {"orderId": "<id or order number>", "round": null, "reprint": false}');
+    console.log('  POST /drawer    {"orderId": "<id or order number>", "force": false}');
 });
 
 process.on('SIGINT', () => { server.close(); pool.end(); process.exit(0); });

@@ -106,7 +106,7 @@ export const buildFbrPayload = (order, lines, settings = {}) => {
         invoiceDate: karachiStamp(order.paid_at ? new Date(order.paid_at) : new Date()),
         ntN_CNIC: env.FBR_SELLER_NTN || '', // seller NTN — walk-in retail
         buyerSellerName: order.customer_name || 'Walk-in Customer',
-        destinationAddress: settings.merchant_city || 'Islamabad',
+        destinationAddress: settings.merchant_address || settings.merchant_city || 'Islamabad',
         saleType: env.FBR_SALE_TYPE || '',
         totalSalesTaxApplicable: round2(tax),
         totalRetailPrice: round2(subtotal), // mandatory: the subtotal, pre-discount

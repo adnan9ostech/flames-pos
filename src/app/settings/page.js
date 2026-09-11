@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { getSettings, updateSettings } from './actions'
-import { KOT_MODES, DEFAULT_KOT_MODE } from '@/lib/kotPrint'
-import { Save, Loader2, CreditCard, Building, MapPin, CheckCircle2, AlertTriangle, QrCode, Banknote, Scale } from 'lucide-react'
+import { Save, Loader2, CreditCard, Building, MapPin, CheckCircle2, AlertTriangle, QrCode, Banknote, Scale, Phone } from 'lucide-react'
+import SettingsTabs from '@/components/settings/SettingsTabs'
+import { SettingSwitch } from '@/components/settings/controls'
 
 // EMVCo caps these fields, and emvco.js silently truncates the name at 25 —
 // better to stop typing at the limit than to let a name look saved and then
@@ -14,118 +15,13 @@ const MAX_CITY = 15
 const EMPTY = {
     merchant_name: '',
     merchant_city: '',
+    merchant_address: '',
+    merchant_phone: '',
     raast_id: '',
     qr_enabled: true,
-    auto_print: true,
-    receipt_width_mm: 80,
-    kot_mode: DEFAULT_KOT_MODE,
+    void_requires_pin: false,
     default_opening_float: 0,
     cash_variance_tolerance: 0,
-}
-
-/*
- * The two paper widths thermal printers are actually sold in. The receipt
- * lays out at whichever is chosen — the preview, the print rule and the page
- * handed to the printer all read one value — so picking the wrong one is
- * visible on screen before any paper is wasted.
- */
-const PAPER_WIDTHS = [
-    { value: 80, label: '80 mm', hint: 'The usual counter printer' },
-    { value: 58, label: '58 mm', hint: 'Pocket and Bluetooth printers' },
-]
-
-/*
- * How a round is cut into kitchen tickets. Both are ordinary kitchen practice
- * and neither is a subset of the other, so the hints state the real cost
- * rather than nudging: the difference on a big table is 12 pieces of paper
- * against 4, and that is felt at the printer, not in this screen.
- */
-const KOT_MODE_OPTIONS = [
-    {
-        value: 'item',
-        label: 'Per item',
-        hint: 'One ticket per line, so a ticket travels with each dish. A 12-line order prints 12 tickets — much more paper.',
-    },
-    {
-        value: 'category',
-        label: 'Per station',
-        hint: 'One ticket per section in the round; each section gets its whole list at once. That same 12-line order prints about 4.',
-    },
-]
-
-/*
- * A labelled on/off row. Extracted because there are two of them now and the
- * knob geometry is fiddly enough that stating it in one place is worth more than
- * spelling out each row.
- */
-function SettingSwitch({ label, hint, checked, onToggle }) {
-    return (
-        <div className="mb-6 flex items-center gap-4 p-4 rounded-lg bg-surface-raise border border-input">
-            <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground">{label}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
-            </div>
-            <button
-                type="button"
-                role="switch"
-                aria-checked={checked}
-                aria-label={label}
-                onClick={onToggle}
-                className={`relative flex-shrink-0 h-6 w-11 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-focus ${checked ? 'bg-primary' : 'bg-muted'
-                    }`}
-            >
-                {/* Geometry stated outright rather than left to the knob's static
-                    position: inset 2px on both sides of a 44px track holding a
-                    20px knob leaves exactly 20px of travel.
-
-                    The knob is deliberately a literal white, not a surface token:
-                    it rides on a coloured track in both themes (--primary when on,
-                    --muted when off), so a knob that flipped with the theme would
-                    vanish into the light-mode track. */}
-                <span
-                    className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                />
-            </button>
-        </div>
-    )
-}
-
-/*
- * A row of mutually exclusive choices — the shape both paper width and ticket
- * mode want. Buttons rather than radios because each option carries a line of
- * explanation and the whole card has to be a 44px target on a till; aria-pressed
- * on a button group says the same thing to a screen reader that a radio would.
- */
-function ChoiceGroup({ label, hint, options, value, onSelect }) {
-    return (
-        <div className="rounded-lg bg-surface-raise border border-input p-4">
-            <p className="text-sm font-medium text-foreground">{label}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {options.map(option => {
-                    const on = value === option.value
-                    return (
-                        <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => onSelect(option.value)}
-                            aria-pressed={on}
-                            className={`min-h-[44px] rounded-lg border px-4 py-2.5 text-left transition-colors ${on
-                                ? 'border-primary bg-primary-soft text-primary'
-                                : 'border-input bg-surface text-foreground hover:border-primary'
-                                }`}
-                        >
-                            <span className="block text-sm font-semibold">{option.label}</span>
-                            <span className={`block text-xs ${on ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                {option.hint}
-                            </span>
-                        </button>
-                    )
-                })}
-            </div>
-        </div>
-    )
 }
 
 export default function SettingsPage() {
@@ -141,13 +37,7 @@ export default function SettingsPage() {
             // Absent (migration not yet run) or null both mean "enabled", so the
             // toggle can't render as off against a database that has no opinion.
             next.qr_enabled = next.qr_enabled !== false
-            next.auto_print = next.auto_print !== false
-            // A database with no opinion (or an older row) means the counter
-            // printer, which is what the restaurant had first.
-            next.receipt_width_mm = Number(next.receipt_width_mm) === 58 ? 58 : 80
-            // Same posture: a row from before the column existed reads as the
-            // default rather than rendering neither option as chosen.
-            next.kot_mode = KOT_MODES.includes(next.kot_mode) ? next.kot_mode : DEFAULT_KOT_MODE
+            next.void_requires_pin = next.void_requires_pin === true
             // Cash policy: a row from before the columns existed reads as zero,
             // which is exactly today's behaviour — propose no float, explain
             // every difference.
@@ -167,12 +57,10 @@ export default function SettingsPage() {
     }, [message])
 
     const isDirty = useMemo(
-        () => ['merchant_name', 'merchant_city', 'raast_id']
+        () => ['merchant_name', 'merchant_city', 'merchant_address', 'merchant_phone', 'raast_id']
             .some(k => (settings[k] || '').trim() !== (saved[k] || '').trim())
             || settings.qr_enabled !== saved.qr_enabled
-            || settings.auto_print !== saved.auto_print
-            || Number(settings.receipt_width_mm) !== Number(saved.receipt_width_mm)
-            || settings.kot_mode !== saved.kot_mode
+            || settings.void_requires_pin !== saved.void_requires_pin
             || Number(settings.default_opening_float || 0) !== Number(saved.default_opening_float || 0)
             || Number(settings.cash_variance_tolerance || 0) !== Number(saved.cash_variance_tolerance || 0),
         [settings, saved]
@@ -220,17 +108,11 @@ export default function SettingsPage() {
             <div className="mb-6">
                 <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Store Settings</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Merchant details used for Raast QR payments on receipts.
+                    Merchant details, cash policy, and who may void a line.
                 </p>
             </div>
 
-            {/* Tax rates, service charge, and FBR live on their own tab. */}
-            <div className="mb-6 flex gap-2">
-                <span className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground font-semibold">General</span>
-                <a href="/settings/tax" className="px-4 py-2 rounded-lg text-sm bg-surface border border-border text-foreground hover:text-card-foreground">
-                    Tax &amp; FBR
-                </a>
-            </div>
+            <SettingsTabs active="general" />
 
             <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
                 <div className="flex items-start gap-4 mb-6">
@@ -261,10 +143,10 @@ export default function SettingsPage() {
                 />
 
                 <SettingSwitch
-                    label="Print receipt automatically on payment"
-                    hint="Paper comes out as the sale is saved, with no extra tap. Turn off if the printer is jammed or out of roll — you can still reprint any order from the Orders screen."
-                    checked={settings.auto_print}
-                    onToggle={() => setSettings(prev => ({ ...prev, auto_print: !prev.auto_print }))}
+                    label="Ask for a manager PIN to remove an item"
+                    hint="Taking a line off a bill then needs someone who can void (a manager or admin) to enter their PIN. Stops items being quietly dropped off a cart — the person removing the line needs the PIN even if they are signed in themselves."
+                    checked={settings.void_requires_pin}
+                    onToggle={() => setSettings(prev => ({ ...prev, void_requires_pin: !prev.void_requires_pin }))}
                 />
 
                 {settings.qr_enabled && !hasRaastId && (
@@ -281,28 +163,7 @@ export default function SettingsPage() {
                     {/* Explicit value: an unchecked checkbox submits nothing, which
                         the action can't tell apart from a missing field. */}
                     <input type="hidden" name="qr_enabled" value={settings.qr_enabled ? 'true' : 'false'} />
-                    <input type="hidden" name="auto_print" value={settings.auto_print ? 'true' : 'false'} />
-                    <input type="hidden" name="receipt_width_mm" value={settings.receipt_width_mm} />
-                    <input type="hidden" name="kot_mode" value={settings.kot_mode} />
-
-                    {/* Paper width. A choice, not a number field: there are two
-                        sizes on the market and typing 57 would quietly produce
-                        a receipt that never fits anything. */}
-                    <ChoiceGroup
-                        label="Receipt paper width"
-                        hint="Measure the roll, not the printer. The bill is laid out at this width, so the preview on screen is exactly what comes out of the machine."
-                        options={PAPER_WIDTHS}
-                        value={Number(settings.receipt_width_mm)}
-                        onSelect={mm => setSettings(prev => ({ ...prev, receipt_width_mm: mm }))}
-                    />
-
-                    <ChoiceGroup
-                        label="Kitchen ticket printing"
-                        hint="How a round is cut into slips when it is sent to the kitchen. Per item is on because it is what the kitchen asked for; switch back any time — the till picks the change up on its next load, and reprints from the Kitchen Display follow whatever is set here."
-                        options={KOT_MODE_OPTIONS}
-                        value={settings.kot_mode}
-                        onSelect={mode => setSettings(prev => ({ ...prev, kot_mode: mode }))}
-                    />
+                    <input type="hidden" name="void_requires_pin" value={settings.void_requires_pin ? 'true' : 'false'} />
 
                     {/* Cash policy. Two numbers that shape every drawer close:
                         what it proposes to leave in the till overnight, and how
@@ -412,7 +273,58 @@ export default function SettingsPage() {
                                     placeholder="Islamabad"
                                 />
                             </div>
-                            <p className="mt-1.5 text-xs text-muted">Defaults to Islamabad if left empty.</p>
+                            <p className="mt-1.5 text-xs text-muted">
+                                Kept short on purpose: this is the city on the Raast QR, which
+                                allows only 15 characters. The full address goes below.
+                            </p>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label htmlFor="merchant_address" className="block text-sm font-medium text-foreground mb-1.5">
+                                Address on the receipt
+                            </label>
+                            <div className="relative">
+                                <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted pointer-events-none" />
+                                <input
+                                    id="merchant_address"
+                                    type="text"
+                                    name="merchant_address"
+                                    value={settings.merchant_address || ''}
+                                    onChange={handleChange}
+                                    maxLength={96}
+                                    autoComplete="off"
+                                    className={fieldClass}
+                                    placeholder="Gulberg Arena Mall, Islamabad"
+                                />
+                            </div>
+                            <p className="mt-1.5 text-xs text-muted">
+                                Printed under the logo on every bill, in place of the city. Left
+                                empty, the receipt falls back to the city above.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label htmlFor="merchant_phone" className="block text-sm font-medium text-foreground mb-1.5">
+                                Phone
+                            </label>
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-3 h-5 w-5 text-muted pointer-events-none" />
+                                <input
+                                    id="merchant_phone"
+                                    type="tel"
+                                    name="merchant_phone"
+                                    value={settings.merchant_phone || ''}
+                                    onChange={handleChange}
+                                    maxLength={32}
+                                    autoComplete="off"
+                                    className={fieldClass}
+                                    placeholder="0304 5666516"
+                                />
+                            </div>
+                            <p className="mt-1.5 text-xs text-muted">
+                                Printed on every receipt, so a customer can ring about a delivery
+                                or a missing item. Leave empty to keep it off the bill.
+                            </p>
                         </div>
 
                         <div className="md:col-span-2">

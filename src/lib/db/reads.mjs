@@ -41,6 +41,9 @@ const KITCHEN_COLUMNS =
     'id, order_number, status, order_type, table_number, waiter_name, ' +
     'payment_status, items, notes, round_count, created_at, last_round_at';
 
+// Every live order reaches the kitchen the moment it is sent, paid or not: a
+// dine-in table is cooked and served before it settles, so the ticket cannot
+// wait on payment. Narrowed to the active kitchen statuses only.
 export const getKitchenOrders = async () =>
     serializeRows('orders', await query(
         `SELECT ${KITCHEN_COLUMNS} FROM orders

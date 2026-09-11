@@ -71,3 +71,66 @@ export const printReceiptViaAgent = async (orderId, { reprint = false } = {}) =>
         return false;
     }
 };
+
+/*
+ * Kitchen tickets through the agent. `round` prints just that round (one just
+ * fired); omit it to print the whole order, which is what a KDS reprint wants.
+ *
+ * Same soft contract as the receipt: false means "not printed", and the caller
+ * decides what to do about it. On a raw ESC/POS printer that decision must NOT
+ * be "try the browser" — a browser job arrives as PostScript and prints as
+ * source code — which is why the pages check print_transport first.
+ */
+export const printKotViaAgent = async (orderId, { round = null, reprint = false } = {}) => {
+    if (!orderId) return false;
+    if (!(await thermalAgentReady())) return false;
+    try {
+        const res = await withTimeout(`${AGENT}/kot`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId, round, reprint }),
+        }, 20000);
+        if (!res.ok) return false;
+        return Boolean((await res.json())?.printed);
+    } catch (e) {
+        console.warn('Thermal agent did not print the kitchen ticket.', e?.message ?? e);
+        return false;
+    }
+};
+
+/*
+ * Opens the cash drawer for a completed sale.
+ *
+ * The agent decides whether it should open at all — it is the only thing that
+ * knows the printer, the wiring and the setting — so the till just tells it a
+ * sale is done. Returns true only when the drawer actually fired, so nothing
+ * here can be mistaken for "the drawer is definitely open".
+ *
+ * Soft like the rest of this module: a shut drawer must never hold up a sale
+ * whose money is already taken and stored. `force` is a person pressing a
+ * button, and then the setting is not consulted.
+ */
+export const openCashDrawerViaAgent = async (orderId = null, { force = false } = {}) => {
+    if (!(await thermalAgentReady())) return false;
+    try {
+        const res = await withTimeout(`${AGENT}/drawer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId, force }),
+        }, 8000);
+        if (!res.ok) return false;
+        return Boolean((await res.json())?.opened);
+    } catch (e) {
+        console.warn('Cash drawer did not open.', e?.message ?? e);
+        return false;
+    }
+};
+
+/*
+ * Forget a cached probe. thermalAgentReady() caches for the life of the page
+ * (a till prints all evening and a failed connection costs a round trip each
+ * time), but an agent started AFTER the page loaded would then stay invisible
+ * until someone reloaded — which is exactly the state a "print agent not
+ * running" message leaves an operator in. The retry button calls this.
+ */
+export const resetAgentProbe = () => { probe = null; };

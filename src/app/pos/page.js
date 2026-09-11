@@ -8,6 +8,7 @@ import {
 } from '@/lib/dataClient';
 import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/lib/kotPrint';
 import { listActiveCharges } from '@/app/charges/actions';
+import { approveVoid } from './voidActions';
 import { applicablePlans } from '@/app/discounts/actions';
 import { listActiveTables } from '@/app/floor/actions';
 import { useRealtimeTable } from '@/lib/useRealtimeTable';
@@ -16,13 +17,14 @@ import { getOrderNumber, formatOrderDate } from '@/lib/orderDisplay';
 import { loadCartDraft, saveCartDraft, clearCartDraft } from '@/lib/cartDraft';
 import { getSettings } from '@/app/settings/actions';
 import { printReceipt, applyPaperWidth } from '@/lib/printReceipt';
-import { printReceiptViaAgent } from '@/lib/thermalAgent';
+import { printReceiptViaAgent, printKotViaAgent, openCashDrawerViaAgent } from '@/lib/thermalAgent';
 import { formatNumber as money, formatPriceRange } from '@/lib/money';
 
 import ModifierModal from '@/components/POS/ModifierModal';
 import ReceiptPreview from '@/components/POS/ReceiptPreview';
 import KotSlips from '@/components/POS/KotSlips';
 import CompanyPicker from '@/components/POS/CompanyPicker';
+import VoidPinDialog from '@/components/POS/VoidPinDialog';
 import DiscountPlans from '@/components/POS/DiscountPlans';
 import TabsDrawer from '@/components/POS/TabsDrawer';
 import LiveClock from '@/components/Layout/LiveClock';
@@ -195,6 +197,24 @@ export default function POSPage() {
      * and the auto-print switch already behave.
      */
     const [kotMode, setKotMode] = useState(DEFAULT_KOT_MODE);
+    /*
+     * Where the kitchen ticket prints. 'kds' (the default) leaves the slips to
+     * the kitchen screen and keeps the till on the receipt alone, so the two
+     * printers never contend; 'till' is the single-printer counter, where the
+     * till prints the slips itself exactly as it always did.
+     */
+    const [kotRoute, setKotRoute] = useState('kds');
+    /*
+     * How this terminal reaches paper. 'agent' means a local print agent
+     * writing raw ESC/POS to a thermal printer, and browser printing is then
+     * never used as a fallback — a browser job reaches a raw ESC/POS printer as
+     * PostScript and prints as pages of source code.
+     */
+    const [printTransport, setPrintTransport] = useState('agent');
+    // When on, removing a line from the cart needs a manager PIN.
+    const [voidRequiresPin, setVoidRequiresPin] = useState(false);
+    // The line-removal a PIN dialog is standing in front of: { index }.
+    const [pendingVoid, setPendingVoid] = useState(null);
 
     // Discount on the bill being paid
     const [discountMode, setDiscountMode] = useState('amount'); // 'amount' | 'percent'
@@ -274,6 +294,11 @@ export default function POSPage() {
             // normalizeKotMode inside buildKotSlips guards the value, so an
             // older row with no column simply prints the default.
             setKotMode(s?.kot_mode || DEFAULT_KOT_MODE);
+            // Anything but an explicit 'till' means the kitchen screen prints,
+            // so an older row with no column keeps the two-device default.
+            setKotRoute(s?.kot_route === 'till' ? 'till' : 'kds');
+            setPrintTransport(s?.print_transport === 'browser' ? 'browser' : 'agent');
+            setVoidRequiresPin(s?.void_requires_pin === true);
             // The kitchen slips print before any receipt is mounted, so the
             // till has to publish the paper width itself.
             applyPaperWidth(s?.receipt_width_mm);
@@ -411,8 +436,18 @@ export default function POSPage() {
         setModifyingItem(null);
     };
 
+    // Actually drop a line, once anyone allowed to has said so.
+    const dropLine = (index) => setCart(prev => prev.filter((_, i) => i !== index));
+
     // Update Cart Quantity
     const updateQty = (index, change) => {
+        // Stepping the last unit off a line is a removal, so it goes through
+        // the same manager gate a tap on the bin does — otherwise the minus
+        // button would be the way around it.
+        if (change < 0 && (cart[index]?.qty ?? 0) + change <= 0) {
+            requestRemove(index);
+            return;
+        }
         setCart(prev => {
             const newCart = [...prev];
             const item = newCart[index];
@@ -426,9 +461,16 @@ export default function POSPage() {
         });
     };
 
-    // Remove Item
-    const removeItem = (index) => {
-        setCart(prev => prev.filter((_, i) => i !== index));
+    // Remove Item — gated behind a manager PIN when the store asks for one,
+    // otherwise dropped straight away.
+    const removeItem = (index) => requestRemove(index);
+
+    const requestRemove = (index) => {
+        if (voidRequiresPin) {
+            setPendingVoid({ index });
+            return;
+        }
+        dropLine(index);
     };
 
     /*
@@ -519,11 +561,40 @@ export default function POSPage() {
          * Bluetooth printer the operating system refuses to make a queue for,
          * and is far faster than a rasterised page over a serial link either
          * way. It returns false the moment anything is wrong — no agent, no
-         * printer, no confirmation — and the browser path below is then
-         * exactly what it always was.
+         * printer, no confirmation.
          */
         if (order?.id && await printReceiptViaAgent(order.id)) return;
+
+        /*
+         * On a thermal terminal that is the end of it. The counter printer only
+         * speaks ESC/POS, and window.print() hands CUPS a page that reaches it
+         * as PostScript, which it prints as source code — one such fallback ran
+         * off most of a roll on 10 Sep 2026. So say what went wrong and let the
+         * operator reprint from Orders once the agent is up. The sale is
+         * already stored; only the paper is missing.
+         */
+        if (printTransport === 'agent') {
+            setNotice('Receipt not printed — the print agent is not running. Start it, then reprint from Orders.');
+            return;
+        }
         printReceipt();
+    };
+
+    /*
+     * The cash drawer, on a sale that is finished and stored.
+     *
+     * Not gated on auto-print: paper and the drawer are separate promises to
+     * the cashier, and a jammed printer is no reason to make somebody unlock a
+     * till by hand. Which sales open it — cash only, all, or none — is the
+     * agent's call from Settings, so every terminal answers the same way.
+     *
+     * A browser-printing terminal is skipped outright: the pulse that opens a
+     * drawer is a control code, and there is no way to put one into a page the
+     * operating system rasterises.
+     */
+    const openDrawerIfEnabled = async (order = null) => {
+        if (printTransport !== 'agent') return;
+        await openCashDrawerViaAgent(order?.id || null);
     };
 
     /*
@@ -535,7 +606,25 @@ export default function POSPage() {
      * receipt: without --kiosk-printing each slip would raise its own dialog.
      */
     const printKotSlips = async (sentItems, order, roundNo) => {
+        // Under the two-device setup the kitchen screen prints the ticket on
+        // its own printer, so the till stays out of it — printing here is what
+        // put the kitchen slips and the receipt through one printer and made
+        // them fight. On a single-printer counter (route 'till') the till
+        // prints them as it always did.
+        if (kotRoute === 'kds') return;
         if (!autoPrint || !order) return;
+
+        /*
+         * A thermal terminal prints the slips through the agent, from the
+         * stored round — same rule as the receipt, and for the same reason:
+         * the browser path would reach this printer as PostScript. No fallback.
+         */
+        if (printTransport === 'agent') {
+            const printed = await printKotViaAgent(order.id, { round: roundNo });
+            if (!printed) setNotice('Kitchen ticket not printed — the print agent is not running.');
+            return;
+        }
+
         const slips = buildKotSlips(kotMode, sentItems, menuData.items, menuData.categories);
         const meta = {
             orderNumber: getOrderNumber(order),
@@ -741,6 +830,7 @@ export default function POSPage() {
             // which unmounts the receipt being printed.
             await printKotSlips(cart, saved, 1);
             await printIfEnabled(saved);
+            await openDrawerIfEnabled(saved);
             clearOrderFields();
             setReceiptMode(null);
             setNotice('Paid. Order sent to the kitchen.');
@@ -775,7 +865,8 @@ export default function POSPage() {
                 status: 'new',
                 payment_status: 'unpaid'
             });
-            // Slips for round 1 go out now; the bill prints at settle time.
+            // Slips for round 1 go out now; the bill stays open and prints at
+            // settle time.
             await printKotSlips(cart, created, 1);
             await loadTabs();
             setActiveTabId(created.id);
@@ -824,7 +915,7 @@ export default function POSPage() {
         // rather than failing silently, so a tap that does nothing says why.
         if (cart.length > 0) {
             setReceiptMode(null);
-            setNotice('Send or clear the unsent items in the cart before settling this tab.');
+            setNotice('Send or clear the unsent items in the cart before completing this order.');
             return;
         }
         if (paymentMode === 'city_ledger' && !company) {
@@ -845,17 +936,20 @@ export default function POSPage() {
                 clientRequestId: settleRequestIdRef.current,
             });
             settleRequestIdRef.current = null;
+            // The kitchen already has every round — each fired when it was
+            // sent — so settling only takes the money and prints the bill.
             // Same as pay-now: the paper must carry the number the server
             // issued, so flush it into the receipt before printing.
             flushSync(() => setPendingInvoiceNo(settled?.invoice_number || null));
             await printIfEnabled(settled);
+            await openDrawerIfEnabled(settled);
             await loadTabs();
             clearOrderFields();
             setReceiptMode(null);
-            setNotice('Bill settled.');
+            setNotice('Order completed.');
         } catch (error) {
             console.error('Failed to settle bill', error);
-            alert(error.message || 'Failed to settle bill');
+            alert(error.message || 'Failed to complete the order');
         } finally {
             setIsSending(false);
         }
@@ -881,6 +975,26 @@ export default function POSPage() {
                         // city-ledger sale cannot exist, so fall back to cash.
                         if (!company) setPaymentMode('cash');
                     }}
+                />
+            )}
+
+            {pendingVoid && (
+                <VoidPinDialog
+                    itemName={cart[pendingVoid.index]?.name}
+                    verify={({ pin, reason }) => approveVoid({
+                        pin,
+                        reason,
+                        // The line being taken off, and the tab it belongs to
+                        // (null for an unsent walk-in cart), so the audit entry
+                        // says exactly what was removed and from where.
+                        item: cart[pendingVoid.index] || null,
+                        orderId: activeTabId || null,
+                    })}
+                    onApprove={() => {
+                        dropLine(pendingVoid.index);
+                        setPendingVoid(null);
+                    }}
+                    onCancel={() => setPendingVoid(null)}
                 />
             )}
 
@@ -919,7 +1033,7 @@ export default function POSPage() {
                         table: orderType === 'dine-in' ? tableNumber.trim() : null,
                         waiter: selectedWaiter?.name
                     }}
-                    printLabel={receiptMode === 'settle' ? 'Print Bill & Settle' : 'Print & Close'}
+                    printLabel={receiptMode === 'settle' ? 'Print & Complete Order' : 'Print & Close'}
                     role={role}
                     busy={isSending}
                     onClose={() => setReceiptMode(null)}
@@ -1545,7 +1659,7 @@ export default function POSPage() {
                                     : 'Send this round to the kitchen first'}
                             >
                                 <Receipt size={17} aria-hidden="true" />
-                                Settle Bill (Rs. {money(tabTotals.total)})
+                                Complete Order (Rs. {money(tabTotals.total)})
                             </button>
                         </>
                     ) : (

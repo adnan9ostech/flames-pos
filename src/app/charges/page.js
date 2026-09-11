@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import styles from './charges.module.css';
 import { listCharges, saveCharge, toggleCharge, deleteCharge } from './actions';
 import { calcTotals, DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
+import SettingsTabs from '@/components/settings/SettingsTabs';
 import {
     Percent, Loader2, Plus, Pencil, Trash2, AlertTriangle, CheckCircle2,
     Receipt, X
@@ -165,10 +166,12 @@ export default function ChargesPage() {
                 <div>
                     <h1 className={styles.title}>Charges</h1>
                     <p className={styles.subtitle}>
-                        Service charge, delivery fee — applied to every matching bill automatically.
+                        Service charge, delivery fee, POS fee — applied to every matching bill automatically.
                     </p>
                 </div>
             </div>
+
+            <SettingsTabs active="charges" />
 
             {message.type && (
                 <div

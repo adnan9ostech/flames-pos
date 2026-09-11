@@ -99,7 +99,7 @@ const TabsDrawer = ({ tabs, activeTabId, onClose, onAttach, onSettle }) => (
                                 </button>
                                 <button className={styles.settleBtn} onClick={() => onSettle(tab)}>
                                     <Receipt size={15} aria-hidden="true" />
-                                    Settle bill
+                                    Complete order
                                 </button>
                             </div>
                         </article>

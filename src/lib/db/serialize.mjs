@@ -12,7 +12,7 @@ const BOOL_COLUMNS = {
     orders: ['include_tax'],
     menu_items: ['is_available', 'is_archived'],
     waiters: ['is_active'],
-    store_settings: ['qr_enabled', 'auto_print'],
+    store_settings: ['qr_enabled', 'auto_print', 'kds_auto_print', 'void_requires_pin'],
 };
 
 const DATE_ONLY = new Set(['business_date', 'day']);

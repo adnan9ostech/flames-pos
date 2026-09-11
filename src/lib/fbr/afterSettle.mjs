@@ -28,7 +28,7 @@ export const afterSettleFbr = async (order) => {
             [order.id],
         );
         const [settings] = await query(
-            'SELECT merchant_name, merchant_city FROM store_settings LIMIT 1',
+            'SELECT merchant_name, merchant_city, merchant_address FROM store_settings LIMIT 1',
         );
 
         // Enqueue exactly once per order (order_id is UNIQUE); a concurrent or

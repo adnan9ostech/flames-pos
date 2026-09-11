@@ -1,0 +1,88 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    background: var(--card);
+    width: 380px;
+    max-width: 90%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.line {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.line strong {
+    color: var(--foreground);
+}
+
+.input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    font-size: 1.1rem;
+    letter-spacing: 0.25em;
+    text-align: center;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    outline: none;
+}
+
+.input:focus {
+    border-color: var(--primary);
+}
+
+.error {
+    font-size: 0.8rem;
+    color: var(--danger-text, #dc2626);
+}
+
+.actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 0.6rem 1.1rem;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface, var(--card));
+    color: var(--foreground);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+}

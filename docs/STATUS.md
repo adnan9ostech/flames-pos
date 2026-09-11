@@ -2,7 +2,7 @@
 
 > Update this file whenever meaningful work lands. A fresh Claude session (or
 > a human) should be able to read this top to bottom and know exactly where
-> things stand. Last update: **9 Sep 2026** (branch
+> things stand. Last update: **11 Sep 2026** (branch
 > `main`, repo `adnan9ostech/flames-pos`).
 
 ## What this project is
@@ -90,6 +90,178 @@ Also done in the integration pass (was "in progress" above):
 - [x] Build green (36 routes), server at :3210 restarted on the new build,
       UI-verified: Back-office nav, Day Close (implicit-day + clear-to-close
       gate), Handover report rendering live numbers, POS grid intact
+
+## Later additions (9 Sep session — till/kitchen requests)
+
+Migration `019_kitchen_routing_and_fees.sql` (dev+test applied). Tests
+138/138, prod build green.
+
+- [x] **Kitchen tickets routed off the till.** New `store_settings.kot_route`
+      ('kds' default | 'till'). Under 'kds' the till prints ONLY the customer
+      receipt (`printKotSlips` returns early); the **KDS auto-prints each new
+      round** on its own printer — a jam/roll-change pause is
+      `kds_auto_print`. This is the fix for slips and receipt fighting over one
+      printer. `loadOrders` now enqueues the latest round's slips on a
+      module-scope drain (`drainAutoQueue`), reusing the same builder/queue as
+      the manual reprint; manual reprint and auto-drain are mutually exclusive.
+      'till' keeps the old single-printer behaviour. Settings → General has the
+      route picker + KDS auto-print switch. "Section-wise" = set kot_mode to
+      **Per station** (still the operator's choice, not forced).
+- [x] **Delivery Charge** (fixed Rs150 placeholder, delivery-only, after tax)
+      and **POS Fee** (fixed Re.1, all order types, after tax — the FBR POS
+      service fee) seeded into `charges`. No money-math change: the charges
+      engine + order-type scoping already carried it. Verified via calcTotals:
+      dine-in = service+POS, takeaway = POS only, delivery = delivery+POS;
+      service charge never lands on takeaway/delivery. Amounts are editable on
+      the Charges screen — the Rs150 is a placeholder Adnan should set.
+- [x] **Manager PIN + reason + audit log to remove a cart line.** New
+      `store_settings.void_requires_pin` (**now ON in dev**). When on,
+      `removeItem` and a decrement-past-1 open `VoidPinDialog`, which asks for
+      a **reason AND a PIN** (both required). `approveVoid` accepts the PIN
+      only for an active user holding the `void` permission (admin/manager or
+      override) — a cashier's own hash is never in the checked set — then
+      writes `audit_log` (`action='remove_item'`, `staff_id`=approver,
+      `order_id`=tab or null, details = item/qty/price/variant, reason,
+      approved_by AND removed_by). Toggle on Settings → General.
+      Verified 10 Sep: empty reason rejected, cashier PIN rejected, manager PIN
+      approved + audit row written with both parties.
+- [!] **Dev passwords were reset 10 Sep** — the hashes no longer matched the
+      `123456`/`654321` this file documented, so nobody could have signed in.
+      Now: **admin `123456`, manager `222222`, cashier `333333`** (dev only;
+      change on the Users screen). frontdesk/kitchen/accountant untouched and
+      their passwords remain unknown.
+- [x] **"Open Offer" promo removed** from the dev `discount_plans` (ad-hoc dev
+      data, never migration-seeded, so prod is unaffected). The discount-plan
+      chips + manual "Add a discount" feature stays.
+
+## Later additions (10 Sep session — menu sync, kitchen-hold, settings tabs)
+
+Tests 138/138, prod build green (63 routes incl. new /settings/kitchen).
+
+- [x] **Menu synced to the website.** Pulled the live Sanity dataset
+      (project byr90f6b, read-only apicdn) and diffed against the POS: prices,
+      variants and item set were already a perfect match (0 diffs). The one
+      gap was availability — the website renders 42 dishes as "Coming soon"
+      (a front-end flag, not a Sanity field; extracted from the rendered
+      /menu HTML). Marked those 42 `is_available=0` (now 83 sellable / 42
+      86'd). Reversible from the till's 86 switch when each starts serving.
+- [x] **Kitchen fires when an order is SENT** (every order type). Briefly
+      built "hold until paid" (a `payment_status='paid'` gate on
+      getKitchenOrders) on 9 Sep, then reverted 10 Sep: it made dine-in
+      circular — a table is cooked and served before it settles, so the
+      kitchen can't wait on payment. So getKitchenOrders is back to
+      `status IN (kitchen)` with no payment gate; handleOpenTab/handleSendRound
+      fire the KOT on send; handleSettle only takes money + prints the bill.
+      The KDS auto-print prints a new order in full and only the new round on
+      an added round. (The owner considered a dine-in-fires / takeaway-pay-first
+      split but chose "everything fires when sent".)
+- [x] **Settings is now four tabs**: General (merchant/QR, cash policy, void
+      PIN), **Kitchen & Printer** (new `/settings/kitchen` — receipt
+      auto-print, paper width, KOT route, KDS auto-print, cut mode),
+      **Charges** (the existing `/charges`, now on the strip), Tax & FBR.
+      Shared `SettingsTabs` + extracted `controls.jsx` (SettingSwitch,
+      ChoiceGroup). `updateKitchenSettings` writes only the kitchen columns,
+      `updateSettings` only the general ones — same "each form owns its
+      columns" rule as the tax split, so no tab can blank another's fields.
+
+## Thermal printing — the counter printer (10 Sep, tested on real hardware)
+
+The printer is **`PrinterCMD_ESCPO_POS80_Printer_USB`** (80mm, USB), a **raw
+ESC/POS** device. Two hard rules learned by printing on it:
+
+- **NEVER print to it from the browser.** Chrome → CUPS runs the job through
+  the `cgpdftops` filter, which emits **PostScript**; the printer has no
+  PostScript interpreter and prints the *source code* as text. One tap cost a
+  115 KB job and most of a roll (`%%Creator: (Chrome Helper: cgpdftops CUPS
+  filter)` on the paper is the signature). Stop it with
+  `cupsdisable -c <queue>` then `cancel -a -x <queue>`.
+- **The only correct path is the agent**, which writes raw ESC/POS bytes:
+  `DB_NAME=flames_pos_dev node scripts/print-agent.mjs --queue
+  PrinterCMD_ESCPO_POS80_Printer_USB --width 80 --port 9110`, then the till's
+  `printReceiptViaAgent()` finds it on `127.0.0.1:9110` (probed once per page
+  load — reload the POS page after starting it).
+
+- [x] **Fixed: receipts were cut mid-tail.** `renderReceipt`/`renderKotSlip`
+      ended `'\n\n\n' + CMD.cut` — only three feeds, but the POS80's head sits
+      ~15–20mm (4–5 lines) before the cutter, so the blade landed inside the
+      "Thank you" block and the leftover lines surfaced on the next bill. Now
+      `feed(TAIL_FEED=6)` — an explicit `ESC d 6` — before the cut, in both
+      renderers; `asPlainText` strips `ESC d n` too. Byte-neutral (3 bytes
+      either way). **Verified on paper 10 Sep: clean.**
+
+- [x] **Real logo on the receipt** (was the merchant NAME in double-size text,
+      i.e. the printer's own typeface, not the restaurant's mark). Now printed
+      as a raster: `renderLogo()` emits ESC/POS `GS v 0` from
+      `src/lib/print/logo.mjs`. That module is **generated** — run
+      `node scripts/print/make-logo.mjs --preview` when the artwork changes.
+      It rasterises `public/flames-by-the-indus-logo-for-receipt.svg` using
+      **headless Chrome as the rasteriser** (canvas → threshold → packed bits →
+      base64), so the till needs no image library at runtime: 512×182 dots for
+      80mm, 384×137 for 58mm. Falls back to the text header if no bitmap
+      matches the paper. `asPlainText` now measures and steps over a raster
+      block (`stripRasters`) instead of regex-stripping it — the image data
+      contains 0x1b/0x1d itself and a regex dumped binary into the terminal.
+      Receipt grew 739 → ~12.4 KB. **Verified on paper 10 Sep.**
+
+- [x] **Phone on the bill, and two labelled copies** (migration 021).
+      `store_settings.merchant_phone` (seeded `0304 5666516`, editable on
+      Settings → General) prints under the city. `receipt_copies` (default 2,
+      Settings → Kitchen & Printer) drives `renderReceiptJob`, which renders
+      the bill once per copy stamped `*** CUSTOMER COPY ***` /
+      `*** RESTAURANT COPY ***` near the top. **The cut between them is not
+      special-cased** — renderReceipt already ends every bill with feed+cut, so
+      two back to back come off the roll as two separated slips (verified: 2
+      cut commands per job). Do NOT join the copies with a separator; that
+      would add a third cut and eject a blank stub.
+
+NOTE: `scripts/print-thermal.mjs` has its OWN inline renderer and does NOT
+import escpos.mjs — so its `--dry` output still shows the old text header and
+none of the escpos fixes. It is a bench diagnostic only; the agent is the real
+path. Worth collapsing the two renderers into one.
+
+- [x] **No more silent browser fallback.** Migration 020 adds
+      `store_settings.print_transport` ('agent' default | 'browser'). Under
+      'agent' the till NEVER falls back to `window.print()` — it says "print
+      agent not running" and leaves the sale stored for a reprint from Orders.
+      Chosen on Settings → Kitchen & Printer.
+- [x] **Kitchen tickets through the agent.** New `POST /kot`
+      `{orderId, round, reprint}` renders from the database (order_items +
+      menu/categories + `kot_mode`) via `buildKotSlips` → `renderKotSlip`, and
+      spools the whole round as ONE job so CUPS cannot interleave two jobs and
+      shuffle the runner's pile. `printKotViaAgent()` in thermalAgent.js; the
+      KDS uses it for both auto-print and the reprint button, and the till uses
+      it when `kot_route='till'`. **Verified on paper: 3 section slips.**
+- [x] **Agent autostarts.** `bash scripts/print/install-agent-service.sh`
+      installs a per-user LaunchAgent (`com.flamesbytheindus.printagent`,
+      RunAtLoad + KeepAlive, binds 127.0.0.1, no root, nothing system-wide).
+      `--uninstall` removes it. Logs in `~/Library/Logs/`.
+- [x] **Logo reduced to 80%**, and **the raster must be sent in STRIPS.**
+      This took several attempts on real paper; the findings, so nobody repeats
+      them:
+      * The printer takes a `GS v 0` of ~1 KB fine — solid bars at 512, 576 AND
+        384 dots all printed as clean black rectangles, so raster width was
+        never the problem and `GS v 0` is well supported.
+      * Hand it the whole logo in ONE command (9.5 KB) and its raster buffer
+        gives up partway and prints the REMAINING BYTES AS TEXT — pages of
+        random characters. The same bytes in **24-row strips print perfectly**.
+        `BAND_ROWS = 24` in escpos.mjs; renderLogo emits one `GS v 0` per strip
+        and the printer stacks them with no visible seam.
+      * The bitmap is generated at the full paper width with the artwork
+        centred in WHITE inside it and printed **left-aligned**. `ESC a 1`
+        centres a raster byte-wise, so a logo whose margin is not a whole
+        number of bytes smears — a 408-dot centred logo did exactly that.
+      * Geometry now: **512×148** (80mm, 64 bytes/row) and 384×114 (58mm),
+        artwork 416/320 dots inside. `PAPER`/`LOGO` in make-logo.mjs.
+      **Verified on paper 10 Sep: "the logo looks good now".**
+
+KDS print settings, verified correct 10 Sep: `print_transport=agent`,
+`kot_route=kds`, `kds_auto_print=1`, **`kot_mode=category`** (section-wise, as
+the owner asked — it was still `item`), `receipt_width_mm=80`, `auto_print=1`.
+
+Known gaps (NOT yet built):
+- Each DEVICE needs its own agent: the KDS talks to `127.0.0.1:9110` on the
+  kitchen machine, so the kitchen box needs the LaunchAgent installed against
+  the KITCHEN printer's queue. Only the till machine has one so far.
 
 ## Later additions (1 Sep session)
 
@@ -768,6 +940,37 @@ the close transaction under its `FOR UPDATE`, so the gate and the audit row's
 Suite 131/131 (was 139), build green. **Still owed: a manual pass** — close a
 day, and ring/settle a bill on the till — since the day-close verbs sit behind
 `requirePermission` in a `'use server'` file and have no automated coverage.
+
+## Cash drawer, and "Complete Order" — 11 Sep 2026
+
+Migration `023_cash_drawer.sql` (dev+test applied). Suite 138/138, build green.
+
+- [x] **The cash drawer opens on a completed sale.** A POS drawer has no cable
+      to the computer: it hangs off the PRINTER's RJ11 socket and opens only on
+      an ESC/POS pulse (`ESC p m t1 t2`, now `drawerKick()` in
+      `src/lib/print/escpos.mjs`). So the whole decision lives in the print
+      agent — `POST /drawer {orderId, force}` — which is the only process that
+      knows this terminal's printer. New `store_settings.drawer_kick`
+      ('cash' default | 'always' | 'never') and `drawer_pin` (2 default | 5),
+      both on Settings → Kitchen & Printer. Under 'cash' the agent opens the
+      drawer only when the bill's `payment_mode` is cash **or** any of its
+      `payments` rows is cash (a split bill is still cash at the counter); a
+      card or city-ledger bill leaves it shut. The till calls it after pay-now
+      and after settle, NOT gated on `auto_print` — a jammed printer is no
+      reason to unlock a till by hand — and skipped outright on a
+      browser-printing terminal, which cannot carry a control code. A reprint
+      never fires it, because the reprint paths do not ask.
+      Verified against a file-backed agent, all four branches: cash→`1b 70 00
+      19 fa`, card→shut ("paid by card"), 'never'→shut, 'always'+pin 5→
+      `1b 70 01 19 fa`.
+- [x] **"Settle Bill" is now "Complete Order"** on the till, the tabs drawer
+      ("Complete order"), the receipt button ("Print & Complete Order") and the
+      notices. Labels only — `settleOrder`, `receiptMode === 'settle'`, the
+      `settle_order` verb and every error contract in `src/lib/db/orders.mjs`
+      are untouched.
+- [ ] **Owed: a hardware pass.** The pulse is proven byte-for-byte, but no real
+      drawer has been attached yet. On the counter machine: plug the drawer into
+      the printer, take one cash sale, and confirm it throws on Pin 2.
 
 ## Known cautions
 

@@ -11,6 +11,7 @@ import {
 import { isLatestRound } from '@/lib/orderTotals.mjs';
 import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/lib/kotPrint';
 import { applyPaperWidth } from '@/lib/printReceipt';
+import { printKotViaAgent } from '@/lib/thermalAgent';
 import KotSlips from '@/components/POS/KotSlips';
 import { getSettings } from '@/app/settings/actions';
 import LiveClock from '@/components/Layout/LiveClock';
@@ -68,6 +69,27 @@ const feedSlipsToPrinter = async (slips, meta, setJob) => {
     }
 };
 
+/*
+ * Drains the auto-print queue one order at a time through the single printer,
+ * so two rounds arriving in the same poll never interleave their slips. At
+ * module scope for the same reason feedSlipsToPrinter is: a try/finally inside
+ * a component makes the React Compiler bail on the whole file. The pumping ref
+ * is the re-entry guard — a second caller while a drain is already running
+ * just returns, and the running loop picks up whatever it enqueued.
+ */
+const drainAutoQueue = async (queueRef, pumpingRef, setJob) => {
+    if (pumpingRef.current) return;
+    pumpingRef.current = true;
+    try {
+        while (queueRef.current.length) {
+            const { slips, meta } = queueRef.current.shift();
+            await feedSlipsToPrinter(slips, meta, setJob);
+        }
+    } finally {
+        pumpingRef.current = false;
+    }
+};
+
 const ORDER_TYPE_LABEL = {
     'dine-in': 'Dine-in',
     'takeaway': 'Takeaway',
@@ -89,6 +111,10 @@ export default function KDSPage() {
     // menu_items.category_id, so the board needs categories as well as photos.
     const [menu, setMenu] = useState({ items: [], categories: [] });
     const [kotMode, setKotMode] = useState(DEFAULT_KOT_MODE);
+    // Whether this board prints incoming rounds itself. True only when the
+    // store routes tickets to the kitchen ('kds') AND the kitchen hasn't
+    // paused its own printing (a jam, a roll change).
+    const [autoPrintTickets, setAutoPrintTickets] = useState(false);
     // The slip being printed right now; null keeps #kot-print-root unmounted,
     // which is what leaves the rest of the app printable.
     const [kotJob, setKotJob] = useState(null);
@@ -99,6 +125,27 @@ export default function KDSPage() {
     const [now, setNow] = useState(null); // null until mounted, to avoid SSR drift
     const [soundOn, setSoundOn] = useState(true);
     const knownIds = useRef(null);
+
+    /*
+     * loadOrders mounts once for the whole service (see the subscription
+     * effect), so anything it reads that CAN change — the menu, the cut mode,
+     * whether this board auto-prints, whether the printer is mid-job — is read
+     * through a ref kept in sync by the effects below rather than closed over,
+     * or the board would tear down and rebuild its socket every time one moved.
+     */
+    const menuRef = useRef(menu);
+    const kotModeRef = useRef(kotMode);
+    const autoPrintRef = useRef(autoPrintTickets);
+    const transportRef = useRef('agent');
+    const printingIdRef = useRef(printingId);
+    // Orders whose newest round is waiting to print, and the guard that keeps
+    // the drain loop single.
+    const autoQueue = useRef([]);
+    const autoPumping = useRef(false);
+    useEffect(() => { menuRef.current = menu; }, [menu]);
+    useEffect(() => { kotModeRef.current = kotMode; }, [kotMode]);
+    useEffect(() => { autoPrintRef.current = autoPrintTickets; }, [autoPrintTickets]);
+    useEffect(() => { printingIdRef.current = printingId; }, [printingId]);
 
     /*
      * Declared above the effects that use them, and deliberately identity-stable:
@@ -159,12 +206,64 @@ export default function KDSPage() {
             if (knownIds.current === null) {
                 knownIds.current = rounds;
             } else {
-                const isNew = active.some(o => {
-                    const seen = knownIds.current.get(o.id);
-                    return seen === undefined || (o.round_count || 1) > seen;
-                });
+                const fresh = active
+                    .map(o => ({ o, seen: knownIds.current.get(o.id) }))
+                    .filter(({ o, seen }) => seen === undefined || (o.round_count || 1) > seen);
                 knownIds.current = rounds;
-                if (isNew) chime();
+                if (fresh.length) {
+                    chime();
+                    // Print the food this board is responsible for the moment
+                    // it arrives. A brand-new order prints in full (a first
+                    // sighting is its whole first round); a round added to an
+                    // order already on the board prints only that new round.
+                    // The till stays off the kitchen slips, so this is the only
+                    // place they print under the two-device setup.
+                    if (autoPrintRef.current) {
+                        /*
+                         * A thermal kitchen printer only speaks ESC/POS, so the
+                         * ticket goes through the local agent from the stored
+                         * order — never through the browser, which would reach
+                         * it as PostScript and print pages of source code. A
+                         * first sighting prints the whole order; an added round
+                         * prints only that round.
+                         */
+                        if (transportRef.current === 'agent') {
+                            for (const { o, seen } of fresh) {
+                                const printed = await printKotViaAgent(o.id, {
+                                    round: seen === undefined ? null : (o.round_count || 1),
+                                });
+                                if (!printed) console.warn('Kitchen ticket not printed — the print agent is not running.');
+                            }
+                            setOrders(active);
+                            return;
+                        }
+                        for (const { o, seen } of fresh) {
+                            const roundNo = o.round_count || 1;
+                            const items = seen === undefined
+                                ? (o.items || [])
+                                : (o.items || []).filter(it => (it.round || 1) > seen);
+                            const slips = buildKotSlips(kotModeRef.current, items, menuRef.current.items, menuRef.current.categories);
+                            if (!slips.length) continue;
+                            autoQueue.current.push({
+                                slips,
+                                meta: {
+                                    orderNumber: getOrderNumber(o),
+                                    table: o.table_number,
+                                    waiter: o.waiter_name,
+                                    orderType: o.order_type,
+                                    roundNo,
+                                    at: new Date(),
+                                    // A fresh fire, not a reprint — the kitchen
+                                    // cooks this, so no knockout band.
+                                    reprint: false,
+                                },
+                            });
+                        }
+                        // Not while a manual reprint owns the printer; its slips
+                        // stay queued and drain on the next poll.
+                        if (!printingIdRef.current) drainAutoQueue(autoQueue, autoPumping, setKotJob);
+                    }
+                }
             }
 
             setOrders(active);
@@ -196,6 +295,16 @@ export default function KDSPage() {
          */
         getSettings().then(settings => {
             setKotMode(settings?.kot_mode || DEFAULT_KOT_MODE);
+            // This board prints incoming rounds only when the store routes
+            // tickets here (anything but an explicit 'till') and the kitchen
+            // hasn't paused its own printing. An older row with neither column
+            // keeps the two-device default of printing.
+            const routed = settings?.kot_route !== 'till';
+            const kitchenPrints = settings?.kds_auto_print !== false;
+            setAutoPrintTickets(routed && kitchenPrints);
+            // Read into the ref directly: loadOrders mounts once and reads this
+            // on every poll, so it must not wait for a re-render to see it.
+            transportRef.current = settings?.print_transport === 'browser' ? 'browser' : 'agent';
             applyPaperWidth(settings?.receipt_width_mm);
         }).catch(() => {});
         // loadOrders is async and awaits a fetch before it touches state, so
@@ -261,8 +370,20 @@ export default function KDSPage() {
         setArmed(null);
         // One queue at a time: two orders printing at once would interleave
         // slips through the single printer and hand the runner a shuffled pile.
-        if (printingId) return;
+        // That includes the auto-print drain — wait for it to finish rather
+        // than talk over it.
+        if (printingId || autoPumping.current) return;
         setPrintingId(order.id);
+
+        // Same transport rule as the auto-print: on a thermal kitchen printer
+        // the agent renders the whole order from the database (round omitted),
+        // stamped as a reprint. The browser path is not a fallback here.
+        if (transportRef.current === 'agent') {
+            const printed = await printKotViaAgent(order.id, { reprint: true });
+            if (!printed) console.warn('Reprint failed — the print agent is not running.');
+            setPrintingId(null);
+            return;
+        }
 
         const slips = buildKotSlips(kotMode, order.items, menu.items, menu.categories);
         await feedSlipsToPrinter(slips, {

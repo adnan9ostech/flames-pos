@@ -6,6 +6,7 @@ import { Percent, Landmark, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { getSettings } from '../actions'
 import { listActiveCharges } from '@/app/charges/actions'
 import { updateTaxSettings, getFbrStatus } from './actions'
+import SettingsTabs from '@/components/settings/SettingsTabs'
 
 /*
  * The tax side of Settings, on its own tab: GST by payment method, the tax
@@ -96,15 +97,7 @@ export default function TaxSettingsPage() {
                 <p className="text-muted-foreground mt-1">Tax rates and FBR Digital Invoicing.</p>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2">
-                <Link href="/settings" className="px-4 py-2 rounded-lg text-sm bg-surface border border-border text-foreground hover:text-card-foreground">
-                    General
-                </Link>
-                <span className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground font-semibold">
-                    Tax &amp; FBR
-                </span>
-            </div>
+            <SettingsTabs active="tax" />
 
             {message.text && (
                 <div className={`rounded-lg px-4 py-3 text-sm border ${message.type === 'error'
