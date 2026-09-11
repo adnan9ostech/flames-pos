@@ -1,0 +1,84 @@
+{
+ "source": "Blink POS (pos.blinkco.io), account Flames by The Indus, read out of the Items screen 11 Sep 2026",
+ "note": "Blink carries 222 items: 134 active dishes and 88 deactivated \"<dish> Half\"/\"<dish> Full\" duplicates from an older way of doing sizes. Only the ACTIVE 134 are the live menu, and they are what this file was diffed against.",
+ "add": [
+  {
+   "name": "Soft Drink (Can)",
+   "category": "Cold by the River",
+   "price": 295.0,
+   "description": "Coke, Sprite or Fanta, chilled",
+   "blink_id": 108723
+  },
+  {
+   "name": "Mineral Water (Small)",
+   "category": "Cold by the River",
+   "price": 175.0,
+   "description": "500ml bottle",
+   "blink_id": 108724
+  },
+  {
+   "name": "Mineral Water (Large)",
+   "category": "Cold by the River",
+   "price": 315.0,
+   "description": "1.5 litre bottle",
+   "blink_id": 108725
+  },
+  {
+   "name": "Fresh Lime Sprite",
+   "category": "Cold by the River",
+   "price": 345.0,
+   "description": "Sprite poured over fresh lime and ice",
+   "blink_id": 108726
+  },
+  {
+   "name": "Lassi (Sweet)",
+   "category": "Cold by the River",
+   "price": 475.0,
+   "description": "Yogurt churned thick and sweet",
+   "blink_id": 108727
+  },
+  {
+   "name": "Lassi (Salted)",
+   "category": "Cold by the River",
+   "price": 475.0,
+   "description": "Yogurt churned thick with salt and cumin",
+   "blink_id": 108728
+  },
+  {
+   "name": "Perrier Water (Small)",
+   "category": "Cold by the River",
+   "price": 1075.0,
+   "description": "Imported sparkling water",
+   "blink_id": 108729
+  },
+  {
+   "name": "Perrier Water (Large)",
+   "category": "Cold by the River",
+   "price": 1695.0,
+   "description": "Imported sparkling water",
+   "blink_id": 108730
+  },
+  {
+   "name": "Zeera Raita",
+   "category": "Salads & Starters",
+   "price": 190.0,
+   "description": "Yogurt whisked with roasted cumin and mint",
+   "blink_id": 108732
+  },
+  {
+   "name": "Mint Raita",
+   "category": "Salads & Starters",
+   "price": 190.0,
+   "description": "Yogurt whisked with fresh mint and green chilli",
+   "blink_id": 108733
+  }
+ ],
+ "reprice": [
+  {
+   "name": "Karak Chai",
+   "from": 415.0,
+   "to": 560.0,
+   "why": "Blink is the till the restaurant actually rings on; the 415 came from the website export."
+  }
+ ]
+}

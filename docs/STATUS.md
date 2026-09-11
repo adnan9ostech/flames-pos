@@ -972,6 +972,36 @@ Migration `023_cash_drawer.sql` (dev+test applied). Suite 138/138, build green.
       drawer has been attached yet. On the counter machine: plug the drawer into
       the printer, take one cash sale, and confirm it throws on Pin 2.
 
+## Menu levelled against Blink — 11 Sep 2026
+
+Read straight out of the Blink account (Items screen, 11 Sep) with a scripted
+Chrome session, and diffed against this database. `scripts/menu/sync-blink-menu.mjs`
++ `blink-menu-sync.json` hold both the data and the replay, the same shape as
+the recipe import beside them, because cutover will need it run again.
+
+**Blink carries 222 items, and only 134 are the menu.** The other 88 are
+deactivated `<dish> Half` / `<dish> Full` duplicates left over from an older
+way of doing sizes; Blink now prices sizes as variations, which is what this
+database already does. Diffing against all 222 would have invented 88 dishes.
+
+- [x] **Ten dishes added** that the website import never carried: the cold
+      drinks counter (Soft Drink (Can) 295, Mineral Water Small 175 / Large 315,
+      Fresh Lime Sprite 345, Lassi Sweet & Salted 475, Perrier Small 1075 /
+      Large 1695) and two raitas (Zeera, Mint — 190 each).
+- [x] **Karak Chai repriced 415 → 560.** The 415 came from the website export;
+      560 is what the restaurant rings on its own till. The script refuses to
+      reprice anything that is not still at the price the diff saw.
+- [x] **Menu now matches Blink exactly: 134 active dishes = 134 here**, and all
+      **88 variant prices** across the 44 sized dishes verified line by line
+      against Blink's own Half/Full rows. Zero price differences left.
+
+Open question for the owner: **`Channay` exists twice here** — Daal & Sabzi and
+Subah Ka Nashta, both Rs 1,575. Blink has it once (Subah Ka Nashta) plus a
+separate `Daal Channa Fry` in Daal & Sabzi, which this menu also has. The
+Daal & Sabzi `Channay` looks like an import duplicate. Not touched: a dish row
+is never deleted (order history points at it), so the fix if he confirms is
+`is_archived = 1`, not a DELETE.
+
 ## Known cautions
 
 - Old MariaDB datadir preserved at
