@@ -252,6 +252,15 @@ export const receiveStock = async ({
             );
         }
 
+        /*
+         * A change in what chilli costs is a change in what the masala made of
+         * it costs, and every screen prices a recipe from avg_cost. So the
+         * phantoms are re-rolled here, inside the same transaction as the
+         * moving average that moved them.
+         */
+        const { recomputeSubRecipeCosts } = await import('../inventory/subrecipe.mjs');
+        await recomputeSubRecipeCosts(conn);
+
         // The requisition this GRN answers is done; a draft already closed
         // stays as it is — fulfilment is one-way.
         if (draft) {

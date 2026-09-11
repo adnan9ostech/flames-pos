@@ -351,13 +351,17 @@ test('13. a card sale keeps its terminal reference, and can be made to insist on
 
 test('14. a purchase order is answered once, by the delivery that arrives', async () => {
     const { receiveStock } = await import('../../src/lib/db/inventory.mjs');
-    const supplier = (await q("INSERT INTO suppliers (name, is_active) VALUES ('PO Test Supplier', 1)")).insertId;
+    // Unique per run: inventory names and PO numbers are unique keys, and the
+    // suite is run against a database it does not empty of masters.
+    const tag = randomUUID().slice(0, 8);
+    const supplier = (await q('INSERT INTO suppliers (name, is_active) VALUES (?, 1)', [`PO Supplier ${tag}`])).insertId;
     const item = (await q(
-        "INSERT INTO inventory_items (name, unit_id, reorder_level, is_active) VALUES ('PO Test Flour', 1, 0, 1)",
+        'INSERT INTO inventory_items (name, unit_id, reorder_level, is_active) VALUES (?, 1, 0, 1)',
+        [`PO Flour ${tag}`],
     )).insertId;
     const po = (await q(
         `INSERT INTO purchase_orders (po_number, supplier_id, warehouse_id, total)
-         VALUES ('PO-TEST-01', ?, 1, 1200)`, [supplier],
+         VALUES (?, ?, 1, 1200)`, [`PO-${tag}`, supplier],
     )).insertId;
     await q(
         'INSERT INTO purchase_order_lines (purchase_order_id, inventory_item_id, qty, unit_cost) VALUES (?, ?, 10, 120)',
@@ -390,4 +394,62 @@ test('14. a purchase order is answered once, by the delivery that arrives', asyn
         }),
         (e) => /already closed/.test(e.message),
     );
+});
+
+test('15. a sub-recipe is a phantom: the spices leave the shelf, not the masala', async () => {
+    const { receiveStock } = await import('../../src/lib/db/inventory.mjs');
+    const { consumeForOrder } = await import('../../src/lib/inventory/consume.mjs');
+
+    const tag = randomUUID().slice(0, 8);
+    const sup = (await q('INSERT INTO suppliers (name, is_active) VALUES (?, 1)', [`Sub Supplier ${tag}`])).insertId;
+    const mk = async (name) => (await q(
+        'INSERT INTO inventory_items (name, unit_id, is_active) VALUES (?, 1, 1)', [`${name} ${tag}`],
+    )).insertId;
+    const chilli = await mk('Sub Chilli');
+    const salt = await mk('Sub Salt');
+    const masala = await mk('Sub Masala');
+
+    // 1kg of masala is 0.6kg chilli + 0.4kg salt.
+    await q(
+        'INSERT INTO sub_recipe_lines (parent_item_id, component_item_id, qty) VALUES (?, ?, 0.6), (?, ?, 0.4)',
+        [masala, chilli, masala, salt],
+    );
+
+    // Buying the spices prices the masala from its parts, inside the same
+    // transaction as the moving average.
+    await receiveStock({
+        supplierId: sup, warehouseId: 1,
+        lines: [{ itemId: chilli, qty: 10, unitCost: 1000 }, { itemId: salt, qty: 10, unitCost: 50 }],
+    });
+    const priced = await one('SELECT avg_cost FROM inventory_items WHERE id = ?', [masala]);
+    assert.equal(Number(priced.avg_cost), 0.6 * 1000 + 0.4 * 50, 'the phantom costs the sum of its parts');
+
+    // A dish that calls for 0.05kg of masala.
+    const dish = await one('SELECT id FROM menu_items LIMIT 1');
+    await q('DELETE FROM recipe_lines WHERE menu_item_id = ?', [dish.id]);
+    // recipe_lines hangs off a recipes header, so the dish needs one first.
+    await q(
+        'INSERT INTO recipes (menu_item_id, notes) VALUES (?, NULL) ON DUPLICATE KEY UPDATE updated_at = UTC_TIMESTAMP(3)',
+        [dish.id],
+    );
+    await q(
+        "INSERT INTO recipe_lines (menu_item_id, variant_name, inventory_item_id, qty) VALUES (?, '', ?, 0.05)",
+        [dish.id, masala],
+    );
+    const itemRow = await one('SELECT name, price FROM menu_items WHERE id = ?', [dish.id]);
+    const order = await createOrder(
+        [{ id: dish.id, name: itemRow.name, price: Number(itemRow.price), qty: 2 }],
+        { payment_status: 'paid', payment_mode: 'cash' },
+    );
+    await consumeForOrder(order);
+
+    const moved = await q(
+        "SELECT inventory_item_id AS id, SUM(delta) AS d FROM stock_ledger WHERE source_type = 'sale' AND source_id = ? GROUP BY inventory_item_id",
+        [order.id],
+    );
+    const byItem = new Map(moved.map((r) => [Number(r.id), Number(r.d)]));
+    // 2 portions x 0.05kg masala = 0.1kg -> 0.06 chilli + 0.04 salt.
+    assert.equal(byItem.get(chilli), -0.06);
+    assert.equal(byItem.get(salt), -0.04);
+    assert.equal(byItem.has(masala), false, 'nothing is taken from a tub that was never bought');
 });

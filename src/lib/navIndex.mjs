@@ -122,6 +122,11 @@ export const NAV_INDEX = [
         keywords: 'recipe costing bom ingredients per dish build unit cost',
     },
     {
+        href: '/menu/sub-recipes', label: 'Sub-recipes', icon: 'Layers', perm: 'menu',
+        section: 'Menu',
+        keywords: 'batch masala paste stock prep base semi finished sub recipe phantom made in house',
+    },
+    {
         href: '/menu/ingredients', label: 'Ingredients', icon: 'Carrot', perm: 'menu',
         section: 'Menu',
         keywords: 'ingredients ingredient price raw materials stock items unit cost purchase price',

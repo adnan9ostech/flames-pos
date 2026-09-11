@@ -14,6 +14,7 @@
 import { withTransaction } from '../db/pool.mjs';
 import { postLedger } from '../db/inventory.mjs';
 import { RECIPE_VARIANT_FOR_LINE } from '../menu/rules.mjs';
+import { indexSubRecipes, expandToRaw } from './subrecipe.mjs';
 
 // 'Main Store', seeded by migration 002. The till has no warehouse concept,
 // so everything a sale consumes comes out of the main store until it does.
@@ -81,14 +82,32 @@ export const consumeForOrder = async (order) => {
             );
             if (used.length === 0) return;
 
+            /*
+             * Through the sub-recipes, if there are any. A dish asking for 80g
+             * of karahi masala takes the spices the masala is made of off the
+             * shelf, not a tub of masala nobody ever bought — see
+             * subrecipe.mjs. An ingredient with no recipe of its own passes
+             * through untouched, which is every ingredient in a kitchen that
+             * has not defined one, so this is safe to run over everything.
+             */
+            const [subLines] = await conn.query(
+                'SELECT parent_item_id, component_item_id, qty FROM sub_recipe_lines',
+            );
+            const raw = subLines.length
+                ? expandToRaw(
+                    used.map((u) => ({ itemId: u.item_id, qty: Number(u.qty) })),
+                    indexSubRecipes(subLines),
+                )
+                : used.map((u) => ({ itemId: u.item_id, qty: Number(u.qty) }));
+
             // The order's own trading day, so a 1 a.m. sale's consumption
             // sits in the same day-close as its revenue. unit_cost stays
             // NULL — consumption prices at avg_cost read at report time.
             const businessDate = asDay(order.business_date) ?? await currentBusinessDate(conn);
-            await postLedger(conn, used.map((u) => ({
-                itemId: u.item_id,
+            await postLedger(conn, raw.map((u) => ({
+                itemId: u.itemId,
                 warehouseId: MAIN_WAREHOUSE_ID,
-                delta: -round4(Number(u.qty)),
+                delta: -round4(u.qty),
                 sourceType: 'sale',
                 sourceId: order.id,
                 businessDate,
