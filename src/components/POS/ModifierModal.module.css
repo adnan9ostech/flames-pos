@@ -143,3 +143,17 @@
 .confirmBtn:hover {
     background: var(--primary-hover);
 }
+/* The kitchen note. Full width and plain: it is a sentence, not an option. */
+.noteInput {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.noteInput:focus { outline: 2px solid var(--primary); outline-offset: -1px; }

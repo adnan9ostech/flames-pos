@@ -336,7 +336,7 @@ const printKot = async (orderRef, { round = null, reprint = false } = {}) => {
         at: new Date(),
         reprint,
     };
-    const payload = slips.map((slip) => renderKotSlip({ slip, meta, widthMm })).join('');
+    const payload = slips.map((slip) => renderKotSlip({ slip, meta, widthMm, settings })).join('');
 
     if (TRANSPORT === 'cups') {
         await spoolToQueue(payload);

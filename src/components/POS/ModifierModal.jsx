@@ -51,6 +51,14 @@ const defaultSelections = (item, modifiersData) => {
 const ModifierModal = ({ item, modifiersData, onClose, onConfirm }) => {
     const [selectedVariant, setSelectedVariant] = useState(() => defaultVariant(item));
     const [selections, setSelections] = useState(() => defaultSelections(item, modifiersData));
+    /*
+     * The kitchen note. Not a modifier: a modifier is a priced option the menu
+     * knows about, and this is the sentence the customer said — "no chilli",
+     * "very well done", "serve with the mains". It costs nothing, it never
+     * reaches the customer's bill, and it is the only thing on this dialog
+     * written for the cook rather than the till.
+     */
+    const [notes, setNotes] = useState('');
 
     if (!item) return null;
 
@@ -91,6 +99,9 @@ const ModifierModal = ({ item, modifiersData, onClose, onConfirm }) => {
             uniqueId: Date.now(), // For cart distinctness
             selectedVariant,
             selectedModifiers: selections,
+            // Trimmed to what the column and a 58mm slip can carry, and empty
+            // means none — a line of spaces must not print as a blank order.
+            notes: notes.trim().slice(0, 180) || undefined,
             price: calculateTotal(),
             name: selectedVariant ? `${item.name} (${selectedVariant.name})` : item.name
         });
@@ -148,6 +159,18 @@ const ModifierModal = ({ item, modifiersData, onClose, onConfirm }) => {
                             </div>
                         );
                     })}
+
+                    <div className={styles.section}>
+                        <h3>Note for the kitchen</h3>
+                        <input
+                            className={styles.noteInput}
+                            type="text"
+                            maxLength={180}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="No chilli, well done, serve later…"
+                        />
+                    </div>
                 </div>
 
                 <div className={styles.footer}>

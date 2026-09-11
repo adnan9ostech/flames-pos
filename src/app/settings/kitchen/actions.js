@@ -51,18 +51,22 @@ export async function updateKitchenSettings(formData) {
         // Which RJ11 pin carries the pulse. Pin 2 on nearly every drawer sold.
         const drawer_pin = Number(formData.get('drawer_pin')) === 5 ? 5 : 2
 
+        // Off unless explicitly asked for: it costs roll on every ticket and
+        // earns nothing until somebody is actually scanning them.
+        const kot_qr = formData.get('kot_qr') === 'true'
+
         const existing = await getStoreSettings()
         if (existing) {
             await query(
                 `UPDATE store_settings SET
                    auto_print = ?, receipt_width_mm = ?, kot_mode = ?,
                    kot_route = ?, kds_auto_print = ?, print_transport = ?, receipt_copies = ?,
-                   drawer_kick = ?, drawer_pin = ?,
+                   drawer_kick = ?, drawer_pin = ?, kot_qr = ?,
                    updated_at = UTC_TIMESTAMP(3)
                  WHERE id = ?`,
                 [auto_print ? 1 : 0, receipt_width_mm, kot_mode,
                     kot_route, kds_auto_print ? 1 : 0, print_transport, receipt_copies,
-                    drawer_kick, drawer_pin, existing.id],
+                    drawer_kick, drawer_pin, kot_qr ? 1 : 0, existing.id],
             )
         } else {
             // Only the kitchen/printer columns are named; everything else keeps
@@ -70,11 +74,11 @@ export async function updateKitchenSettings(formData) {
             await query(
                 `INSERT INTO store_settings
                    (id, auto_print, receipt_width_mm, kot_mode, kot_route, kds_auto_print,
-                    print_transport, receipt_copies, drawer_kick, drawer_pin)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    print_transport, receipt_copies, drawer_kick, drawer_pin, kot_qr)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [randomUUID(), auto_print ? 1 : 0, receipt_width_mm, kot_mode,
                     kot_route, kds_auto_print ? 1 : 0, print_transport, receipt_copies,
-                    drawer_kick, drawer_pin],
+                    drawer_kick, drawer_pin, kot_qr ? 1 : 0],
             )
         }
 

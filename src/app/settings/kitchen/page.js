@@ -101,6 +101,7 @@ const EMPTY = {
     receipt_copies: 2,
     drawer_kick: 'cash',
     drawer_pin: 2,
+    kot_qr: false,
 }
 
 export default function KitchenSettingsPage() {
@@ -122,6 +123,7 @@ export default function KitchenSettingsPage() {
             next.receipt_copies = Number(next.receipt_copies) === 1 ? 1 : 2
             next.drawer_kick = ['always', 'never'].includes(next.drawer_kick) ? next.drawer_kick : 'cash'
             next.drawer_pin = Number(next.drawer_pin) === 5 ? 5 : 2
+            next.kot_qr = next.kot_qr === true || next.kot_qr === 1
             setSettings(next)
             setSaved(next)
             setLoading(false)
@@ -143,7 +145,8 @@ export default function KitchenSettingsPage() {
             || settings.print_transport !== saved.print_transport
             || Number(settings.receipt_copies) !== Number(saved.receipt_copies)
             || settings.drawer_kick !== saved.drawer_kick
-            || Number(settings.drawer_pin) !== Number(saved.drawer_pin),
+            || Number(settings.drawer_pin) !== Number(saved.drawer_pin)
+            || settings.kot_qr !== saved.kot_qr,
         [settings, saved]
     )
 
@@ -198,6 +201,7 @@ export default function KitchenSettingsPage() {
                     <input type="hidden" name="receipt_copies" value={settings.receipt_copies} />
                     <input type="hidden" name="drawer_kick" value={settings.drawer_kick} />
                     <input type="hidden" name="drawer_pin" value={settings.drawer_pin} />
+                    <input type="hidden" name="kot_qr" value={settings.kot_qr ? 'true' : 'false'} />
 
                     <ChoiceGroup
                         label="How this terminal prints"
@@ -257,6 +261,13 @@ export default function KitchenSettingsPage() {
                             onToggle={() => setSettings(prev => ({ ...prev, kds_auto_print: !prev.kds_auto_print }))}
                         />
                     )}
+
+                    <SettingSwitch
+                        label="Print a QR code on kitchen tickets"
+                        hint="Scanning a slip pulls that order up on a phone instead of typing its number. Costs about a centimetre of roll per ticket, so leave it off unless somebody is actually scanning them."
+                        checked={settings.kot_qr}
+                        onToggle={() => setSettings(prev => ({ ...prev, kot_qr: !prev.kot_qr }))}
+                    />
 
                     <ChoiceGroup
                         label="How a round is cut into slips"

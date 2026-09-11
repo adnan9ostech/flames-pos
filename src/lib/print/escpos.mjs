@@ -58,6 +58,35 @@ export const drawerKick = (pin = 2) =>
     `${ESC}p${Number(pin) === 5 ? '\x01' : '\x00'}\x19\xfa`;
 
 /*
+ * A QR code the printer draws itself (GS ( k).
+ *
+ * Four commands in a fixed order, and the order is not negotiable: pick the
+ * symbol model, set the module size, set the error correction, store the data,
+ * then print what was stored. The data command is the only one with a variable
+ * length, and its length field counts the data PLUS the three header bytes
+ * (49, 80, 48) — miscount it and the printer swallows the next command as
+ * payload and prints the rest of the slip as gibberish.
+ *
+ * Module size 6 puts a short string at roughly 25mm on 80mm paper: big enough
+ * for a phone camera at arm's length, small enough to cost about a centimetre
+ * of roll. Error correction M is the usual compromise; a kitchen slip gets
+ * thumbed and splashed, so L is not enough.
+ */
+export const qrCode = (data, moduleSize = 6) => {
+    const payload = String(data ?? '');
+    if (!payload) return '';
+    const len = payload.length + 3;
+    const pL = String.fromCharCode(len & 0xff);
+    const pH = String.fromCharCode((len >> 8) & 0xff);
+    const size = String.fromCharCode(Math.max(1, Math.min(16, Math.round(moduleSize))));
+    return `${GS}(k\x04\x00\x31\x41\x32\x00`      // model 2
+        + `${GS}(k\x03\x00\x31\x43${size}`          // module size
+        + `${GS}(k\x03\x00\x31\x45\x31`            // error correction M
+        + `${GS}(k${pL}${pH}\x31\x50\x30${payload}`  // store the data
+        + `${GS}(k\x03\x00\x31\x51\x30`;           // print it
+};
+
+/*
  * Print and feed n lines (ESC d n).
  *
  * Bare newlines feed paper too, but they are not enough at the end of a bill:
@@ -304,7 +333,7 @@ export const renderReceiptJob = ({ copies = 2, ...args }) => {
 };
 
 /* One kitchen slip: a station's lines from one round. Never shows a price. */
-export const renderKotSlip = ({ slip, meta = {}, widthMm = 58 }) => {
+export const renderKotSlip = ({ slip, meta = {}, widthMm = 58, settings = {} }) => {
     const cols = columnsFor(widthMm);
     let out = CMD.init + CMD.center + CMD.big + `${slip.categoryName}\n` + CMD.normal;
     out += CMD.left + rule(cols) + '\n';
@@ -318,7 +347,19 @@ export const renderKotSlip = ({ slip, meta = {}, widthMm = 58 }) => {
         if (it.modifiers) out += `    ${it.modifiers}\n`;
         if (it.notes) out += `    ** ${it.notes}\n`;
     }
-    out += rule(cols) + '\n' + feed(TAIL_FEED) + CMD.cut;
+    out += rule(cols) + '\n';
+
+    /*
+     * The QR, last thing before the cut so it is nowhere near the dish list a
+     * cook is reading. Only when the store has asked for one and there is an
+     * order number to encode — a code that scans to an empty string is worse
+     * than no code, because somebody will scan it twice before giving up.
+     */
+    if (settings.kot_qr && meta.orderNumber) {
+        out += CMD.center + qrCode(String(meta.orderNumber)) + '\n' + CMD.left;
+    }
+
+    out += feed(TAIL_FEED) + CMD.cut;
     return out;
 };
 
