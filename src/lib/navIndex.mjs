@@ -145,6 +145,11 @@ export const NAV_INDEX = [
         keywords: 'accounting ledger gl books finance bookkeeping accountant',
     },
     {
+        href: '/customers', label: 'Customers', icon: 'Users', perm: 'orders',
+        section: 'Service', nav: 'backoffice',
+        keywords: 'customer book phone numbers regulars repeat callers delivery addresses crm guest history',
+    },
+    {
         href: '/companies', label: 'Companies', icon: 'Building2', perm: 'cityledger',
         section: 'Accounts', nav: 'backoffice',
         keywords: 'corporate bill to company accounts clients organisations customers on account',

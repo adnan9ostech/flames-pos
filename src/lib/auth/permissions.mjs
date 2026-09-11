@@ -107,6 +107,7 @@ export const grantedKeys = (perms) => PERMISSION_KEYS.filter((k) => perms[k]);
 export const ROUTE_PERMISSIONS = {
     '/pos': 'pos',
     '/orders': 'orders',
+    '/customers': 'orders',
     '/kds': 'kds',
     '/drawer': 'drawer',
     '/dayclose': 'dayclose',

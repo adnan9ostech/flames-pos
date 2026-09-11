@@ -108,8 +108,13 @@ test('8. search can never offer a door the server would slam', () => {
     for (const href of forbidden) {
         assert.ok(!visible.some((e) => e.href === href), `${href} must not be searchable by a cashier`);
     }
-    // And searching for them finds nothing.
-    assert.deepEqual(searchNav(visible, 'users'), []);
+    /*
+     * And searching for them finds nothing. Asserted by href, not by an empty
+     * result: "Customers" contains the letters of "users" and is a screen a
+     * cashier may legitimately open, so an empty list would be asserting that
+     * no screen may ever share a substring with a forbidden one.
+     */
+    assert.ok(!searchNav(visible, 'users').some((e) => e.href === '/users'));
     assert.equal(searchNav(visible, 'tax').length, 0);
 });
 
