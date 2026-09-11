@@ -184,6 +184,22 @@
   --primary-soft-strong: color-mix(in srgb, var(--primary) 18%, transparent);
 
   /*
+   * THE SELECTED CHIP — a report tab, a settings tab, anything whose job is to
+   * say "you are here". Its own tokens rather than --primary directly, because
+   * the two themes want genuinely different answers:
+   *
+   * On black, a solid brand slab is the brightest thing on the strip and reads
+   * instantly. On a warm off-white page the same slab is a dark rust brick
+   * that fights the page it sits on — heavy, muddy, and louder than the report
+   * underneath it. Light therefore tints instead of fills (see its block).
+   *
+   * Dark keeps what it had, byte for byte.
+   */
+  --selected: var(--primary);
+  --selected-foreground: var(--primary-foreground);
+  --selected-border: var(--primary);
+
+  /*
    * ===== Charts =====
    *
    * The six series slots are VALIDATED, not chosen — lightness band, chroma
@@ -243,6 +259,19 @@
 
   --accent: #a34e08;
   --accent-foreground: #ffffff;
+
+  /*
+   * Selected, light: a 12% wash of the brand with the brand's own ink on it,
+   * and a border at 45% so the chip still has an edge. The label measures
+   * 5.10:1 on the wash — comfortably past AA for normal text, and better than
+   * it needs to be, while the strip stops looking like a row of bricks.
+   *
+   * Mixed with --card rather than with `transparent`: these chips sit on both
+   * the page and on cards, and an alpha wash would change colour underneath.
+   */
+  --selected: color-mix(in srgb, var(--primary) 12%, var(--card));
+  --selected-foreground: var(--primary);
+  --selected-border: color-mix(in srgb, var(--primary) 45%, var(--card));
 
   --background: #f6f2ec;
   --card: #fffdf9;

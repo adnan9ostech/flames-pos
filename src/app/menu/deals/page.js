@@ -212,7 +212,7 @@ export default function DealsPage() {
                                             : [...p.orderTypes, key],
                                     }))}
                                     className={`px-3 py-2 rounded-lg border text-sm ${form.orderTypes.includes(key)
-                                        ? 'bg-primary text-primary-foreground border-primary'
+                                        ? 'bg-selected text-selected-foreground border-selected-border'
                                         : 'border-border text-muted-foreground'}`}
                                 >
                                     {label}

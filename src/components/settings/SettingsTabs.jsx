@@ -21,7 +21,7 @@ export default function SettingsTabs({ active }) {
     return (
         <div className="mb-6 flex flex-wrap gap-2">
             {TABS.map(t => (t.key === active ? (
-                <span key={t.key} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground font-semibold">
+                <span key={t.key} className="px-4 py-2 rounded-lg text-sm bg-selected text-selected-foreground border border-selected-border font-semibold">
                     {t.label}
                 </span>
             ) : (

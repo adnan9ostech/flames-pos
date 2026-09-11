@@ -22,8 +22,18 @@
     border-color: var(--primary);
 }
 
+/*
+ * "You are here". The tokens carry the theme difference: a solid brand slab on
+ * black, a brand wash with brand ink on the light page — see --selected in
+ * globals.css for why the two cannot be the same value.
+ */
 .active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--primary-foreground);
+    background: var(--selected);
+    border-color: var(--selected-border);
+    color: var(--selected-foreground);
+}
+
+.active:hover {
+    color: var(--selected-foreground);
+    border-color: var(--selected-border);
 }

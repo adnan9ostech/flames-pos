@@ -97,6 +97,13 @@ module.exports = {
                    ring instead of taking the :focus-visible outline. */
                 focus: "var(--focus-ring)",
 
+                // "You are here" — see --selected in globals.css: a solid slab
+                // on dark, a brand wash on light.
+                selected: {
+                    DEFAULT: "var(--selected)",
+                    foreground: "var(--selected-foreground)",
+                    border: "var(--selected-border)",
+                },
                 primary: {
                     DEFAULT: "var(--primary)",
                     hover: "var(--primary-hover)",
