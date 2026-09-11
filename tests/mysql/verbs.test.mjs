@@ -272,3 +272,51 @@ test('11. an auto-applied service charge lands on scoped order types only', asyn
 
     await q('DELETE FROM charges');
 });
+
+test('12. a cash tender stores both halves, refuses a short one, and never touches a card sale', async () => {
+    // Pay-now, cash, over-tendered: the change is the server's arithmetic, not
+    // the till's, so a mistyped bill cannot hand out the wrong money.
+    const paid = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', cash_received: 2000 },
+    );
+    const total = Number(paid.total);
+    assert.equal(Number(paid.cash_received), 2000);
+    assert.equal(Number(paid.change_due), 2000 - total);
+
+    // Exact money: a real tender, and a change of zero is a fact here — the
+    // columns are filled, not left null.
+    const exact = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'cash', cash_received: null },
+    );
+    assert.equal(exact.cash_received, null, 'no tender typed means no claim about one');
+    assert.equal(exact.change_due, null);
+
+    // A card sale has neither fact, whatever the till sends.
+    const card = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'paid', payment_mode: 'card', cash_received: 5000 },
+    );
+    assert.equal(card.cash_received, null);
+    assert.equal(card.change_due, null);
+
+    // Short: refused outright. Recording it as "no change" would leave the
+    // drawer short at close with nothing in the record to explain it.
+    await assert.rejects(
+        createOrder(
+            [{ name: 'Karahi', price: 1000, qty: 1 }],
+            { payment_status: 'paid', payment_mode: 'cash', cash_received: 100 },
+        ),
+        (e) => /^Cash received 100 is less than the bill/.test(e.message),
+    );
+
+    // And the same on the settle path, where a tab is closed rather than rung.
+    const openTab = await createOrder(
+        [{ name: 'Karahi', price: 1000, qty: 1 }],
+        { payment_status: 'unpaid', order_type: 'dine-in' },
+    );
+    const settled = await settleOrder(openTab.id, { method: 'cash', cashReceived: 5000 });
+    assert.equal(Number(settled.cash_received), 5000);
+    assert.equal(Number(settled.change_due), 5000 - Number(settled.total));
+});

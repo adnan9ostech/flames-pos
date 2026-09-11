@@ -20,6 +20,7 @@ const EMPTY = {
     raast_id: '',
     qr_enabled: true,
     void_requires_pin: false,
+    cash_change: true,
     default_opening_float: 0,
     cash_variance_tolerance: 0,
 }
@@ -37,6 +38,7 @@ export default function SettingsPage() {
             // Absent (migration not yet run) or null both mean "enabled", so the
             // toggle can't render as off against a database that has no opinion.
             next.qr_enabled = next.qr_enabled !== false
+            next.cash_change = next.cash_change !== false
             next.void_requires_pin = next.void_requires_pin === true
             // Cash policy: a row from before the columns existed reads as zero,
             // which is exactly today's behaviour — propose no float, explain
@@ -60,6 +62,7 @@ export default function SettingsPage() {
         () => ['merchant_name', 'merchant_city', 'merchant_address', 'merchant_phone', 'raast_id']
             .some(k => (settings[k] || '').trim() !== (saved[k] || '').trim())
             || settings.qr_enabled !== saved.qr_enabled
+            || settings.cash_change !== saved.cash_change
             || settings.void_requires_pin !== saved.void_requires_pin
             || Number(settings.default_opening_float || 0) !== Number(saved.default_opening_float || 0)
             || Number(settings.cash_variance_tolerance || 0) !== Number(saved.cash_variance_tolerance || 0),
@@ -143,6 +146,13 @@ export default function SettingsPage() {
                 />
 
                 <SettingSwitch
+                    label="Ask for cash received, and work out the change"
+                    hint="The checkout asks what the customer handed over and shows the change due — and both go on the receipt and into the sale, so a short drawer at close can be explained. Turn off for a counter that only takes exact or card payments."
+                    checked={settings.cash_change}
+                    onToggle={() => setSettings(prev => ({ ...prev, cash_change: !prev.cash_change }))}
+                />
+
+                <SettingSwitch
                     label="Ask for a manager PIN to remove an item"
                     hint="Taking a line off a bill then needs someone who can void (a manager or admin) to enter their PIN. Stops items being quietly dropped off a cart — the person removing the line needs the PIN even if they are signed in themselves."
                     checked={settings.void_requires_pin}
@@ -164,6 +174,7 @@ export default function SettingsPage() {
                         the action can't tell apart from a missing field. */}
                     <input type="hidden" name="qr_enabled" value={settings.qr_enabled ? 'true' : 'false'} />
                     <input type="hidden" name="void_requires_pin" value={settings.void_requires_pin ? 'true' : 'false'} />
+                    <input type="hidden" name="cash_change" value={settings.cash_change ? 'true' : 'false'} />
 
                     {/* Cash policy. Two numbers that shape every drawer close:
                         what it proposes to leave in the till overnight, and how

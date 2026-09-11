@@ -222,7 +222,7 @@ class TwinExists extends Error {
 const settleOrderTx = async (conn, orderId, {
     method = 'cash', discount = null, discountReason = null,
     includeTax = null, expectedTotal = null, clientRequestId = null,
-    companyId = null,
+    companyId = null, cashReceived = null,
 } = {}) => {
     if (!['cash', 'card', 'city_ledger'].includes(method)) {
         throw new Error(`Unknown payment method ${method}`);
@@ -315,16 +315,39 @@ const settleOrderTx = async (conn, orderId, {
          method === 'city_ledger' ? companyId : null],
     );
 
+    /*
+     * The cash tender, when the till took one. Both halves or neither: a card
+     * or city-ledger bill has no change, and storing zero there would be a
+     * claim rather than an absence.
+     *
+     * Refused rather than clamped when it does not cover the bill. A cashier
+     * who types 500 for a 5,000 bill has mistyped, and quietly recording a
+     * 4,500 shortfall as "no change" would leave the drawer short at close
+     * with nothing in the record to explain it.
+     */
+    let tendered = null;
+    let change = null;
+    if (method === 'cash' && cashReceived != null && cashReceived !== '') {
+        tendered = Math.round(Number(cashReceived) * 100) / 100;
+        if (!Number.isFinite(tendered)) throw new Error('Cash received is not a number');
+        if (tendered < Number(order.total)) {
+            throw new Error(`Cash received ${tendered} is less than the bill ${order.total}`);
+        }
+        change = Math.round((tendered - Number(order.total)) * 100) / 100;
+    }
+
     await conn.query(
         `UPDATE orders SET
            payment_status = 'paid',
            payment_mode = ?,
            tax_rate = ?,
+           cash_received = ?,
+           change_due = ?,
            paid_at = UTC_TIMESTAMP(3),
            status = CASE WHEN status = 'ready' THEN 'completed' ELSE status END,
            updated_at = UTC_TIMESTAMP(3)
          WHERE id = ?`,
-        [method, taxRate, orderId],
+        [method, taxRate, tendered, change, orderId],
     );
     order = await fetchOrder(conn, orderId);
 
@@ -441,6 +464,7 @@ const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, pay
             order = await settleOrderTx(conn, orderId, {
                 method: opts.payment_mode || 'cash',
                 companyId: opts.company_id || null,
+                cashReceived: opts.cash_received ?? null,
                 expectedTotal,
                 clientRequestId,
             });

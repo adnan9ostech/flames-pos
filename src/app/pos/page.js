@@ -118,6 +118,12 @@ export default function POSPage() {
         viewStore.subscribe, viewStore.getSnapshot, viewStore.getServerSnapshot,
     );
     const [paymentMode, setPaymentMode] = useState('cash'); // 'cash' or 'card'
+    /*
+     * What the customer handed over, as the cashier typed it. A string, not a
+     * number: "" is "has not typed yet", which 0 cannot express, and a
+     * half-typed "50" must not be normalised under the cursor.
+     */
+    const [cashReceived, setCashReceived] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [notice, setNotice] = useState('');
 
@@ -212,6 +218,7 @@ export default function POSPage() {
      * PostScript and prints as pages of source code.
      */
     const [printTransport, setPrintTransport] = useState('agent');
+    const [cashChange, setCashChange] = useState(true);
     // When on, removing a line from the cart needs a manager PIN.
     const [voidRequiresPin, setVoidRequiresPin] = useState(false);
     // The line-removal a PIN dialog is standing in front of: { index }.
@@ -299,6 +306,7 @@ export default function POSPage() {
             // so an older row with no column keeps the two-device default.
             setKotRoute(s?.kot_route === 'till' ? 'till' : 'kds');
             setPrintTransport(s?.print_transport === 'browser' ? 'browser' : 'agent');
+            setCashChange(s?.cash_change !== false);
             setVoidRequiresPin(s?.void_requires_pin === true);
             // The kitchen slips print before any receipt is mounted, so the
             // till has to publish the paper width itself.
@@ -697,6 +705,7 @@ export default function POSPage() {
         setPendingInvoiceNo(null);
         setCompany(null);
         setPaymentMode('cash');
+        setCashReceived('');
         requestIdRef.current = null;
         roundRequestIdRef.current = null;
         settleRequestIdRef.current = null;
@@ -827,7 +836,10 @@ export default function POSPage() {
                 ...orderDetails(),
                 status: 'new', // fires the ticket to the kitchen display
                 payment_status: 'paid',
-                payment_mode: paymentMode
+                payment_mode: paymentMode,
+                // Only a cash sale has a tender; the server stores both halves
+                // or neither.
+                cash_received: paymentMode === 'cash' ? (cashReceived || null) : null
             });
             /*
              * The server minted the invoice number inside the settle; the
@@ -938,6 +950,7 @@ export default function POSPage() {
         try {
             const settled = await settleOrder(tab.id, {
                 paymentMode,
+                cashReceived: paymentMode === 'cash' ? (cashReceived || null) : null,
                 companyId: paymentMode === 'city_ledger' ? company.id : undefined,
                 includeTax,
                 discount: discountAmount,
@@ -1045,6 +1058,11 @@ export default function POSPage() {
                         waiter: selectedWaiter?.name
                     }}
                     printLabel={receiptMode === 'settle' ? 'Print & Complete Order' : 'Print & Close'}
+                    /* The cash pad, only where it means anything: a cash sale
+                       on a counter that has the prompt switched on. Card and
+                       city-ledger checkouts keep the one-tap flow they had. */
+                    cashReceived={cashChange && paymentMode === 'cash' ? cashReceived : null}
+                    onCashReceived={cashChange && paymentMode === 'cash' ? setCashReceived : null}
                     role={role}
                     busy={isSending}
                     onClose={() => setReceiptMode(null)}

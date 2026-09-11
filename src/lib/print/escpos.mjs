@@ -254,6 +254,22 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
         out += r(`${settings.tax_label || 'GST'}${rate ? ` (${rate})` : ''}`, `Rs. ${rupees(order.tax)}`);
     }
     out += CMD.bold + row('TOTAL', `Rs. ${rupees(order.total)}`, cols) + CMD.unbold + '\n';
+
+    /*
+     * The cash tender, below the total and only when there was one.
+     *
+     * On paper this settles the argument that starts a minute after the
+     * customer has walked away: what they handed over and what went back are
+     * on the receipt in their hand and on the restaurant's copy in the drawer.
+     * A card or city-ledger bill has neither line, because it has neither
+     * fact — printing "Change Rs. 0" there would be a claim about money that
+     * never crossed the counter.
+     */
+    if (order.cash_received != null) {
+        out += r('Cash', `Rs. ${rupees(order.cash_received)}`);
+        out += CMD.bold + row('Change', `Rs. ${rupees(order.change_due || 0)}`, cols) + CMD.unbold + '\n';
+    }
+
     out += line + '\n';
 
     out += CMD.center + 'Thank you for dining with us!\n';

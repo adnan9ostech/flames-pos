@@ -36,7 +36,15 @@ const ReceiptPreview = ({
      * on last week's bill — two documents for one sale, each asserting a
      * different day, which is exactly what a tax inspection reads as fraud.
      */
-    orderDate = null, reprint = false
+    orderDate = null, reprint = false,
+    /*
+     * The cash tender, when this is a cash sale on a till that asks for one.
+     * Held by the POS page rather than here because the number has to survive
+     * this modal closing and reopening, and because the page is what sends it
+     * to the server. `null` for card, city ledger, a reprint, or a counter
+     * that has turned the prompt off — and then none of this renders.
+     */
+    cashReceived = null, onCashReceived = null
 }) => {
     const [settings, setSettings] = useState(null);
     /*
@@ -47,6 +55,29 @@ const ReceiptPreview = ({
      * honestly says the sale hasn't been numbered yet.
      */
     const invoiceNo = invoiceNumber || null;
+
+    /*
+     * The tender arithmetic, and the only arithmetic this component does.
+     *
+     * `short` is what gates the print button: a cash sale that does not cover
+     * the bill must not be settleable at all, because the server refuses it
+     * and the cashier would meet the refusal only after the customer has been
+     * told to go. The server refuses it anyway — this is the courtesy, not
+     * the rule.
+     *
+     * The quick amounts are the notes people actually hand over: the exact
+     * rupee, then the next hundred, five hundred, thousand and five thousand
+     * above it, deduplicated (a Rs. 4,945 bill offers 4,945 and 5,000, not the
+     * same 5,000 four times).
+     */
+    const due = Number(totals?.total || 0);
+    const typed = cashReceived !== '' && cashReceived != null;
+    const short = typed && Number(cashReceived) < due;
+    const changeDue = typed ? Math.max(0, Number(cashReceived) - due) : 0;
+    const quickTenders = [...new Set(
+        [Math.ceil(due), ...[100, 500, 1000, 5000].map((note) => Math.ceil(due / note) * note)],
+    )].slice(0, 4);
+
     // Pinned on open for the same reason as the invoice number: read fresh on
     // every render, the printed time drifted between preview and print. A
     // reprint carries the original sale's date — the document is a copy of
@@ -222,6 +253,24 @@ const ReceiptPreview = ({
                             <span>Total:</span>
                             <span>Rs. {money(totals.total)}</span>
                         </div>
+
+                        {/* On the document itself, because this is what the
+                            customer checks against the notes in their hand.
+                            Shown from the settled order on a reprint, and from
+                            what the cashier has typed while the sale is still
+                            being rung — the same two numbers either way. */}
+                        {(order?.cash_received != null || (typed && !short)) && (
+                            <>
+                                <div className={styles.row}>
+                                    <span>Cash:</span>
+                                    <span>Rs. {money(order?.cash_received ?? Number(cashReceived))}</span>
+                                </div>
+                                <div className={`${styles.row} ${styles.grandTotal}`}>
+                                    <span>Change:</span>
+                                    <span>Rs. {money(order?.change_due ?? changeDue)}</span>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Payment QR Code */}
@@ -264,9 +313,70 @@ const ReceiptPreview = ({
                     <p className={styles.footer}>Thank you for dining with us!</p>
                 </div>
 
+                {/*
+                  * The cash tender. Outside the receipt body on purpose: this
+                  * is the cashier's working area, not part of the document —
+                  * what reaches paper is the two settled lines the receipt
+                  * prints once the sale is stored.
+                  *
+                  * The quick amounts are the notes a customer actually hands
+                  * over. Most cash sales are settled with one of them, and a
+                  * tap is faster and less wrong than typing four digits at
+                  * eleven at night.
+                  */}
+                {onCashReceived && (
+                    <div className={styles.cashPad}>
+                        <div className={styles.cashRow}>
+                            <label className={styles.cashLabel} htmlFor="cashReceived">Cash received</label>
+                            <input
+                                id="cashReceived"
+                                className={styles.cashInput}
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="1"
+                                placeholder={money(totals.total)}
+                                value={cashReceived ?? ''}
+                                onChange={(e) => onCashReceived(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <div className={styles.quickCash}>
+                            {quickTenders.map((amount) => (
+                                <button
+                                    key={amount}
+                                    type="button"
+                                    className={styles.quickBtn}
+                                    onClick={() => onCashReceived(String(amount))}
+                                >
+                                    {amount === Math.ceil(Number(totals.total)) ? 'Exact' : money(amount)}
+                                </button>
+                            ))}
+                            {cashReceived !== '' && cashReceived != null && (
+                                <button type="button" className={styles.quickBtn} onClick={() => onCashReceived('')}>
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                        {/* Silent until there is something to say: a blank box is
+                            a cashier who has not typed yet, not an error. */}
+                        {cashReceived !== '' && cashReceived != null && (
+                            short ? (
+                                <p className={`${styles.changeLine} ${styles.changeShort}`}>
+                                    Rs. {money(Number(totals.total) - Number(cashReceived))} short of the bill
+                                </p>
+                            ) : (
+                                <p className={styles.changeLine}>
+                                    Change due <strong>Rs. {money(changeDue)}</strong>
+                                </p>
+                            )
+                        )}
+                    </div>
+                )}
+
                 <div className={styles.actions}>
                     <button className={styles.cancelBtn} onClick={onClose} disabled={busy}>Back</button>
-                    <button className={styles.printBtn} onClick={onPrint} disabled={busy || !settingsLoaded}>
+                    <button className={styles.printBtn} onClick={onPrint} disabled={busy || !settingsLoaded || short}>
                         {busy ? 'Saving…' : !settingsLoaded ? 'Loading…' : (printLabel || 'Print & Close')}
                     </button>
                 </div>

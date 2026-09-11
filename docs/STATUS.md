@@ -1037,6 +1037,29 @@ the till shows orders, and a bell that rings for normal work stops being read.
   41-hour unpaid tab; three scans left one row; settling the tab resolved it;
   re-staling it reopened it unread.
 
+## Cash change at the counter — 11 Sep 2026
+
+Migration `025_cash_change.sql` (dev+test). Suite **139/139** (new test 12),
+build green. The first of the Blink gaps, and the one with the most daily use.
+
+The checkout now asks what the customer handed over and answers with the
+change: a big right-aligned box, quick-tender buttons for the notes people
+actually hand over (exact, then the next 100/500/1000/5000 above the bill,
+deduplicated), and a live "Change due" line. `orders.cash_received` and
+`orders.change_due` store both halves, and both print on the receipt — the
+customer's copy and the restaurant's.
+
+- **The server does the arithmetic**, not the till: change is computed inside
+  the settle transaction from the total it just recomputed, so a mistyped bill
+  cannot hand out the wrong money.
+- **A short tender is refused**, on both the pay-now and settle paths, and the
+  print button is disabled behind it. Recording a shortfall as "no change"
+  would leave the drawer short at close with nothing to explain it.
+- **Card and city-ledger bills store neither column.** Zero there would be a
+  claim about money that never crossed the counter, so both stay NULL and the
+  receipt prints neither line.
+- Switched by `store_settings.cash_change` (Settings → General), on by default.
+
 ## Where Blink is still ahead — 11 Sep 2026
 
 Read off Blink's Master Settings and sidebar the same session. Worth building,

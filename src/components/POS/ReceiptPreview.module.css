@@ -346,3 +346,85 @@
     }
 
 }
+
+/*
+ * The cash pad: the cashier's working area under the receipt, not part of the
+ * document. Nothing here reaches paper — what prints is the two settled lines
+ * the receipt renders once the sale is stored.
+ */
+.cashPad {
+    padding: 0.85rem 1rem 0.6rem;
+    border-top: 1px solid var(--border);
+    background: var(--background);
+}
+
+.cashRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.cashLabel {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+}
+
+.cashInput {
+    flex: 1;
+    min-width: 0;
+    /* The 44px touch floor the rest of the till's controls use. */
+    min-height: 44px;
+    padding: 0 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface, #fff);
+    color: var(--foreground);
+    font-family: inherit;
+    /* Big, because it is read back to a customer holding a banknote. */
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.cashInput:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: -1px;
+}
+
+.quickCash {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+}
+
+.quickBtn {
+    flex: 1 1 auto;
+    min-height: 40px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface, #fff);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.quickBtn:hover { border-color: var(--primary); color: var(--primary); }
+
+.changeLine {
+    margin: 0.6rem 0 0;
+    font-size: 1.05rem;
+    text-align: right;
+    color: var(--foreground);
+}
+
+.changeLine strong { font-size: 1.35rem; }
+
+/* Short payment is a refusal, not a warning: the print button is disabled
+   behind it, so the line has to say why in the same red. */
+.changeShort { color: var(--danger, #dc2626); font-weight: 600; }

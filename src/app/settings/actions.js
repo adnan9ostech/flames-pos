@@ -39,6 +39,9 @@ export async function updateSettings(formData) {
         // from the field not being on the form.
         const qr_enabled = formData.get('qr_enabled') !== 'false'
         const void_requires_pin = formData.get('void_requires_pin') === 'true'
+        // Default ON: an unchecked box submits nothing, and this restaurant is
+        // cash-first, so absence must not quietly switch the change maths off.
+        const cash_change = formData.get('cash_change') !== 'false'
 
         /*
          * Cash policy. The standing float is what a drawer close proposes to
@@ -64,22 +67,23 @@ export async function updateSettings(formData) {
             await query(
                 `UPDATE store_settings SET
                    merchant_name = ?, merchant_city = ?, merchant_address = ?, merchant_phone = ?, raast_id = ?,
-                   qr_enabled = ?, void_requires_pin = ?,
+                   qr_enabled = ?, void_requires_pin = ?, cash_change = ?,
                    default_opening_float = ?, cash_variance_tolerance = ?,
                    updated_at = UTC_TIMESTAMP(3)
                  WHERE id = ?`,
                 [merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
-                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0,
+                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0,
                     default_opening_float, cash_variance_tolerance, existing.id],
             )
         } else {
             await query(
                 `INSERT INTO store_settings
                    (id, merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
-                    qr_enabled, void_requires_pin, default_opening_float, cash_variance_tolerance)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    qr_enabled, void_requires_pin, cash_change,
+                    default_opening_float, cash_variance_tolerance)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [randomUUID(), merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
-                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0,
+                    qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0,
                     default_opening_float, cash_variance_tolerance],
             )
         }
