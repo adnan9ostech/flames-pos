@@ -1494,11 +1494,25 @@ by days that actually traded, not by the calendar) and days of cover.
 default with the company's answer as its placeholder), and a rail switcher that
 draws nothing at all on a single-outlet restaurant.
 
-**Still unbuilt from that walk**, in the order worth doing: per-branch menu
-availability and price on the Menu screen (`branch_menu_items` already carries
-it and `getMenuItems` already applies it — only the UI is missing), inclusive
-tax, dine-in guest count, mandatory table/waiter, and warehouse-to-branch stock
+**Menu → Branch prices** landed 14 Sep: branches as columns, empty box means
+the menu's price, and the rule that agreement is not an override (a branch
+price equal to the menu collapses to NULL, so a later menu rise still reaches
+that outlet). The rule lives in `menu/rules.mjs` because a `use server` file
+cannot be loaded by `node --test`. The tab only appears with a second branch.
+
+**Still unbuilt from that walk**, in the order worth doing: inclusive tax,
+dine-in guest count, mandatory table/waiter, and warehouse-to-branch stock
 requests.
+
+**KNOWN GAP — the Accounts module still writes branch 1.** `BRANCH_ID = 1` is
+a named constant in `src/lib/accounts/kit.mjs` (and restated in
+`stockPost.mjs`), used by the audit writer, `businessDate`, `nextVoucherNo` and
+the manual-journal screen. The "zero literal branch filters" sweep was a grep
+for `branch_id = 1`, which this constant does not match. Consequence: with a
+second outlet, every GL journal, voucher number and accounts audit row files
+under branch 1 and the books do not separate by outlet. Wants its own pass —
+per-branch voucher sequences are the fiddly part — before a second branch
+trades.
 
 Verified: 160 tests, build green, twenty-two screens loaded in a real browser
 with a clean console, and a live two-branch proof — the same Rs 1,000 bill
