@@ -429,7 +429,14 @@ export const createOrder = async (items, opts = {}, clientRequestId = null, expe
 
 const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, payNow) =>
     withTransaction(async (conn) => {
-        const branchId = 1;
+        /*
+         * Passed in, never decided here. Which outlet a sale belongs to is a
+         * fact about the request (who is signed in, which branch they picked),
+         * and this module deliberately knows nothing about requests — which is
+         * also what lets the suite drive it directly. 1 is the single-outlet
+         * answer and the one every existing row already carries.
+         */
+        const branchId = Number(opts.branch_id) || 1;
         const businessDate = await resolveBusinessDate(conn, branchId);
         try {
             await conn.query(

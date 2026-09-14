@@ -3,6 +3,7 @@
  * stay in the database — the till must not get slower every week it runs.
  */
 import { requirePermission } from '@/lib/db/auth.mjs';
+import { currentBranchId } from '@/lib/db/branch.mjs';
 import { getOrdersPage, ORDERS_PAGE_SIZES } from '@/lib/db/reads.mjs';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
@@ -11,7 +12,7 @@ const MAX_PAGE_SIZE = Math.max(...ORDERS_PAGE_SIZES);
 
 export async function GET(request) {
     try {
-        await requirePermission('orders');
+        const user = await requirePermission('orders');
     } catch (e) {
         return Response.json({ error: e.message }, { status: e.status ?? 401 });
     }
@@ -27,6 +28,7 @@ export async function GET(request) {
         const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, rawSize));
 
         const data = await getOrdersPage({
+            branchId: await currentBranchId(user),
             page,
             pageSize,
             status: sp.get('status') || 'all',

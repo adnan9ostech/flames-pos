@@ -14,6 +14,7 @@
  * the `void` right on void — the gate that used to be a browser-side role
  * check.
  */
+import { currentBranchId } from '@/lib/db/branch.mjs';
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs';
 import {
     createOrder,
@@ -72,10 +73,12 @@ const fireGlAfterVoid = (order) => {
  */
 export const addOrder = async (order) => {
     try {
-        await requireUser();
+        const user = await requireUser();
         const data = await createOrder(
             order.items,
             {
+                // The outlet this sale belongs to, decided once, here.
+                branch_id: await currentBranchId(user),
                 payment_status: order.payment_status,
                 payment_mode: order.payment_mode,
                 cash_received: order.cash_received,

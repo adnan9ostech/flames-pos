@@ -3,6 +3,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 import { round2 } from '@/lib/cash/drawer.mjs'
 // The date arithmetic is shared with the screen and covered by
 // tests/mysql/karachi.test.mjs. It used to be restated here, three helpers
@@ -10,7 +11,6 @@ import { round2 } from '@/lib/cash/drawer.mjs'
 // imported.
 import { karachiDay, ymd, nextCalendarDay } from '@/lib/day/karachi.mjs'
 
-const BRANCH_ID = 1
 
 /*
  * Orders still owed money ON A GIVEN DAY — the gate a close has to pass or be
@@ -26,13 +26,13 @@ const BRANCH_ID = 1
  * Scoping it also lets the query use the business_date index instead of
  * scanning for unpaid rows across all of history.
  */
-const pendingBillsOn = async (businessDate, conn = null) => {
+const pendingBillsOn = async (branchId, businessDate, conn = null) => {
     const sql = `SELECT order_number, table_number, order_type, total, created_at
                  FROM orders
                  WHERE branch_id = ? AND business_date = ?
                    AND payment_status = 'unpaid' AND status <> 'cancelled'
                  ORDER BY created_at`
-    const params = [BRANCH_ID, businessDate]
+    const params = [branchId, businessDate]
     // Inside the close transaction the caller passes its connection, so the
     // gate and the audit row read the same list under the same lock.
     const rows = conn ? (await conn.query(sql, params))[0] : await query(sql, params)
@@ -49,18 +49,18 @@ const pendingBillsOn = async (businessDate, conn = null) => {
  * drawer has no count for the cash in it, which is why the close asks about
  * it rather than quietly rolling past.
  */
-const loadDayCash = async (businessDate) => {
+const loadDayCash = async (branchId, businessDate) => {
     const sessions = await query(
         `SELECT id, cashier_role, opened_at, closed_at, opening_float,
                 expected_amount, counted_amount, variance, carry_forward, handover_amount
          FROM drawer_sessions
          WHERE branch_id = ? AND business_date = ?
          ORDER BY opened_at`,
-        [BRANCH_ID, businessDate],
+        [branchId, businessDate],
     )
     const dayRow = await query(
         'SELECT opening_cash, closing_cash FROM business_days WHERE branch_id = ? AND business_date = ?',
-        [BRANCH_ID, businessDate],
+        [branchId, businessDate],
     )
     const closed = sessions.filter((s) => s.closed_at)
     const open = sessions.find((s) => !s.closed_at) ?? null
@@ -96,12 +96,12 @@ const loadDayCash = async (businessDate) => {
  * closing hands back the state it produced so the page never re-fetches into
  * a race with itself.
  */
-const loadState = async () => {
+const loadState = async (branchId) => {
     const openRows = await query(
         `SELECT business_date, opened_at FROM business_days
          WHERE branch_id = ? AND closed_at IS NULL
          ORDER BY business_date DESC LIMIT 1`,
-        [BRANCH_ID],
+        [branchId],
     )
 
     // No open row means day-close has never run: the Karachi calendar day is
@@ -126,7 +126,7 @@ const loadState = async () => {
          LEFT JOIN users u ON u.id = bd.closed_by
          WHERE bd.branch_id = ? AND bd.closed_at IS NOT NULL
          ORDER BY bd.business_date DESC LIMIT 30`,
-        [BRANCH_ID],
+        [branchId],
     )).map((r) => ({
         business_date: ymd(r.business_date),
         opened_at: r.opened_at ? r.opened_at.toISOString() : null,
@@ -139,9 +139,9 @@ const loadState = async () => {
     return {
         openDay,
         history,
-        pendingBills: await pendingBillsOn(openDay.business_date),
-        ledgerGaps: await countLedgerGaps(openDay.business_date),
-        cash: await loadDayCash(openDay.business_date),
+        pendingBills: await pendingBillsOn(branchId, openDay.business_date),
+        ledgerGaps: await countLedgerGaps(branchId, openDay.business_date),
+        cash: await loadDayCash(branchId, openDay.business_date),
     }
 }
 
@@ -152,7 +152,7 @@ const loadState = async () => {
  * accountant reposts from /accounts/health. Zero when posting is off or the
  * day predates the ledger's start, because then nothing was ever expected.
  */
-const countLedgerGaps = async (businessDate) => {
+const countLedgerGaps = async (branchId, businessDate) => {
     const [{ n }] = await query(
         `SELECT COUNT(*) AS n
            FROM orders o
@@ -163,15 +163,16 @@ const countLedgerGaps = async (businessDate) => {
             AND j.id IS NULL
             AND EXISTS (SELECT 1 FROM gl_settings s
                          WHERE s.id = 1 AND s.posting_enabled = 1 AND o.business_date >= s.start_date)`,
-        [BRANCH_ID, businessDate],
+        [branchId, businessDate],
     )
     return Number(n)
 }
 
 export async function getDayCloseState() {
     try {
-        await requirePermission('dayclose')
-        return { data: await loadState() }
+        const user = await requirePermission('dayclose')
+        const branchId = await currentBranchId(user)
+        return { data: await loadState(branchId) }
     } catch (e) {
         return { error: e.message }
     }
@@ -194,6 +195,7 @@ export async function getDayCloseState() {
 export async function startBusinessDay({ date = null } = {}) {
     try {
         const user = await requirePermission('dayclose')
+        const branchId = await currentBranchId(user)
         const target = date || karachiDay()
 
         return await withTransaction(async (conn) => {
@@ -201,13 +203,13 @@ export async function startBusinessDay({ date = null } = {}) {
                 `SELECT business_date, opened_at FROM business_days
                  WHERE branch_id = ? AND closed_at IS NULL
                  ORDER BY business_date DESC LIMIT 1 FOR UPDATE`,
-                [BRANCH_ID],
+                [branchId],
             )
 
             if (openRows.length > 0) {
                 const openDate = ymd(openRows[0].business_date)
                 if (openDate === target) {
-                    return { data: await loadState() }   // already trading; nothing to do
+                    return { data: await loadState(branchId) }   // already trading; nothing to do
                 }
                 if (openDate > target) {
                     return { error: `The open day is ${openDate}, which is already ahead of ${target}.` };
@@ -215,7 +217,7 @@ export async function startBusinessDay({ date = null } = {}) {
 
                 const [[{ n }]] = await conn.query(
                     'SELECT COUNT(*) AS n FROM orders WHERE branch_id = ? AND business_date = ?',
-                    [BRANCH_ID, openDate],
+                    [branchId, openDate],
                 );
                 if (n > 0) {
                     return {
@@ -225,7 +227,7 @@ export async function startBusinessDay({ date = null } = {}) {
 
                 const [existing] = await conn.query(
                     'SELECT 1 FROM business_days WHERE branch_id = ? AND business_date = ?',
-                    [BRANCH_ID, target],
+                    [branchId, target],
                 );
                 if (existing.length > 0) {
                     return { error: `${target} has already been closed.` };
@@ -236,19 +238,19 @@ export async function startBusinessDay({ date = null } = {}) {
                     `UPDATE business_days
                      SET business_date = ?, opened_at = UTC_TIMESTAMP(3)
                      WHERE branch_id = ? AND business_date = ?`,
-                    [target, BRANCH_ID, openDate],
+                    [target, branchId, openDate],
                 );
                 await conn.query(
                     `INSERT INTO audit_log (branch_id, business_date, action, details)
                      VALUES (?, ?, 'day_start', ?)`,
-                    [BRANCH_ID, target, JSON.stringify({ opened: target, moved_from: openDate, by: user.role })],
+                    [branchId, target, JSON.stringify({ opened: target, moved_from: openDate, by: user.role })],
                 );
-                return { data: await loadState() };
+                return { data: await loadState(branchId) };
             }
 
             const [existing] = await conn.query(
                 'SELECT closed_at FROM business_days WHERE branch_id = ? AND business_date = ?',
-                [BRANCH_ID, target],
+                [branchId, target],
             );
             if (existing.length > 0) {
                 return { error: `${target} has already been closed.` };
@@ -257,14 +259,14 @@ export async function startBusinessDay({ date = null } = {}) {
             await conn.query(
                 `INSERT INTO business_days (branch_id, business_date, opened_at)
                  VALUES (?, ?, UTC_TIMESTAMP(3))`,
-                [BRANCH_ID, target],
+                [branchId, target],
             );
             await conn.query(
                 `INSERT INTO audit_log (branch_id, business_date, action, details)
                  VALUES (?, ?, 'day_start', ?)`,
-                [BRANCH_ID, target, JSON.stringify({ opened: target, first: true, by: user.role })],
+                [branchId, target, JSON.stringify({ opened: target, first: true, by: user.role })],
             );
-            return { data: await loadState() };
+            return { data: await loadState(branchId) };
         })
     } catch (e) {
         return { error: e.message }
@@ -274,6 +276,7 @@ export async function startBusinessDay({ date = null } = {}) {
 export async function closeBusinessDay({ force = false } = {}) {
     try {
         const user = await requirePermission('dayclose')
+        const branchId = await currentBranchId(user)
 
         /*
          * The cash gate. Closing the day over an open drawer means the day's
@@ -290,7 +293,7 @@ export async function closeBusinessDay({ force = false } = {}) {
         const openDrawers = await query(
             `SELECT cashier_role FROM drawer_sessions
              WHERE branch_id = ? AND closed_at IS NULL`,
-            [BRANCH_ID],
+            [branchId],
         )
         if (openDrawers.length > 0 && !force) {
             const which = openDrawers.map((d) => d.cashier_role).join(', ')
@@ -310,7 +313,7 @@ export async function closeBusinessDay({ force = false } = {}) {
                 `SELECT business_date FROM business_days
                  WHERE branch_id = ? AND closed_at IS NULL
                  ORDER BY business_date DESC LIMIT 1 FOR UPDATE`,
-                [BRANCH_ID],
+                [branchId],
             )
 
             // Which day is being closed. Resolved before anything is written,
@@ -330,7 +333,7 @@ export async function closeBusinessDay({ force = false } = {}) {
             if (hasOpenDay && closedDate > karachiDay()) {
                 const [[{ n }]] = await conn.query(
                     'SELECT COUNT(*) AS n FROM orders WHERE branch_id = ? AND business_date = ?',
-                    [BRANCH_ID, closedDate],
+                    [branchId, closedDate],
                 )
                 if (n === 0) {
                     return { error: `${closedDate} has not started yet. There is nothing to close.` }
@@ -346,7 +349,7 @@ export async function closeBusinessDay({ force = false } = {}) {
              * the wrong day's books or never settles at all; `force` is the
              * genuine end-of-night override and the audit row says it was used.
              */
-            const pending = await pendingBillsOn(closedDate, conn)
+            const pending = await pendingBillsOn(branchId, closedDate, conn)
             if (pending.length > 0 && !force) {
                 return {
                     error: `${pending.length} unpaid bill${pending.length === 1 ? ' is' : 's are'} still open on ${closedDate}. Settle or void ${pending.length === 1 ? 'it' : 'them'} before closing the day.`,
@@ -358,7 +361,7 @@ export async function closeBusinessDay({ force = false } = {}) {
                     `UPDATE business_days
                      SET closed_at = UTC_TIMESTAMP(3), closed_by = ?
                      WHERE branch_id = ? AND business_date = ?`,
-                    [user.id, BRANCH_ID, closedDate],
+                    [user.id, branchId, closedDate],
                 )
             } else {
                 // First ever close: the implicit Karachi day becomes a real
@@ -366,7 +369,7 @@ export async function closeBusinessDay({ force = false } = {}) {
                 await conn.query(
                     `INSERT INTO business_days (branch_id, business_date, opened_at, closed_at, closed_by)
                      VALUES (?, ?, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), ?)`,
-                    [BRANCH_ID, closedDate, user.id],
+                    [branchId, closedDate, user.id],
                 )
             }
 
@@ -378,13 +381,13 @@ export async function closeBusinessDay({ force = false } = {}) {
             await conn.query(
                 `INSERT INTO business_days (branch_id, business_date, opened_at)
                  VALUES (?, ?, UTC_TIMESTAMP(3))`,
-                [BRANCH_ID, nextDate],
+                [branchId, nextDate],
             )
 
             await conn.query(
                 `INSERT INTO audit_log (branch_id, business_date, action, details)
                  VALUES (?, ?, 'day_close', ?)`,
-                [BRANCH_ID, closedDate, JSON.stringify({
+                [branchId, closedDate, JSON.stringify({
                     closed: closedDate,
                     opened: nextDate,
                     pending_bills: pending.length,
@@ -404,7 +407,7 @@ export async function closeBusinessDay({ force = false } = {}) {
         })
 
         if (refusal?.error) return refusal
-        return { data: await loadState() }
+        return { data: await loadState(branchId) }
     } catch (e) {
         return { error: e.message }
     }

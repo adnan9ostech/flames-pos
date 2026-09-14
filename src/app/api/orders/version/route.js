@@ -1,3 +1,4 @@
+import { currentBranchId } from '@/lib/db/branch.mjs';
 import { requireUser } from '@/lib/db/auth.mjs';
 import { getOrdersVersion } from '@/lib/db/reads.mjs';
 
@@ -12,8 +13,8 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 
 export async function GET() {
     try {
-        await requireUser();
-        const version = await getOrdersVersion();
+        const user = await requireUser();
+        const version = await getOrdersVersion(await currentBranchId(user));
         return Response.json({ version }, { headers: NO_STORE });
     } catch (e) {
         // AuthError carries 401; anything else (the pool, mostly) is a 500.

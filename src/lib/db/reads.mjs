@@ -44,25 +44,27 @@ const KITCHEN_COLUMNS =
 // Every live order reaches the kitchen the moment it is sent, paid or not: a
 // dine-in table is cooked and served before it settles, so the ticket cannot
 // wait on payment. Narrowed to the active kitchen statuses only.
-export const getKitchenOrders = async () =>
+export const getKitchenOrders = async (branchId = 1) =>
     serializeRows('orders', await query(
         `SELECT ${KITCHEN_COLUMNS} FROM orders
-         WHERE status IN (?)
+         WHERE branch_id = ? AND status IN (?)
          ORDER BY last_round_at ASC`,
-        [KITCHEN_STATUSES],
+        [branchId, KITCHEN_STATUSES],
     ));
 
-export const getOpenTabs = async () =>
+export const getOpenTabs = async (branchId = 1) =>
     serializeRows('orders', await query(
         `SELECT * FROM orders
-         WHERE payment_status = 'unpaid' AND status <> 'cancelled'
+         WHERE branch_id = ? AND payment_status = 'unpaid' AND status <> 'cancelled'
          ORDER BY created_at ASC`,
+        [branchId],
     ));
 
-export const getUnpaidOrdersCount = async () => {
+export const getUnpaidOrdersCount = async (branchId = 1) => {
     const rows = await query(
         `SELECT COUNT(*) AS n FROM orders
-         WHERE payment_status = 'unpaid' AND status <> 'cancelled'`,
+         WHERE branch_id = ? AND payment_status = 'unpaid' AND status <> 'cancelled'`,
+        [branchId],
     );
     return rows[0].n;
 };
@@ -73,9 +75,10 @@ export const getOrderById = async (orderId) => {
 };
 
 /* What the polling hook watches: any insert or update to orders moves this. */
-export const getOrdersVersion = async () => {
+export const getOrdersVersion = async (branchId = 1) => {
     const rows = await query(
-        'SELECT COUNT(*) AS n, MAX(updated_at) AS latest FROM orders',
+        'SELECT COUNT(*) AS n, MAX(updated_at) AS latest FROM orders WHERE branch_id = ?',
+        [branchId],
     );
     const latest = rows[0].latest instanceof Date ? rows[0].latest.getTime() : 0;
     return `${rows[0].n}:${latest}`;
@@ -98,10 +101,12 @@ const PAGE_SORTS = {
 export const getOrdersPage = async ({
     page = 1, pageSize = 25, status = 'all', orderType = 'all',
     from = null, to = null, sort = 'newest', search = '',
-    channel = 'all', paymentMode = 'all',
+    channel = 'all', paymentMode = 'all', branchId = 1,
 } = {}) => {
-    const where = [];
-    const params = [];
+    // First and unconditional: a screen must never show another outlet's
+    // takings, whatever the rest of the filter says.
+    const where = ['o.branch_id = ?'];
+    const params = [branchId];
 
     // One box searches receipt number, name, phone, and table. Escape the
     // LIKE wildcards so a literal % in the term stays literal.

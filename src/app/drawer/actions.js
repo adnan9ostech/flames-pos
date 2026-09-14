@@ -27,13 +27,13 @@
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 import { serializeRow, serializeRows } from '@/lib/db/serialize.mjs'
 import {
     round2, expectedCash, varianceOf, needsReason, cleanAmount,
     splitCount, cleanDenominations, countFromDenominations, suggestedFloat,
 } from '@/lib/cash/drawer.mjs'
 
-const BRANCH_ID = 1
 
 /*
  * The general ledger, after the close has committed: a short or an over is
@@ -62,21 +62,21 @@ const karachiDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asi
  * Same resolution the order verbs use (orders.mjs keeps its copy private):
  * the open business day once day-close is live, else the Karachi calendar day.
  */
-const resolveBusinessDate = async (run) => {
+const resolveBusinessDate = async (run, branchId) => {
     const rows = await run(
         `SELECT business_date FROM business_days
          WHERE branch_id = ? AND closed_at IS NULL
          ORDER BY business_date DESC LIMIT 1`,
-        [BRANCH_ID],
+        [branchId],
     )
     return rows.length === 0 ? karachiDay() : dateOnly(rows[0].business_date)
 }
 
-const auditLog = async (run, businessDate, action, details) => {
+const auditLog = async (run, branchId, businessDate, action, details) => {
     await run(
         `INSERT INTO audit_log (branch_id, business_date, action, details)
          VALUES (?, ?, ?, ?)`,
-        [BRANCH_ID, businessDate, action, JSON.stringify(details)],
+        [branchId, businessDate, action, JSON.stringify(details)],
     )
 }
 
@@ -85,12 +85,12 @@ const auditLog = async (run, businessDate, action, details) => {
  * against it: close and record-movement serialize on this row, so a paid-out
  * can't slip in between the close's sums and its freeze.
  */
-const findOpenSession = async (run, role, { forUpdate = false } = {}) => {
+const findOpenSession = async (run, branchId, role, { forUpdate = false } = {}) => {
     const rows = await run(
         `SELECT * FROM drawer_sessions
          WHERE branch_id = ? AND cashier_role = ? AND closed_at IS NULL
          ORDER BY opened_at DESC LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`,
-        [BRANCH_ID, role],
+        [branchId, role],
     )
     return rows[0] ?? null
 }
@@ -105,12 +105,12 @@ const findOpenSession = async (run, role, { forUpdate = false } = {}) => {
  * reversal row, and that refund left this drawer. Expenses count only when
  * they actually took cash out of it (paid_from 'drawer', status 'paid').
  */
-const sessionFlows = async (run, session) => {
+const sessionFlows = async (run, branchId, session) => {
     const cashRows = await run(
         `SELECT COALESCE(SUM(amount), 0) AS total FROM payments
          WHERE branch_id = ? AND method = 'cash'
            AND paid_at >= ? AND paid_at <= UTC_TIMESTAMP(3)`,
-        [BRANCH_ID, session.opened_at],
+        [branchId, session.opened_at],
     )
     const moveRows = await run(
         `SELECT
@@ -158,13 +158,13 @@ const cashPolicy = async (run) => {
  * the physical drawer this morning is the cash the last person to shut it left
  * there, whoever they were and whichever day that was.
  */
-const lastClosedSession = async (run) => {
+const lastClosedSession = async (run, branchId) => {
     const rows = await run(
         `SELECT id, business_date, closed_at, counted_amount, carry_forward, handover_amount
          FROM drawer_sessions
          WHERE branch_id = ? AND closed_at IS NOT NULL
          ORDER BY closed_at DESC LIMIT 1`,
-        [BRANCH_ID],
+        [branchId],
     )
     return rows[0] ?? null
 }
@@ -178,10 +178,11 @@ const lastClosedSession = async (run) => {
 export async function getDrawerState() {
     try {
         const user = await requireUser()
+        const branchId = await currentBranchId(user)
         const run = runner(null)
-        const session = await findOpenSession(run, user.role)
+        const session = await findOpenSession(run, branchId, user.role)
         if (!session) {
-            const [policy, last] = await Promise.all([cashPolicy(run), lastClosedSession(run)])
+            const [policy, last] = await Promise.all([cashPolicy(run), lastClosedSession(run, branchId)])
             return {
                 data: {
                     session: null,
@@ -204,7 +205,7 @@ export async function getDrawerState() {
             }
         }
 
-        const flows = await sessionFlows(run, session)
+        const flows = await sessionFlows(run, branchId, session)
         const movements = await run(
             'SELECT * FROM drawer_movements WHERE session_id = ? ORDER BY at DESC',
             [session.id],
@@ -230,22 +231,23 @@ export async function getDrawerState() {
 export async function openDrawer({ opening_float } = {}) {
     try {
         const user = await requireUser()
+        const branchId = await currentBranchId(user)
         const float = cleanAmount(opening_float, 'Opening float')
 
         const session = await withTransaction(async (conn) => {
             const run = runner(conn)
             // The FOR UPDATE means two devices on the same shared login racing
             // to open wait on each other instead of both slipping past this check.
-            if (await findOpenSession(run, user.role, { forUpdate: true })) {
+            if (await findOpenSession(run, branchId, user.role, { forUpdate: true })) {
                 throw new Error('Close the open drawer first')
             }
-            const businessDate = await resolveBusinessDate(run)
+            const businessDate = await resolveBusinessDate(run, branchId)
 
             // What the till SHOULD have opened on, so a float typed over the
             // carried-forward figure is a recorded correction rather than a
             // silent one. This is the line that turns "the drawer was short
             // this morning" into a question with an answer.
-            const [policy, last] = await Promise.all([cashPolicy(run), lastClosedSession(run)])
+            const [policy, last] = await Promise.all([cashPolicy(run), lastClosedSession(run, branchId)])
             const suggested = suggestedFloat({
                 lastCarryForward: last?.carry_forward ?? null,
                 defaultFloat: policy.defaultFloat,
@@ -254,7 +256,7 @@ export async function openDrawer({ opening_float } = {}) {
             const [result] = await conn.query(
                 `INSERT INTO drawer_sessions (branch_id, business_date, cashier_role, opening_float)
                  VALUES (?, ?, ?, ?)`,
-                [BRANCH_ID, businessDate, user.role, float],
+                [branchId, businessDate, user.role, float],
             )
 
             /*
@@ -267,10 +269,10 @@ export async function openDrawer({ opening_float } = {}) {
             await run(
                 `UPDATE business_days SET opening_cash = ?
                  WHERE branch_id = ? AND business_date = ? AND opening_cash IS NULL`,
-                [float, BRANCH_ID, businessDate],
+                [float, branchId, businessDate],
             )
 
-            await auditLog(run, businessDate, 'drawer_open', {
+            await auditLog(run, branchId, businessDate, 'drawer_open', {
                 session_id: result.insertId,
                 cashier_role: user.role,
                 opening_float: float,
@@ -292,6 +294,7 @@ export async function openDrawer({ opening_float } = {}) {
 export async function recordMovement({ type, amount, reason } = {}) {
     try {
         const user = await requireUser()
+        const branchId = await currentBranchId(user)
         if (type !== 'paid_in' && type !== 'paid_out') {
             return { error: 'Movement must be a paid-in or a paid-out' }
         }
@@ -306,14 +309,14 @@ export async function recordMovement({ type, amount, reason } = {}) {
 
         const movement = await withTransaction(async (conn) => {
             const run = runner(conn)
-            const session = await findOpenSession(run, user.role, { forUpdate: true })
+            const session = await findOpenSession(run, branchId, user.role, { forUpdate: true })
             if (!session) throw new Error('Open a drawer before recording cash movements')
 
             const [result] = await conn.query(
                 'INSERT INTO drawer_movements (session_id, type, amount, reason) VALUES (?, ?, ?, ?)',
                 [session.id, type, value, why.slice(0, 191)],
             )
-            await auditLog(run, dateOnly(session.business_date), `drawer_${type}`, {
+            await auditLog(run, branchId, dateOnly(session.business_date), `drawer_${type}`, {
                 session_id: session.id, cashier_role: user.role, amount: value, reason: why,
             })
             const rows = await run('SELECT * FROM drawer_movements WHERE id = ?', [result.insertId])
@@ -340,6 +343,7 @@ export async function closeDrawer({
 } = {}) {
     try {
         const user = await requireUser()
+        const branchId = await currentBranchId(user)
 
         const breakdown = cleanDenominations(denominations)
         if (breakdown) {
@@ -365,12 +369,12 @@ export async function closeDrawer({
 
         const closed = await withTransaction(async (conn) => {
             const run = runner(conn)
-            const session = await findOpenSession(run, user.role, { forUpdate: true })
+            const session = await findOpenSession(run, branchId, user.role, { forUpdate: true })
             if (!session) throw new Error('No open drawer to close')
 
             // Summed under the session row's lock, so nothing moves between
             // the computation and the freeze below.
-            const flows = await sessionFlows(run, session)
+            const flows = await sessionFlows(run, branchId, session)
             const expected = expectedFrom(session, flows)
             const variance = varianceOf(counted, expected)
 
@@ -410,12 +414,12 @@ export async function closeDrawer({
             await run(
                 `UPDATE business_days SET closing_cash = ?
                  WHERE branch_id = ? AND business_date = ?`,
-                [carry, BRANCH_ID, dateOnly(session.business_date)],
+                [carry, branchId, dateOnly(session.business_date)],
             )
 
             // The close belongs to the session's own trading day, however late
             // past midnight the count happens.
-            await auditLog(run, dateOnly(session.business_date), 'drawer_close', {
+            await auditLog(run, branchId, dateOnly(session.business_date), 'drawer_close', {
                 session_id: session.id, cashier_role: user.role,
                 expected, counted, variance,
                 carry_forward: carry, handover,
@@ -435,9 +439,10 @@ export async function closeDrawer({
 /* Session history across all roles — a management read, so it wants `drawer`. */
 export async function listSessions({ from, to } = {}) {
     try {
-        await requirePermission('drawer')
+        const user = await requirePermission('drawer')
+        const branchId = await currentBranchId(user)
         const where = ['branch_id = ?']
-        const params = [BRANCH_ID]
+        const params = [branchId]
         if (from) { where.push('business_date >= ?'); params.push(from) }
         if (to) { where.push('business_date <= ?'); params.push(to) }
 

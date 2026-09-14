@@ -31,7 +31,7 @@ export const requireUser = async () => {
     const session = await readSession();
     if (!session) throw new AuthError('Sign in to continue');
     const rows = await query(
-        'SELECT id, role, token_version, permissions, is_active, full_name, username FROM users WHERE id = ?',
+        'SELECT id, role, token_version, permissions, is_active, full_name, username, branch_id FROM users WHERE id = ?',
         [session.sub],
     );
     const row = rows[0];
@@ -43,6 +43,9 @@ export const requireUser = async () => {
         id: row.id,
         role: row.role,
         name: row.full_name || row.username,
+        // NULL means every branch: an owner and an accountant see the company,
+        // a cashier sees the outlet they stand in.
+        branchId: row.branch_id ?? null,
         // Read fresh rather than trusted from the cookie: the cookie is for
         // the route gate, but an action about to move money should answer to
         // the rights the account has right now.
