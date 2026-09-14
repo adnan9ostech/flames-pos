@@ -289,7 +289,7 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
     const logo = renderLogo(widthMm);
     out += logo
         ? logo + '\n'
-        : CMD.center + CMD.big + `${settings.merchant_name || 'Flames by the Indus'}\n` + CMD.normal;
+        : CMD.center + CMD.big + `${settings.merchant_name || settings.brand_name || ''}\n` + CMD.normal;
     // The full street address when there is one; the bare city is the fallback
     // (merchant_city stays short because the Raast QR caps it at 15 chars).
     out += CMD.center + `${settings.merchant_address || settings.merchant_city || 'Islamabad'}\n`;

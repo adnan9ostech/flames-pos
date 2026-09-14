@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { useBrand } from '@/components/Layout/BrandProvider';
 import styles from './handover.module.css';
 import { getHandoverReport } from './actions';
 import { formatDateTime, formatClockTime } from '@/lib/timeFormat';
@@ -154,6 +155,7 @@ function StatRow({ label, sub, value, big = false, tone = '' }) {
 }
 
 export default function HandoverReportPage() {
+    const brand = useBrand();
     const [report, setReport] = useState(null);
     const [date, setDate] = useState('');
     const [loading, setLoading] = useState(true);
@@ -285,7 +287,7 @@ export default function HandoverReportPage() {
                 <div className={styles.masthead}>
                     <div className={styles.mastheadName}>
                         <Flame size={20} aria-hidden="true" />
-                        Flames by the Indus. Handover
+                        {brand.name}. Handover
                     </div>
                     <div className={styles.mastheadMeta}>
                         {formatBusinessDay(r.businessDate)} · Generated {formatDateTime(new Date())}

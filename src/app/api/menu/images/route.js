@@ -27,7 +27,17 @@ const sniff = (buf) => {
 
 export async function POST(request) {
     try {
-        await requirePermission('menu');
+        /*
+         * The Brand screen uploads a logo through this same route, and a
+         * person who may change the brand holds `settings` rather than `menu`.
+         * Either right opens it: what the route does is "store an image this
+         * app will serve", and both screens are that.
+         */
+        try {
+            await requirePermission('menu');
+        } catch (e) {
+            await requirePermission('settings');
+        }
     } catch (e) {
         return Response.json({ error: e.message }, { status: e.status ?? 401, headers: NO_STORE });
     }

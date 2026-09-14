@@ -105,8 +105,8 @@ export async function GET(request) {
         const title = REPORT_TITLES[report];
         if (!title) return Response.json({ error: 'Unknown report' }, { status: 400 });
 
-        const [settings] = await query('SELECT merchant_name FROM store_settings LIMIT 1');
-        const merchantName = settings?.merchant_name || 'Flames by the Indus';
+        const [settings] = await query('SELECT merchant_name, brand_name FROM store_settings LIMIT 1');
+        const merchantName = settings?.merchant_name || settings?.brand_name || '';
 
         let rows;
         let stamp;

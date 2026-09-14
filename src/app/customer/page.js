@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
+import { useBrand } from '@/components/Layout/BrandProvider';
 import styles from './customer.module.css';
 import { getFullMenuData } from '@/lib/dataClient';
 import { Soup, Flame, Utensils, Cookie, GlassWater, Plus, Search, LayoutGrid, List } from 'lucide-react';
@@ -23,6 +24,7 @@ const CategoryIcon = ({ name, size = 18 }) => {
 const VIEW_STORAGE_KEY = 'flames.customerMenuView';
 
 export default function CustomerMenuPage() {
+    const brand = useBrand();
     const [menuData, setMenuData] = useState({ categories: [], items: [], modifiers: {} });
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -112,15 +114,15 @@ export default function CustomerMenuPage() {
                             white and vanishes on the light header, so light gets the
                             dark-ink variant. Same pattern as the sidebar. */}
                         <Image
-                            src="/flames-by-the-indus-logo.svg"
-                            alt="Flames by the Indus"
+                            src={brand.logoLight}
+                            alt={brand.name}
                             width={180}
                             height={54}
                             priority
                             className={`${styles.logo} ${styles.logoOnDark}`}
                         />
                         <Image
-                            src="/flames-by-the-indus-logo-dark-ink.svg"
+                            src={brand.logoDark}
                             alt=""
                             aria-hidden="true"
                             width={180}
@@ -273,7 +275,7 @@ export default function CustomerMenuPage() {
 
             {/* Footer */}
             <footer className={styles.footer}>
-                <p>&copy; {new Date().getFullYear()} Flames by the Indus. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} {brand.name}. All rights reserved.</p>
                 <p className={styles.footerNote}>Prices are subject to applicable taxes</p>
             </footer>
         </div>

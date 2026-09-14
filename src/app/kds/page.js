@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useBrand } from '@/components/Layout/BrandProvider';
 import { flushSync } from 'react-dom';
 import Image from 'next/image';
 import styles from './kds.module.css';
@@ -105,6 +106,7 @@ const ORDER_TYPE_LABEL = {
 const firedAt = (order) => new Date(order.last_round_at || order.created_at).getTime();
 
 export default function KDSPage() {
+    const brand = useBrand();
     const [orders, setOrders] = useState([]);
     const [imageMap, setImageMap] = useState({});
     // The menu, kept whole: the slip builder resolves a line's station through
@@ -447,8 +449,8 @@ export default function KDSPage() {
             <header className={styles.topBar}>
                 <div className={styles.brand}>
                     <Image
-                        src="/flames-by-the-indus-logo.svg"
-                        alt="Flames by the Indus"
+                        src={brand.logoLight}
+                        alt={brand.name}
                         width={180}
                         height={54}
                         priority

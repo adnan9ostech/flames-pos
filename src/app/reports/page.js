@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useBrand } from '@/components/Layout/BrandProvider';
 import Link from 'next/link'
 import { formatDateTime, formatDayMonth } from '@/lib/timeFormat'
 import { getDashboardStats, getReportPreviews } from './actions'
@@ -288,6 +289,7 @@ function buildCards(previews) {
 }
 
 export default function ReportsPage() {
+    const brand = useBrand();
     const [range, setRange] = useState('7days')
     const [fromDate, setFromDate] = useState('')
     const [toDate, setToDate] = useState('')
@@ -372,7 +374,7 @@ export default function ReportsPage() {
             <div className="report-print-header hidden">
                 <div className="flex items-center gap-3">
                     <Flame className="h-7 w-7" />
-                    <h1 className="text-2xl font-bold">Flames by the Indus. Analytics Report</h1>
+                    <h1 className="text-2xl font-bold">{brand.name}. Analytics Report</h1>
                 </div>
                 <p className="text-sm text-muted mt-1">
                     Period: {periodLabel} · Generated {formatDateTime(new Date())}

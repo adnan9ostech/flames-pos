@@ -97,7 +97,7 @@ export function PrintHeading({ merchantName, title, period }) {
     return (
         <div className={styles.printOnly}>
             <p className={styles.reportMeta}>
-                <strong>{merchantName || 'Flames by the Indus'}</strong> · {title} · {period}
+                <strong>{merchantName}</strong> · {title} · {period}
             </p>
         </div>
     );

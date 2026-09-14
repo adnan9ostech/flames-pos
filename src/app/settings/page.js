@@ -313,7 +313,7 @@ export default function SettingsPage() {
                                     maxLength={MAX_NAME}
                                     autoComplete="off"
                                     className={fieldClass}
-                                    placeholder="Flames by the Indus"
+                                    placeholder="The name that prints on the bill"
                                 />
                             </div>
                             <p className="mt-1.5 text-xs text-muted">Displayed on the QR code scan screen.</p>

@@ -12,6 +12,7 @@ import Link from 'next/link'
  */
 const TABS = [
     { key: 'general', label: 'General', href: '/settings' },
+    { key: 'brand', label: 'Brand', href: '/settings/brand' },
     { key: 'kitchen', label: 'Kitchen & Printer', href: '/settings/kitchen' },
     { key: 'charges', label: 'Charges', href: '/charges' },
     { key: 'channels', label: 'Sales Channels', href: '/settings/channels' },

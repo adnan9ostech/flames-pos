@@ -17,11 +17,11 @@ import {
  */
 const meta = async () => {
     const [settings, bd] = await Promise.all([
-        query('SELECT merchant_name FROM store_settings LIMIT 1'),
+        query('SELECT merchant_name, brand_name FROM store_settings LIMIT 1'),
         businessDate(),
     ])
     return {
-        merchantName: settings[0]?.merchant_name || 'Flames by the Indus',
+        merchantName: settings[0]?.merchant_name || settings[0]?.brand_name || '',
         businessDate: bd,
     }
 }

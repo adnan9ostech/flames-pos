@@ -163,6 +163,33 @@ export const getOrdersPage = async ({
 };
 
 /*
+ * The brand this deployment wears.
+ *
+ * One vhost and one database per restaurant, so a deployment IS a brand: the
+ * name, the logos and the one colour everything else is derived from. Blank
+ * fields are not a problem to solve here — a missing logo draws the name as
+ * text, and a missing colour leaves the built-in palette exactly as it is.
+ */
+export const getBrand = async () => {
+    try {
+        const rows = await query(
+            `SELECT brand_name, brand_logo_light, brand_logo_dark, brand_colour, merchant_name
+               FROM store_settings LIMIT 1`,
+        );
+        const r = rows[0] ?? {};
+        return {
+            name: r.brand_name || r.merchant_name || 'POS',
+            logoLight: r.brand_logo_light || '',
+            logoDark: r.brand_logo_dark || '',
+            colour: r.brand_colour || '',
+        };
+    } catch {
+        // A database blip must cost the shell a name, not the whole page.
+        return { name: 'POS', logoLight: '', logoDark: '', colour: '' };
+    }
+};
+
+/*
  * Where orders can come from. Active only, default first — the till stamps the
  * first of these on a new bill unless the cashier says otherwise.
  */

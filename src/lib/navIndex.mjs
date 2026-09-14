@@ -313,7 +313,12 @@ export const NAV_INDEX = [
         section: 'Setup', nav: 'backoffice',
         keywords: 'preferences configuration store details printing receipt setup',
     },
-        {
+            {
+        href: '/settings/brand', label: 'Brand', icon: 'Palette', perm: 'settings',
+        section: 'Setup',
+        keywords: 'logo colour color name white label rebrand theme identity branding',
+    },
+{
         href: '/settings/channels', label: 'Sales Channels', icon: 'Share2', perm: 'settings',
         section: 'Setup',
         keywords: 'foodpanda careem aggregator third party online source where order came from channel',

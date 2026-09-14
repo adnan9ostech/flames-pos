@@ -11,6 +11,7 @@ import { ROLES } from '@/lib/auth/permissions.mjs';
 import { primaryNav, sidebarSections, childrenOf } from '@/lib/navIndex.mjs';
 import { navIcon } from './navIcons';
 import CommandPalette from './CommandPalette';
+import { useBrand } from './BrandProvider';
 import NotificationBell from './NotificationBell';
 import ThemeSwitcher from './ThemeSwitcher';
 import { logout } from '@/app/logout/actions';
@@ -23,6 +24,8 @@ import { logout } from '@/app/logout/actions';
  */
 const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
     const pathname = usePathname();
+    // The restaurant's own name and logos, not this one's.
+    const brand = useBrand();
     const [searchOpen, setSearchOpen] = useState(false);
 
     // Icons carry the whole nav once the labels are gone, so scale them up
@@ -127,15 +130,15 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                         <span className={styles.logoMark}>
                             <Image
                                 className={styles.logoOnDark}
-                                src="/flames-by-the-indus-logo.svg"
-                                alt="Flames by the Indus"
+                                src={brand.logoLight}
+                                alt={brand.name}
                                 width={146}
                                 height={52}
                                 priority
                             />
                             <Image
                                 className={styles.logoOnLight}
-                                src="/flames-by-the-indus-logo-dark-ink.svg"
+                                src={brand.logoDark}
                                 alt=""
                                 aria-hidden="true"
                                 width={146}
@@ -146,15 +149,15 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                         <>
                             <Image
                                 className={styles.logoOnDark}
-                                src="/flames-by-the-indus-logo.svg"
-                                alt="Flames by the Indus"
+                                src={brand.logoLight}
+                                alt={brand.name}
                                 width={160}
                                 height={48}
                                 priority
                             />
                             <Image
                                 className={styles.logoOnLight}
-                                src="/flames-by-the-indus-logo-dark-ink.svg"
+                                src={brand.logoDark}
                                 alt=""
                                 aria-hidden="true"
                                 width={160}

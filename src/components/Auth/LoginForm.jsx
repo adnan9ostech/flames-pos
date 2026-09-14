@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useBrand } from '@/components/Layout/BrandProvider';
 import { login } from '@/app/login/actions'
 import CookingLoader from '@/components/Layout/CookingLoader'
 import { Utensils, Eye, EyeOff, AlertTriangle } from 'lucide-react'
@@ -15,6 +16,7 @@ import styles from './login.module.css'
  * to give.
  */
 export default function LoginForm() {
+    const brand = useBrand();
     const [identifier, setIdentifier] = useState('')
     const [password, setPassword] = useState('')
     const [revealed, setRevealed] = useState(false)
@@ -61,7 +63,7 @@ export default function LoginForm() {
                     <div className={styles.mark}>
                         <Utensils size={30} aria-hidden="true" />
                     </div>
-                    <h1 className={styles.title}>Flames by the Indus</h1>
+                    <h1 className={styles.title}>{brand.name}</h1>
                     <p className={styles.subtitle}>Sign in to your account</p>
                 </div>
 

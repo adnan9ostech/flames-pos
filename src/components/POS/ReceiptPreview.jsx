@@ -167,10 +167,10 @@ const ReceiptPreview = ({
                             print rules can reach it */}
                         <img
                             src="/flames-by-the-indus-logo-for-receipt.svg"
-                            alt="Flames by the Indus"
+                            alt={settings?.merchant_name || settings?.brand_name || ""}
                             className={styles.logoImg}
                         />
-                        <p>{settings?.merchant_name || 'Flames by the Indus'} - {settings?.merchant_address || settings?.merchant_city || 'Islamabad'}</p>
+                        <p>{settings?.merchant_name || settings?.brand_name} - {settings?.merchant_address || settings?.merchant_city || 'Islamabad'}</p>
                         <p>NTN: 1234567-8 | STRN: 1234567890123</p>
                         {includeTax && (
                             <div className={styles.fbrHeader}>

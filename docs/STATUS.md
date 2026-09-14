@@ -1162,6 +1162,36 @@ Inventory:
   posting *failed* (an unmapped account, usually) and a button would fail the
   same way until the chart is fixed.
 
+## White label: the brand is data now — 14 Sep 2026
+
+Migrations 039 and 040. Suite 150/150, build green, proven by repainting the
+whole app as another restaurant and putting it back.
+
+The name, the logos and the colour were written into the source: fourteen
+files, four assets and a stylesheet. Handing this POS to another restaurant
+meant editing all of them, which is a fork per customer rather than a product.
+
+- **One vhost and one database per restaurant** (the deploy runbook's model), so
+  a deployment IS a brand. No tenant column anywhere, and there should not be:
+  isolation comes from the database being its own, which beats any WHERE clause.
+- **Settings → Brand**: name, two logos (uploaded through the existing image
+  route, which now accepts the `settings` right as well as `menu`), and **one
+  colour**.
+- **One colour, because four would be a trap.** These accents are read as text
+  AND used as fills, in two themes: #F26513 is 3.11:1 as text on white, and a
+  colour dark enough for white text is mud on black. So the screen takes the
+  brand's colour and derives the rest — the light theme gets a darker version
+  of the same hue until it clears AA on a card, and the label is white or
+  near-black by measurement. The screen shows the real ratios, not a swatch.
+  White is preferred wherever it clears 3:1, so this restaurant's own
+  white-on-orange buttons are unchanged.
+- Blank colour renders no CSS at all, leaving globals.css exactly as written.
+- `zero` hardcoded mentions of the brand remain in `src`.
+
+Verified in a browser: default orange and the Flames name; then one row changed
+to "Bartlett Coffee" / #1e88e5 and the app repainted, tab title and login
+included; then #ffe600, where the label flipped to near-black by itself.
+
 ## Any thermal printer, set up on a screen — 14 Sep 2026
 
 Migration 038. Suite **150/150**, build green, proven end to end against a

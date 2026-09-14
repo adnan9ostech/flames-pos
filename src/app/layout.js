@@ -6,6 +6,9 @@ import ServiceWorkerRegistrar from "@/components/Layout/ServiceWorkerRegistrar";
 import { readSession } from "@/lib/db/auth.mjs";
 import { query } from "@/lib/db/pool.mjs";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme.mjs";
+import { getBrand } from "@/lib/db/reads.mjs";
+import { brandCss } from "@/lib/brand/colour.mjs";
+import BrandProvider from "@/components/Layout/BrandProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,11 +20,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "Flames by the Indus | POS",
-  description: "Point of Sale System for Flames by the Indus",
-  manifest: "/manifest.webmanifest",
-};
+/*
+ * The tab title is the restaurant's, not this one's. generateMetadata rather
+ * than a constant because the name now lives in the database, where a person
+ * can change it.
+ */
+export async function generateMetadata() {
+  const brand = await getBrand();
+  return {
+    title: `${brand.name} | POS`,
+    description: `Point of Sale System for ${brand.name}`,
+    manifest: "/manifest.webmanifest",
+  };
+}
 
 /*
  * Browser chrome — the mobile address bar and the installed PWA's status bar.
@@ -40,6 +51,7 @@ export default async function RootLayout({ children }) {
   // session already carries the role and the granted rights, so deciding what
   // the sidebar draws costs no database round trip.
   const session = await readSession();
+  const brand = await getBrand();
 
   // The one thing the cookie does not carry is the person's name, and the
   // sidebar names who is signed in. A primary-key lookup, skipped entirely
@@ -78,9 +90,18 @@ export default async function RootLayout({ children }) {
           * is precisely the flash it exists to prevent.
           */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-        <AppLayout session={viewer}>
-          {children}
-        </AppLayout>
+        {/*
+          * The brand's colour, as the handful of custom properties that differ
+          * from the built-in palette. Rendered into the page rather than kept
+          * in the stylesheet so it can be changed on a screen; absent entirely
+          * when no colour is set, which leaves globals.css exactly as written.
+          */}
+        {brand.colour && <style dangerouslySetInnerHTML={{ __html: brandCss(brand.colour) }} />}
+        <BrandProvider brand={brand}>
+          <AppLayout session={viewer}>
+            {children}
+          </AppLayout>
+        </BrandProvider>
         {/* Global, so a dropped connection is visible on every screen — the KDS
             especially, where a stale board reads as a quiet service. */}
         <ConnectionStatus />
