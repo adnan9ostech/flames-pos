@@ -4,6 +4,7 @@
 import { query } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 
 /*
  * Orders are selected and day-bucketed by business_date — the trading day
@@ -184,8 +185,10 @@ function resolveRange(range, endDateStr) {
 export async function getDashboardStats(range = 'today', endDateStr = null) {
     // Wants `reports`: takings and per-waiter figures are not floor reading.
     // Returned rather than thrown — production redacts thrown action errors.
+    let branchId
     try {
-        await requirePermission('reports')
+        const user = await requirePermission('reports')
+        branchId = await currentBranchId(user)
     } catch (e) {
         return { error: e.message }
     }
@@ -308,8 +311,10 @@ const num = (v) => Number(v) || 0
 export async function getReportPreviews(range = 'today', endDateStr = null) {
     // Wants `reports`, like every other action on this screen. Returned rather
     // than thrown — production redacts thrown action errors.
+    let branchId
     try {
-        await requirePermission('reports')
+        const user = await requirePermission('reports')
+        branchId = await currentBranchId(user)
     } catch (e) {
         return { error: e.message }
     }
@@ -327,12 +332,12 @@ export async function getReportPreviews(range = 'today', endDateStr = null) {
                         COUNT(*) AS bills,
                         COALESCE(SUM(total), 0) AS revenue
                    FROM orders
-                  WHERE branch_id = 1
+                  WHERE branch_id = ?
                     AND business_date >= ? AND business_date <= ?
                     AND status <> 'cancelled'
                   GROUP BY business_date
                   ORDER BY business_date`,
-                [startYmd, endYmd],
+                [branchId, startYmd, endYmd],
             ),
             // Hourly Sales buckets an order into the hour it was paid, falling
             // back to when it was rung in for a tab still open. Karachi is a
@@ -343,12 +348,12 @@ export async function getReportPreviews(range = 'today', endDateStr = null) {
                 `SELECT HOUR(COALESCE(paid_at, created_at) + INTERVAL 5 HOUR) AS hour,
                         COALESCE(SUM(total), 0) AS total
                    FROM orders
-                  WHERE branch_id = 1
+                  WHERE branch_id = ?
                     AND business_date >= ? AND business_date <= ?
                     AND status <> 'cancelled'
                   GROUP BY hour
                   ORDER BY hour`,
-                [startYmd, endYmd],
+                [branchId, startYmd, endYmd],
             ),
             // Item-wise reads order_items, the canonical lines, not the order's
             // JSON snapshot. Ranked by units because the card's question is
@@ -358,13 +363,13 @@ export async function getReportPreviews(range = 'today', endDateStr = null) {
                 `SELECT oi.name, SUM(oi.qty) AS qty, SUM(oi.line_total) AS gross
                    FROM order_items oi
                    JOIN orders o ON o.id = oi.order_id
-                  WHERE o.branch_id = 1
+                  WHERE o.branch_id = ?
                     AND o.business_date >= ? AND o.business_date <= ?
                     AND o.status <> 'cancelled'
                   GROUP BY oi.name
                   ORDER BY qty DESC, gross DESC
                   LIMIT 5`,
-                [startYmd, endYmd],
+                [branchId, startYmd, endYmd],
             ),
             // Menu Analytics counts sold, i.e. settled: an open tab is food
             // fired, not money taken, and a mix that counted it would shrink
@@ -377,13 +382,13 @@ export async function getReportPreviews(range = 'today', endDateStr = null) {
                    JOIN orders o ON o.id = oi.order_id
                    LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
                    LEFT JOIN categories c ON c.id = mi.category_id
-                  WHERE o.branch_id = 1
+                  WHERE o.branch_id = ?
                     AND o.business_date >= ? AND o.business_date <= ?
                     AND o.status <> 'cancelled'
                     AND o.payment_status <> 'unpaid'
                   GROUP BY name
                   ORDER BY amount DESC`,
-                [startYmd, endYmd],
+                [branchId, startYmd, endYmd],
             ),
             /*
              * Gross profit prices each dish at its recipe: Σ recipe_lines.qty ×
@@ -411,11 +416,11 @@ export async function getReportPreviews(range = 'today', endDateStr = null) {
                          JOIN inventory_items ii ON ii.id = rl.inventory_item_id
                         GROUP BY rl.menu_item_id
                    ) rc ON rc.menu_item_id = oi.menu_item_id
-                  WHERE o.branch_id = 1
+                  WHERE o.branch_id = ?
                     AND o.business_date >= ? AND o.business_date <= ?
                     AND o.status <> 'cancelled'
                     AND o.payment_status <> 'unpaid'`,
-                [startYmd, endYmd],
+                [branchId, startYmd, endYmd],
             ),
         ])
 

@@ -2,6 +2,7 @@
 
 import { pool, query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 import { businessDate, money, ymd, requireId, requireDate } from '@/lib/accounts/helpers.mjs'
 import {
     saveDraft as saveDraftTx,
@@ -72,9 +73,9 @@ export async function getVoucherFormData() {
 
 export async function listVouchers({ status = 'all', from, to } = {}) {
     try {
-        await requirePermission('accounts')
-        const where = ['v.branch_id = 1']
-        const params = []
+        const user = await requirePermission('accounts')
+        const where = ['v.branch_id = ?']
+        const params = [await currentBranchId(user)]
         const s = STATUSES.includes(status) ? status : 'all'
         if (s === 'owed') where.push("v.status = 'posted' AND v.paid_total < v.total")
         else if (s !== 'all') { where.push('v.status = ?'); params.push(s) }

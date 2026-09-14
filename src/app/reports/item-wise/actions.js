@@ -2,6 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -13,11 +14,12 @@ const karachiDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asi
  * use, else the Karachi calendar day — the same resolution the money verbs
  * apply when they stamp orders.business_date.
  */
-const defaultBusinessDay = async () => {
+const defaultBusinessDay = async (branchId) => {
     const rows = await query(
         `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
+         WHERE branch_id = ? AND closed_at IS NULL
          ORDER BY business_date DESC LIMIT 1`,
+        [branchId],
     )
     if (rows.length === 0) return karachiDay()
     const d = rows[0].business_date
@@ -42,14 +44,16 @@ const bump = (node, qty, gross, discount) => {
 export async function getItemWiseSales(from = null, to = null) {
     // Wants `reports`. Returned rather than thrown — production redacts thrown
     // action errors.
+    let branchId
     try {
-        await requirePermission('reports')
+        const user = await requirePermission('reports')
+        branchId = await currentBranchId(user)
     } catch (e) {
         return { error: e.message }
     }
 
     try {
-        const day = await defaultBusinessDay()
+        const day = await defaultBusinessDay(branchId)
         let start = DATE_RE.test(from || '') ? from : day
         let end = DATE_RE.test(to || '') ? to : start
         // ISO date strings order lexically, so a reversed range is just a swap.
@@ -63,10 +67,10 @@ export async function getItemWiseSales(from = null, to = null) {
                JOIN orders o        ON o.id = oi.order_id
                LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
                LEFT JOIN categories c  ON c.id = mi.category_id
-              WHERE o.branch_id = 1
+              WHERE o.branch_id = ?
                 AND o.business_date >= ? AND o.business_date <= ?
                 AND o.status <> 'cancelled'`,
-            [start, end],
+            [branchId, start, end],
         )
 
         // What the orders themselves say the range sold — the reconciliation
@@ -76,10 +80,10 @@ export async function getItemWiseSales(from = null, to = null) {
                     COALESCE(SUM(subtotal), 0) AS subtotal,
                     COALESCE(SUM(discount), 0) AS discount
                FROM orders
-              WHERE branch_id = 1
+              WHERE branch_id = ?
                 AND business_date >= ? AND business_date <= ?
                 AND status <> 'cancelled'`,
-            [start, end],
+            [branchId, start, end],
         )
 
         const catMap = new Map()

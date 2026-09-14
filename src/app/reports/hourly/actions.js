@@ -3,6 +3,7 @@
 import { query } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -28,11 +29,12 @@ const hourLabel = (hour) => {
  * use, else the Karachi calendar day — the same resolution the money verbs
  * apply when they stamp orders.business_date.
  */
-const defaultBusinessDay = async () => {
+const defaultBusinessDay = async (branchId) => {
     const rows = await query(
         `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
+         WHERE branch_id = ? AND closed_at IS NULL
          ORDER BY business_date DESC LIMIT 1`,
+        [branchId],
     )
     if (rows.length === 0) return karachiDay()
     const d = rows[0].business_date
@@ -47,20 +49,22 @@ const defaultBusinessDay = async () => {
 export async function getHourlySales(businessDate = null) {
     // Wants `reports`. Returned rather than thrown — production redacts thrown
     // action errors.
+    let branchId
     try {
-        await requirePermission('reports')
+        const user = await requirePermission('reports')
+        branchId = await currentBranchId(user)
     } catch (e) {
         return { error: e.message }
     }
 
     try {
-        const day = DATE_RE.test(businessDate || '') ? businessDate : await defaultBusinessDay()
+        const day = DATE_RE.test(businessDate || '') ? businessDate : await defaultBusinessDay(branchId)
 
         const orders = serializeRows('orders', await query(
             `SELECT total, paid_at, created_at
                FROM orders
-              WHERE branch_id = 1 AND business_date = ? AND status <> 'cancelled'`,
-            [day],
+              WHERE branch_id = ? AND business_date = ? AND status <> 'cancelled'`,
+            [branchId, day],
         ))
 
         /*
