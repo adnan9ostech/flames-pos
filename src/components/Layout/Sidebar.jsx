@@ -13,6 +13,7 @@ import { navIcon } from './navIcons';
 import CommandPalette from './CommandPalette';
 import { useBrand } from './BrandProvider';
 import NotificationBell from './NotificationBell';
+import BranchSwitcher from './BranchSwitcher';
 import ThemeSwitcher from './ThemeSwitcher';
 import { logout } from '@/app/logout/actions';
 
@@ -179,6 +180,14 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                     </button>
                 )}
             </div>
+
+            {/*
+              * Directly under the logo, above search: the branch is the frame
+              * every other control on this rail is read inside — the orders,
+              * the day, the stock — so it has to be read before them. It draws
+              * nothing at all on a single-outlet restaurant.
+              */}
+            <BranchSwitcher collapsed={collapsed} />
 
             {/*
               * Search sits above the rail, not inside it: it is the way to

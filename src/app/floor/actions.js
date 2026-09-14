@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { query } from '@/lib/db/pool.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { requirePermission, requireUser } from '@/lib/db/auth.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 /*
  * The floor: who serves and where they serve. Both lists are small, both are
@@ -14,12 +15,13 @@ import { requirePermission, requireUser } from '@/lib/db/auth.mjs'
  * text beside the ids for exactly that reason.
  */
 
+// Tables and waiters belong to an outlet, so the row does too. Dated by the
+// calendar rather than the trading day: renaming a table is not a till action.
 const audit = (action, details) =>
-    query(
-        `INSERT INTO audit_log (branch_id, business_date, action, details)
-         VALUES (1, CURRENT_DATE, ?, ?)`,
-        [action, JSON.stringify(details)],
-    )
+    writeAudit(null, {
+        businessDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' }),
+        action, details,
+    })
 
 // ==================== WAITERS ====================
 

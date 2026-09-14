@@ -49,6 +49,24 @@ const cleanQty = (value, label = 'Reorder level') => {
     return Math.round(n * 1000) / 1000
 }
 
+/*
+ * The usable percentage of what you buy. Blank is 100, which means "no loss"
+ * and is what every ingredient means until someone measures one.
+ *
+ * REFUSED AT ZERO, deliberately and loudly. Yield is a divisor, and a 0 here
+ * would either divide by zero or, if defended downstream, silently behave as
+ * 100 and leave an operator believing they had recorded a total loss. Both are
+ * worse than being told the number makes no sense.
+ */
+const cleanYield = (value) => {
+    const raw = String(value ?? '').trim()
+    if (raw === '') return 100
+    const n = Number(raw)
+    if (!Number.isFinite(n)) throw new Error('Yield must be a number')
+    if (n <= 0 || n > 100) throw new Error('Yield must be between 1 and 100 percent')
+    return Math.round(n * 100) / 100
+}
+
 /* Free text, grouped on rather than looked up — a table for six words
  * (Meat, Dairy, Spices…) would be ceremony. Blank means ungrouped. */
 const cleanCategory = (value) => {
@@ -66,6 +84,14 @@ const toRow = (r) => ({
     unit_abbrev: r.unit_abbrev,
     avg_cost: Number(r.avg_cost),
     reorder_level: Number(r.reorder_level),
+    yield_pct: Number(r.yield_pct ?? 100),
+    // What is actually sitting on the shelf, in rupees. Computed here rather
+    // than in the browser so the footer total and the rows cannot round apart.
+    stock_value: Math.round(Number(r.on_hand ?? 0) * Number(r.avg_cost) * 100) / 100,
+    // How much of this leaves the store on an average trading day, over the
+    // last four weeks. Only ISSUES count — a receiving is not consumption, and
+    // netting the two would report a week of heavy buying as negative usage.
+    daily_use: Number(r.daily_use ?? 0),
     is_active: Boolean(r.is_active),
     on_hand: Number(r.on_hand ?? 0),
     // Which of the two owns the cost right now. Once a receiving has landed,
@@ -87,8 +113,10 @@ export async function listIngredients() {
         const [items, units] = await Promise.all([
             query(
                 `SELECT i.id, i.name, i.category, i.unit_id, i.avg_cost, i.reorder_level, i.is_active,
+                        i.yield_pct,
                         u.abbrev AS unit_abbrev,
                         COALESCE(q.qty, 0) AS on_hand,
+                        COALESCE(c.per_day, 0) AS daily_use,
                         EXISTS (SELECT 1 FROM stock_receiving_lines rl
                                  WHERE rl.inventory_item_id = i.id) AS has_receipts,
                         COALESCE(rc.n, 0) AS recipe_count,
@@ -105,6 +133,21 @@ export async function listIngredients() {
                    LEFT JOIN (SELECT inventory_item_id, COUNT(*) AS n
                                 FROM recipe_lines GROUP BY inventory_item_id) rc
                      ON rc.inventory_item_id = i.id
+                   /*
+                    * Average daily consumption over the last 28 days. Divided
+                    * by the days that actually TRADED rather than by 28: a
+                    * restaurant closed on Mondays consumes nothing on Mondays,
+                    * and dividing by the calendar would understate every item
+                    * by a seventh and quietly delay every reorder.
+                    */
+                   LEFT JOIN (
+                       SELECT inventory_item_id,
+                              SUM(-delta) / GREATEST(COUNT(DISTINCT business_date), 1) AS per_day
+                         FROM stock_ledger
+                        WHERE delta < 0
+                          AND business_date >= DATE_SUB(CURDATE(), INTERVAL 28 DAY)
+                        GROUP BY inventory_item_id
+                   ) c ON c.inventory_item_id = i.id
                   ORDER BY i.name`,
             ),
             query('SELECT id, name, abbrev FROM units ORDER BY id'),
@@ -130,6 +173,7 @@ export async function saveIngredient(input) {
         const unitId = requireId(input?.unit_id, 'unit')
         const cost = cleanCost(input?.avg_cost)
         const reorder = cleanQty(input?.reorder_level)
+        const yieldPct = cleanYield(input?.yield_pct)
         const isActive = input?.is_active === undefined ? true : Boolean(input.is_active)
         const bd = await businessDate()
 
@@ -163,16 +207,17 @@ export async function saveIngredient(input) {
                     await conn.query(
                         `UPDATE inventory_items
                             SET name = ?, category = ?, unit_id = ?, avg_cost = ?,
-                                reorder_level = ?, is_active = ?, updated_at = UTC_TIMESTAMP(3)
+                                reorder_level = ?, yield_pct = ?, is_active = ?,
+                                updated_at = UTC_TIMESTAMP(3)
                           WHERE id = ?`,
-                        [name, category, unitId, cost, reorder, isActive ? 1 : 0, id],
+                        [name, category, unitId, cost, reorder, yieldPct, isActive ? 1 : 0, id],
                     )
                 } else {
                     const [res] = await conn.query(
                         `INSERT INTO inventory_items
-                           (name, category, unit_id, avg_cost, reorder_level, is_active)
+                           (name, category, unit_id, avg_cost, reorder_level, yield_pct, is_active)
                          VALUES (?, ?, ?, ?, ?, ?)`,
-                        [name, category, unitId, cost, reorder, isActive ? 1 : 0],
+                        [name, category, unitId, cost, reorder, yieldPct, isActive ? 1 : 0],
                     )
                     itemId = res.insertId
                     if (cost > 0) costChange = { from: 0, to: cost }
@@ -186,7 +231,7 @@ export async function saveIngredient(input) {
                 action: id ? 'menu_ingredient_update' : 'menu_ingredient_create',
                 details: {
                     ingredient_id: itemId, name, category, unit_id: unitId,
-                    reorder_level: reorder, is_active: isActive,
+                    reorder_level: reorder, yield_pct: yieldPct, is_active: isActive,
                 },
                 userId: user.id,
             })
@@ -207,9 +252,21 @@ export async function saveIngredient(input) {
 
             const [after] = await conn.query(
                 `SELECT i.id, i.name, i.category, i.unit_id, i.avg_cost, i.reorder_level, i.is_active,
+                        i.yield_pct,
                         u.abbrev AS unit_abbrev,
                         COALESCE((SELECT SUM(delta) FROM stock_ledger sl
                                    WHERE sl.inventory_item_id = i.id), 0) AS on_hand,
+                        -- The same 28-day average the list computes. Restated
+                        -- rather than shared because the saved row goes
+                        -- straight back into that list, and a row that came
+                        -- back without it would read as "never used".
+                        COALESCE((SELECT SUM(-delta) / GREATEST(COUNT(DISTINCT business_date), 1)
+                                    FROM stock_ledger sl2
+                                   WHERE sl2.inventory_item_id = i.id AND sl2.delta < 0
+                                     AND sl2.business_date >= DATE_SUB(CURDATE(), INTERVAL 28 DAY)), 0)
+                            AS daily_use,
+                        EXISTS (SELECT 1 FROM sub_recipe_lines sr
+                                 WHERE sr.parent_item_id = i.id) AS made_in_house,
                         EXISTS (SELECT 1 FROM stock_receiving_lines rl
                                  WHERE rl.inventory_item_id = i.id) AS has_receipts,
                         (SELECT COUNT(*) FROM recipe_lines l

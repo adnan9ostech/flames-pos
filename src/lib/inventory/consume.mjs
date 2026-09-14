@@ -14,7 +14,7 @@
 import { withTransaction } from '../db/pool.mjs';
 import { postLedger } from '../db/inventory.mjs';
 import { RECIPE_VARIANT_FOR_LINE } from '../menu/rules.mjs';
-import { indexSubRecipes, expandToRaw } from './subrecipe.mjs';
+import { indexSubRecipes, expandToRaw, loadYields } from './subrecipe.mjs';
 import { openBusinessDate } from '../day/openDay.mjs';;
 
 // 'Main Store', seeded by migration 002. The till has no warehouse concept,
@@ -85,12 +85,19 @@ export const consumeForOrder = async (order) => {
             const [subLines] = await conn.query(
                 'SELECT parent_item_id, component_item_id, qty FROM sub_recipe_lines',
             );
-            const raw = subLines.length
-                ? expandToRaw(
-                    used.map((u) => ({ itemId: u.item_id, qty: Number(u.qty) })),
-                    indexSubRecipes(subLines),
-                )
-                : used.map((u) => ({ itemId: u.item_id, qty: Number(u.qty) }));
+            /*
+             * And through yield. A recipe line says what reaches the plate;
+             * the shelf gave up what had to be trimmed to get there, so an
+             * item that yields 70% leaves the store at 1/0.7 of the recipe
+             * quantity. Items at 100% — which is all of them until someone
+             * says otherwise — divide by one and this line changes nothing.
+             */
+            const yields = await loadYields(conn);
+            const raw = expandToRaw(
+                used.map((u) => ({ itemId: u.item_id, qty: Number(u.qty) })),
+                indexSubRecipes(subLines),
+                yields,
+            );
 
             // The order's own trading day, so a 1 a.m. sale's consumption
             // sits in the same day-close as its revenue. unit_cost stays

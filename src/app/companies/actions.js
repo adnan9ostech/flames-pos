@@ -12,6 +12,7 @@ import { randomUUID } from 'node:crypto'
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 /* Sums of DECIMAL(12,2) arrive as JS numbers; pin every derived figure back
  * to paise so a long charge/receipt chain can't accumulate float dust. */
@@ -28,12 +29,8 @@ const resolveBusinessDate = async (conn) => {
     return openBusinessDate(null, conn)
 }
 
-const auditTx = async (conn, action, details) => {
-    await conn.query(
-        'INSERT INTO audit_log (branch_id, business_date, action, details) VALUES (1, ?, ?, ?)',
-        [await resolveBusinessDate(conn), action, JSON.stringify(details)],
-    )
-}
+const auditTx = async (conn, action, details) =>
+    writeAudit(conn, { businessDate: await resolveBusinessDate(conn), action, details })
 
 const companyRow = (row) => ({
     ...row,

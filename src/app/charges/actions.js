@@ -3,6 +3,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 const ORDER_TYPES = ['dine-in', 'takeaway', 'delivery']
 
@@ -17,11 +18,7 @@ const businessDate = async () => {
 }
 
 const audit = (conn, bd, action, details) =>
-    conn.query(
-        `INSERT INTO audit_log (branch_id, business_date, action, details)
-         VALUES (1, ?, ?, ?)`,
-        [bd, action, JSON.stringify(details)],
-    )
+    writeAudit(conn, { businessDate: bd, action, details })
 
 /*
  * What the page consumes. Flags come back from MySQL as 0/1 and the toggle

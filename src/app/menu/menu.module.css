@@ -550,6 +550,17 @@
 
 .required::after { content: ' *'; color: var(--primary) }
 
+/* A sentence under a field, for the ones where the label cannot carry the
+   whole idea — what a yield percentage is, say. Deliberately small and grey:
+   it is there to be found once, not read every time. */
+.fieldHint {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.74rem;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+}
+
 .input {
     width: 100%;
     background: var(--background);

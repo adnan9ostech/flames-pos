@@ -21,6 +21,7 @@ import { randomUUID } from 'node:crypto';
 import { pool, withTransaction, query } from './pool.mjs';
 import { serializeRow } from './serialize.mjs';
 import { calcTotals } from '../orderTotals.mjs';
+import { taxRatesFor } from './branchSettings.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -59,15 +60,14 @@ const getRoundingStep = async (conn) => {
     return mode === '1' ? 1 : mode === '5' ? 5 : 0;
 };
 
-const getTaxRates = async (conn) => {
-    const [rows] = await conn.query(
-        'SELECT tax_rate_cash, tax_rate_card FROM store_settings LIMIT 1',
-    );
-    return {
-        cash: Number(rows[0]?.tax_rate_cash ?? 0.16),
-        card: Number(rows[0]?.tax_rate_card ?? 0.16),
-    };
-};
+/*
+ * The rates THIS OUTLET charges. A branch in Lahore answers to the Punjab
+ * Revenue Authority and one in Islamabad to the FBR, at different percentages,
+ * so the rate is a property of where the bill was rung — not of the company.
+ * Outlets that have not departed from the company rate have no override row
+ * and get the company's answer, which is every outlet today.
+ */
+const getTaxRates = (conn, branchId) => taxRatesFor(conn, branchId);
 
 /* The rate a given payment method carries; anything unknown prices as cash
  * (a city-ledger credit sale taxes at the standard rate). */
@@ -292,7 +292,7 @@ const settleOrderTx = async (conn, orderId, {
     // Tax at the rate this payment method carries — the ICT differential.
     // The rate is stamped on the row below, next to the method, so the
     // ledger and the tax report can say which rate produced `tax`.
-    const rates = await getTaxRates(conn);
+    const rates = await getTaxRates(conn, order.branch_id);
     const taxRate = rateForMethod(rates, method);
     order = await recomputeOrder(conn, orderId, { taxRate });
 
@@ -536,7 +536,7 @@ const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, pay
 
         await insertRoundItems(conn, { orderId, roundId, roundNo: 1, branchId, items });
 
-        const rates = await getTaxRates(conn);
+        const rates = await getTaxRates(conn, branchId);
         let order = await recomputeOrder(conn, orderId, {
             // A pay-now sale prices at its method's rate from the start; an
             // open tab displays at the cash rate until it is settled.
@@ -641,7 +641,7 @@ export const appendRound = async (orderId, items, clientRequestId = null, expect
             ],
         );
 
-        const rates = await getTaxRates(conn);
+        const rates = await getTaxRates(conn, order.branch_id);
         const updated = await recomputeOrder(conn, orderId, { taxRate: rates.cash });
 
         if (expectedTotal != null && Number(expectedTotal) !== Number(updated.total)) {

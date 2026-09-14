@@ -4,6 +4,7 @@ import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRow, serializeRows } from '@/lib/db/serialize.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 const PAID_FROM = ['drawer', 'bank', 'other']
 const STATUSES = ['paid', 'payable']
@@ -23,12 +24,8 @@ const karachiDay = () =>
  * this file drops an audit row inside the same transaction, so the voucher
  * and its paper trail commit or roll back together.
  */
-const audit = async (conn, businessDate, action, details) => {
-    await conn.query(
-        'INSERT INTO audit_log (branch_id, business_date, action, details) VALUES (1, ?, ?, ?)',
-        [businessDate, action, JSON.stringify(details)],
-    )
-}
+const audit = (conn, businessDate, action, details) =>
+    writeAudit(conn, { businessDate, action, details })
 
 const fetchVoucher = async (conn, id) => {
     const [rows] = await conn.query(

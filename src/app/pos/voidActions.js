@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { query } from '@/lib/db/pool.mjs'
 import { requireUser } from '@/lib/db/auth.mjs'
 import { effectivePermissions } from '@/lib/auth/permissions.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 // The trading day a removal belongs to: the open business day if day-close is
 // in use, else the Karachi calendar day. Mirrors resolveBusinessDate in
@@ -71,26 +72,23 @@ export async function approveVoid({ pin, reason, item = null, orderId = null } =
 
         // staff_id is WHO AUTHORISED; the operator (who was signed in and asked
         // for the removal) is kept in details, so a later read shows both hands.
-        await query(
-            `INSERT INTO audit_log (branch_id, business_date, action, order_id, staff_id, details)
-             VALUES (1, ?, 'remove_item', ?, ?, ?)`,
-            [
-                businessDate,
-                orderId || null,
-                approver.id,
-                JSON.stringify({
-                    reason: why,
-                    item: item ? {
-                        name: item.name ?? null,
-                        qty: item.qty ?? null,
-                        price: item.price ?? null,
-                        variant: item.variant ?? item.selectedVariant?.name ?? null,
-                    } : null,
-                    approved_by: { id: approver.id, name: approvedBy, role: approver.role },
-                    removed_by: { id: operator.id, name: operator.name, role: operator.role },
-                }),
-            ],
-        )
+        await writeAudit(null, {
+            businessDate,
+            action: 'remove_item',
+            orderId: orderId || null,
+            staffId: approver.id,
+            details: {
+                reason: why,
+                item: item ? {
+                    name: item.name ?? null,
+                    qty: item.qty ?? null,
+                    price: item.price ?? null,
+                    variant: item.variant ?? item.selectedVariant?.name ?? null,
+                } : null,
+                approved_by: { id: approver.id, name: approvedBy, role: approver.role },
+                removed_by: { id: operator.id, name: operator.name, role: operator.role },
+            },
+        })
 
         return { data: { approvedBy } }
     } catch (e) {

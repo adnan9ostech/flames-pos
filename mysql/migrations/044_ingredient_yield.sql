@@ -1,0 +1,29 @@
+-- What you buy versus what you can cook with (14 Sep 2026). Re-runnable.
+--
+-- Blink's warehouse list has a YIELD % column and it is the one genuinely
+-- missing idea in ours. Buy a whole chicken and roughly 70% of the weight
+-- reaches a plate; the rest is bone, skin and trim. Buy onions and you lose
+-- the skin and the ends. That loss is real, it is predictable, and until now
+-- this system has had nowhere to write it down — so it showed up as a shelf
+-- that was always short and a food cost that was always optimistic.
+--
+-- WHAT THE NUMBER MEANS, because there are two possible readings and only one
+-- of them is consistent:
+--
+--   A recipe line is written in what the CHEF USES. "200 g chicken" means 200
+--   grams on the plate. Stock is held in what the RESTAURANT BUYS — whole
+--   chicken, by the kilo. Yield is the bridge: at 70%, plating 200 g takes
+--   286 g off the shelf, and the 200 g costs what 286 g cost.
+--
+-- So the divide happens ONCE, at the point a recipe quantity becomes a stock
+-- quantity, and cost follows for free because cost is computed off the
+-- quantity. Writing the number down does not make anyone re-learn the recipes.
+--
+-- 100 is the default and 100 divides by one, so every existing ingredient,
+-- recipe and ledger row means exactly what it meant yesterday. Nothing changes
+-- until someone deliberately says an item loses weight.
+--
+-- Only RAW items carry it. A sub-recipe is a phantom, never bought and never
+-- trimmed, and its parts carry their own.
+ALTER TABLE inventory_items
+  ADD COLUMN yield_pct DECIMAL(5,2) NOT NULL DEFAULT 100.00;

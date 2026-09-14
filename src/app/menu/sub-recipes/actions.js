@@ -134,12 +134,13 @@ export async function priceSubRecipe(lines = []) {
         await requirePermission('menu')
         const [rows, items] = await Promise.all([
             query('SELECT parent_item_id, component_item_id, qty FROM sub_recipe_lines'),
-            query('SELECT id, avg_cost FROM inventory_items'),
+            query('SELECT id, avg_cost, yield_pct FROM inventory_items'),
         ])
         const map = indexSubRecipes(rows)
         const costs = new Map(items.map((i) => [Number(i.id), Number(i.avg_cost)]))
+        const yields = new Map(items.map((i) => [Number(i.id), Number(i.yield_pct)]))
         const total = lines.reduce(
-            (sum, l) => sum + Number(l.qty || 0) * effectiveCost(Number(l.itemId), map, costs),
+            (sum, l) => sum + Number(l.qty || 0) * effectiveCost(Number(l.itemId), map, costs, yields),
             0,
         )
         return { data: { cost: Math.round(total * 10000) / 10000 } }

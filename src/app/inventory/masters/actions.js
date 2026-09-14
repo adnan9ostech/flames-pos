@@ -3,6 +3,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 /* The calendar day in Asia/Karachi (fixed UTC+5, no DST). */
 const karachiDay = () =>
@@ -14,14 +15,9 @@ const karachiDay = () =>
  * the money verbs apply, restated here because the kernel keeps its copy
  * private.
  */
-const auditLog = async (conn, action, details) => {
-    const businessDate = await openBusinessDate(null, conn)
-    await conn.query(
-        `INSERT INTO audit_log (branch_id, business_date, action, details)
-         VALUES (1, ?, ?, ?)`,
-        [businessDate, action, JSON.stringify(details)],
-    )
-}
+// The day is left to writeAudit, which asks openBusinessDate for the branch
+// it just resolved — one lookup rather than two that could disagree.
+const auditLog = (conn, action, details) => writeAudit(conn, { action, details })
 
 /* MySQL's duplicate-key error, translated for the person at the screen. */
 const friendly = (e, what) =>

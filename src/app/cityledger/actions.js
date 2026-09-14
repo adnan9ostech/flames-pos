@@ -10,6 +10,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const RECEIPT_METHODS = ['cash', 'card', 'bank', 'cheque']
@@ -43,12 +44,8 @@ const resolveBusinessDate = async (conn) => {
     return openBusinessDate(null, conn)
 }
 
-const auditTx = async (conn, action, details) => {
-    await conn.query(
-        'INSERT INTO audit_log (branch_id, business_date, action, details) VALUES (1, ?, ?, ?)',
-        [await resolveBusinessDate(conn), action, JSON.stringify(details)],
-    )
-}
+const auditTx = async (conn, action, details) =>
+    writeAudit(conn, { businessDate: await resolveBusinessDate(conn), action, details })
 
 /*
  * Bill a company for its uninvoiced charges in a business-date window.

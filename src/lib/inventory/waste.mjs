@@ -14,9 +14,21 @@
  */
 import { withTransaction } from '../db/pool.mjs';
 import { postLedger } from '../db/inventory.mjs';
-import { indexSubRecipes, expandToRaw } from './subrecipe.mjs';
+import { indexSubRecipes, expandToRaw, loadYields } from './subrecipe.mjs';
 import { karachiDay } from '../day/karachi.mjs';
 import { openBusinessDate } from '../day/openDay.mjs';;
+import { writeAudit } from '../db/audit.mjs';
+
+/* Same lazy resolution as openDay.mjs: this module runs inside the suite and
+ * a worker as well as a request, and outside one there is no cookie to read. */
+const branchOfRequest = async () => {
+    try {
+        const { currentBranchId } = await import('../db/branch.mjs');
+        return await currentBranchId();
+    } catch {
+        return 1;
+    }
+};
 
 const MAIN_WAREHOUSE_ID = 1;
 const round4 = (n) => Math.round(Number(n) * 10000) / 10000;
@@ -41,9 +53,11 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
         // the same day-close.
         const businessDate = await openBusinessDate(null, conn);
 
+        // The outlet that binned the food owns the document, and its stock
+        // movements below are already dated by that outlet's open day.
         const [doc] = await conn.query(
-            'INSERT INTO waste_docs (branch_id, business_date, reason, posted_by) VALUES (1, ?, ?, ?)',
-            [businessDate, why, userId],
+            'INSERT INTO waste_docs (branch_id, business_date, reason, posted_by) VALUES (?, ?, ?, ?)',
+            [await branchOfRequest(), businessDate, why, userId],
         );
         const docId = doc.insertId;
 
@@ -61,6 +75,9 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
         const [costRows] = await conn.query('SELECT id, avg_cost FROM inventory_items');
         const costs = new Map(costRows.map((c) => [Number(c.id), Number(c.avg_cost)]));
         const subMap = indexSubRecipes(subLines);
+        // The same trim the shelf gives up on a sale it gives up on a binned
+        // dish: a wasted karahi cost the whole chicken, not the plated half.
+        const yields = await loadYields(conn);
 
         const used = [];
         const lineCosts = [];
@@ -78,6 +95,7 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
             const raw = expandToRaw(
                 recipe.map((r) => ({ itemId: Number(r.inventory_item_id), qty: Number(r.qty) * l.qty })),
                 subMap,
+                yields,
             );
             used.push(...raw);
             lineCosts.push(round2(raw.reduce((sum, r) => sum + r.qty * (costs.get(r.itemId) ?? 0), 0)));
@@ -104,17 +122,17 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
             .filter((m) => m.delta !== 0);
         if (movements.length) await postLedger(conn, movements);
 
-        await conn.query(
-            `INSERT INTO audit_log (branch_id, business_date, action, details)
-             VALUES (1, ?, 'dish_waste', ?)`,
-            [businessDate, JSON.stringify({
+        await writeAudit(conn, {
+            businessDate,
+            action: 'dish_waste',
+            details: {
                 waste_doc_id: docId,
                 reason: why,
                 dishes: clean.length,
                 cost: round2(lineCosts.reduce((a, b) => a + b, 0)),
                 by: userId,
-            })],
-        );
+            },
+        });
 
         return { id: docId, businessDate, cost: round2(lineCosts.reduce((a, b) => a + b, 0)) };
     });

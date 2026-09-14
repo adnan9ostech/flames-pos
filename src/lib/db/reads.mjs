@@ -248,8 +248,9 @@ export const getOutOfStockDishes = async () => {
     ]);
     if (recipeLines.length === 0 || onHand.length === 0) return [];
 
-    const { indexSubRecipes, expandToRaw } = await import('../inventory/subrecipe.mjs');
+    const { indexSubRecipes, expandToRaw, loadYields } = await import('../inventory/subrecipe.mjs');
     const subMap = indexSubRecipes(subLines);
+    const yields = await loadYields();
     // Only ingredients the ledger has ever heard of, and of those, the ones at
     // or below zero.
     const empty = new Set(
@@ -266,7 +267,7 @@ export const getOutOfStockDishes = async () => {
     for (const [dish, lines] of byDish) {
         // Expanded, so a dish is out when the masala's chilli is out even
         // though no tub of masala was ever on a shelf.
-        for (const raw of expandToRaw(lines, subMap)) {
+        for (const raw of expandToRaw(lines, subMap, yields)) {
             if (empty.has(raw.itemId)) { out.add(dish); break; }
         }
     }

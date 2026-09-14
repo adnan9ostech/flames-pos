@@ -8,6 +8,7 @@ import { requirePermission } from '@/lib/db/auth.mjs'
 import {
     ROLES, PERMISSION_KEYS, ROLE_DEFAULTS, effectivePermissions,
 } from '@/lib/auth/permissions.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 /*
  * The accounts screen: who can sign in, as what, and with which rights.
@@ -27,12 +28,13 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 // through it; nobody gets assigned to it again.
 const ASSIGNABLE_ROLES = Object.keys(ROLES).filter((r) => r !== 'staff')
 
+// Dated by the calendar, not the trading day: adding a user is not a till
+// action and does not belong to a service.
 const audit = (actorId, action, details) =>
-    query(
-        `INSERT INTO audit_log (branch_id, business_date, staff_id, action, details)
-         VALUES (1, CURRENT_DATE, ?, ?, ?)`,
-        [actorId, action, JSON.stringify(details)],
-    )
+    writeAudit(null, {
+        businessDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' }),
+        staffId: actorId, action, details,
+    })
 
 /*
  * Shared by create and update: an account needs a name, a real role, and at

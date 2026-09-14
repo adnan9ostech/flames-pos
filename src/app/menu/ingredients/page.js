@@ -19,6 +19,7 @@ const EMPTY_FORM = {
     unit_id: '',
     avg_cost: '',
     reorder_level: '',
+    yield_pct: '',
     is_active: true,
 }
 
@@ -86,7 +87,10 @@ export default function IngredientsPage() {
         return {
             count: active.length,
             uncosted: active.filter((i) => i.avg_cost <= 0).length,
-            value: items.reduce((s, i) => s + i.on_hand * i.avg_cost, 0),
+            // The rows' own figures summed, not a second multiplication: two
+            // roundings of the same number are how a footer drifts a rupee off
+            // the column above it.
+            value: items.reduce((s, i) => s + i.stock_value, 0),
         }
     }, [items])
 
@@ -106,6 +110,9 @@ export default function IngredientsPage() {
             unit_id: String(item.unit_id),
             avg_cost: String(item.avg_cost),
             reorder_level: String(item.reorder_level),
+            // 100 is "no loss", which is the absence of an answer rather than
+            // an answer — so the box shows empty and the placeholder says 100.
+            yield_pct: item.yield_pct === 100 ? '' : String(item.yield_pct),
             is_active: item.is_active,
         })
         setFormOpen(true)
@@ -322,6 +329,8 @@ export default function IngredientsPage() {
                                 <th>Unit</th>
                                 <th className={styles.alignRight}>Cost per unit</th>
                                 <th className={styles.alignRight}>On hand</th>
+                                <th className={styles.alignRight}>Value</th>
+                                <th className={styles.alignRight}>Used / day</th>
                                 <th className={styles.alignRight}>Reorder at</th>
                                 {canEdit && <th className={styles.cellActions}>Actions</th>}
                             </tr>
@@ -329,14 +338,14 @@ export default function IngredientsPage() {
                         <tbody>
                             {isLoading && (
                                 <tr>
-                                    <td colSpan={canEdit ? 6 : 5} className={styles.emptyCell}>
+                                    <td colSpan={canEdit ? 8 : 7} className={styles.emptyCell}>
                                         <Loader2 className={styles.spinner} size={24} />
                                     </td>
                                 </tr>
                             )}
                             {!isLoading && visible.length === 0 && (
                                 <tr>
-                                    <td colSpan={canEdit ? 6 : 5} className={styles.emptyCell}>
+                                    <td colSpan={canEdit ? 8 : 7} className={styles.emptyCell}>
                                         {items.length === 0
                                             ? 'No ingredients yet: add the ones the recipes need, with what you pay for them.'
                                             : 'No ingredient matches.'}
@@ -385,6 +394,32 @@ export default function IngredientsPage() {
                                     </td>
                                     <td className={styles.cellNum}>
                                         {formatNumber(item.on_hand, 3)}
+                                        {item.yield_pct < 100 && (
+                                            <span className={styles.cellSub}>
+                                                <span className={styles.chip}>{item.yield_pct}% usable</span>
+                                            </span>
+                                        )}
+                                    </td>
+                                    {/* What is on the shelf, in money. The one
+                                        number an owner counting stock actually
+                                        wants, and the footer sums it. */}
+                                    <td className={styles.cellNum}>{cost(item.stock_value)}</td>
+                                    <td className={styles.cellNum}>
+                                        {item.daily_use > 0 ? (
+                                            <>
+                                                {formatNumber(item.daily_use, 3)}
+                                                {/* Days of cover: the number that
+                                                    says "order on Thursday". Left
+                                                    off when nothing is on hand,
+                                                    where it would read as zero
+                                                    days rather than as no data. */}
+                                                {item.on_hand > 0 && (
+                                                    <span className={styles.cellSub}>
+                                                        {formatNumber(item.on_hand / item.daily_use, 1)} days left
+                                                    </span>
+                                                )}
+                                            </>
+                                        ) : <span className={styles.cellMuted}>—</span>}
                                     </td>
                                     <td className={`${styles.cellNum} ${styles.cellMuted}`}>
                                         {item.reorder_level > 0 ? formatNumber(item.reorder_level, 3) : '—'}
@@ -502,8 +537,8 @@ export default function IngredientsPage() {
                                 </div>
                             </div>
 
-                            <details className={local.moreFields} open={Boolean(form.category || form.reorder_level || !form.is_active)}>
-                                <summary>More: category, reorder level, active</summary>
+                            <details className={local.moreFields} open={Boolean(form.category || form.reorder_level || form.yield_pct || !form.is_active)}>
+                                <summary>More: category, reorder level, yield, active</summary>
 
                                 <div className={styles.fieldRow}>
                                     <div className={styles.field}>
@@ -537,6 +572,27 @@ export default function IngredientsPage() {
                                             onChange={(e) => setField('reorder_level', e.target.value)}
                                             placeholder="0"
                                         />
+                                    </div>
+                                    <div className={styles.field}>
+                                        <label className={styles.fieldLabel} htmlFor="ing_yield">
+                                            Usable after trimming (%)
+                                        </label>
+                                        <input
+                                            id="ing_yield"
+                                            className={`${styles.input} ${styles.inputNum}`}
+                                            type="number"
+                                            min="1"
+                                            max="100"
+                                            step="any"
+                                            inputMode="decimal"
+                                            value={form.yield_pct}
+                                            onChange={(e) => setField('yield_pct', e.target.value)}
+                                            placeholder="100"
+                                        />
+                                        <span className={styles.fieldHint}>
+                                            A whole chicken is about 70% meat. Write the recipe in what
+                                            reaches the plate and this takes the bone off the shelf too.
+                                        </span>
                                     </div>
                                 </div>
 

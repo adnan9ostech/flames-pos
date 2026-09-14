@@ -17,6 +17,7 @@ const TABS = [
     { key: 'charges', label: 'Charges', href: '/charges' },
     { key: 'channels', label: 'Sales Channels', href: '/settings/channels' },
     { key: 'tax', label: 'Tax & FBR', href: '/settings/tax' },
+    { key: 'branches', label: 'Branches', href: '/settings/branches' },
 ]
 
 export default function SettingsTabs({ active }) {

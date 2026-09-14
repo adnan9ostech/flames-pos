@@ -329,6 +329,11 @@ export const NAV_INDEX = [
         keywords: 'tax fbr gst sales tax rate digital invoicing card rate cash rate ntn',
     },
     {
+        href: '/settings/branches', label: 'Branches', icon: 'Building2', perm: 'settings',
+        section: 'Setup',
+        keywords: 'branch outlet location shop second branch multi branch switch site store',
+    },
+    {
         href: '/profile', label: 'Profile', icon: 'User',
         section: 'Setup',
         keywords: 'my account change password profile me sign out details',

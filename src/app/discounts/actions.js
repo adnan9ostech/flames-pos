@@ -3,6 +3,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 const SCOPES = ['order', 'category', 'item']
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -16,11 +17,7 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
 const businessDate = async () => openBusinessDate()
 
 const audit = (conn, bd, action, details) =>
-    conn.query(
-        `INSERT INTO audit_log (branch_id, business_date, action, details)
-         VALUES (1, ?, ?, ?)`,
-        [bd, action, JSON.stringify(details)],
-    )
+    writeAudit(conn, { businessDate: bd, action, details })
 
 /* The calendar day and wall clock in Asia/Karachi (fixed UTC+5, no DST). */
 const karachiDay = (d) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })

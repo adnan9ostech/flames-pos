@@ -11,6 +11,7 @@
  * document commits with its ledger rows and audit entry or not at all.
  */
 import { withTransaction } from './pool.mjs';
+import { writeAudit } from './audit.mjs';
 
 // DECIMAL(12,2) money, (12,3) receiving qty, (12,4) ledger qty and cost —
 // rounded before INSERT so "0.1+0.2" float dust never reaches a CHECK.
@@ -39,13 +40,8 @@ const resolveBusinessDate = async (conn, branchId = 1) => {
     return d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
 };
 
-const auditLog = async (conn, businessDate, action, details) => {
-    await conn.query(
-        `INSERT INTO audit_log (branch_id, business_date, action, details)
-         VALUES (1, ?, ?, ?)`,
-        [businessDate, action, JSON.stringify(details)],
-    );
-};
+const auditLog = (conn, businessDate, action, details) =>
+    writeAudit(conn, { businessDate, action, details });
 
 const toId = (value, message) => {
     const n = Number(value);

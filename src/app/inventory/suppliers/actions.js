@@ -10,6 +10,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
+import { writeAudit } from '@/lib/db/audit.mjs'
 
 /* Matches the CHECK on supplier_payments.method. */
 const PAYMENT_METHODS = ['cash', 'bank', 'cheque']
@@ -43,12 +44,8 @@ const resolveBusinessDate = async (conn) => {
     return openBusinessDate(null, conn)
 }
 
-const auditTx = async (conn, action, details) => {
-    await conn.query(
-        'INSERT INTO audit_log (branch_id, business_date, action, details) VALUES (1, ?, ?, ?)',
-        [await resolveBusinessDate(conn), action, JSON.stringify(details)],
-    )
-}
+const auditTx = async (conn, action, details) =>
+    writeAudit(conn, { businessDate: await resolveBusinessDate(conn), action, details })
 
 /*
  * Every supplier with what receivings have booked against them, what has

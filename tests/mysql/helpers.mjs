@@ -97,6 +97,11 @@ export const resetDb = async () => {
         await pool.query(`DELETE FROM ${table}`);
     }
 
+    // Branch overrides are per-test facts, never fixtures: a rate left behind
+    // by one test would silently re-price every order in the next one.
+    await pool.query('DELETE FROM branch_settings');
+    await pool.query('DELETE FROM branches WHERE id <> 1');
+
     await pool.query('DELETE FROM store_settings');
     await pool.query(
         `INSERT INTO store_settings (id, merchant_name, tax_rate_cash, tax_rate_card)

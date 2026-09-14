@@ -38,6 +38,18 @@ export const indexSubRecipes = (rows = []) => {
 };
 
 /*
+ * The usable fraction of an item, as a divisor. `yields` maps item id -> the
+ * percentage column; anything absent, zero or nonsensical is 1, meaning no
+ * loss — so an ingredient nobody has thought about behaves exactly as it did
+ * before this column existed, and a fat-fingered 0 cannot divide by zero and
+ * consume the entire shelf.
+ */
+const yieldOf = (itemId, yields) => {
+    const pct = Number(yields?.get?.(Number(itemId)));
+    return Number.isFinite(pct) && pct > 0 && pct <= 100 ? pct / 100 : 1;
+};
+
+/*
  * Explode one quantity of one item into raw quantities, summed per item.
  *
  * `visited` is the cycle guard and it is per-branch, not global: the same
@@ -46,18 +58,30 @@ export const indexSubRecipes = (rows = []) => {
  * silently drop the second. What must never happen is an item appearing inside
  * its own expansion, which is what this catches.
  */
-const explodeInto = (out, itemId, qty, map, visited, depth) => {
+const explodeInto = (out, itemId, qty, map, visited, depth, yields) => {
     const parts = map.get(itemId);
     if (!parts || depth >= MAX_DEPTH || visited.has(itemId)) {
-        // A leaf — or a loop we refuse to follow, in which case the item is
-        // treated as raw. Consuming the masala itself is wrong, but it is far
-        // less wrong than never returning.
-        out.set(itemId, (out.get(itemId) ?? 0) + qty);
+        /*
+         * A leaf — or a loop we refuse to follow, in which case the item is
+         * treated as raw. Consuming the masala itself is wrong, but it is far
+         * less wrong than never returning.
+         *
+         * AND THIS IS WHERE YIELD APPLIES, on the leaf and nowhere else,
+         * because the leaf is the only thing anybody ever bought. A recipe
+         * line is written in what the chef puts on the plate; the shelf holds
+         * what the restaurant carried in through the door. At 70% yield,
+         * plating 200 g of chicken takes 286 g of whole chicken, and the
+         * division happens once, here, so cost follows without a second rule.
+         *
+         * A phantom never reaches this line with a yield of its own: it is
+         * never bought and never trimmed, and its parts carry theirs.
+         */
+        out.set(itemId, (out.get(itemId) ?? 0) + qty / yieldOf(itemId, yields));
         return;
     }
     const deeper = new Set(visited).add(itemId);
     for (const part of parts) {
-        explodeInto(out, part.itemId, qty * part.qty, map, deeper, depth + 1);
+        explodeInto(out, part.itemId, qty * part.qty, map, deeper, depth + 1, yields);
     }
 };
 
@@ -67,10 +91,10 @@ const explodeInto = (out, itemId, qty, map, visited, depth) => {
  * ingredient in a kitchen that has not defined one — so this is safe to run
  * over everything.
  */
-export const expandToRaw = (lines = [], map = new Map()) => {
+export const expandToRaw = (lines = [], map = new Map(), yields = new Map()) => {
     const out = new Map();
     for (const l of lines) {
-        explodeInto(out, Number(l.itemId), Number(l.qty), map, new Set(), 0);
+        explodeInto(out, Number(l.itemId), Number(l.qty), map, new Set(), 0, yields);
     }
     return [...out.entries()].map(([itemId, qty]) => ({ itemId, qty }));
 };
@@ -82,13 +106,18 @@ export const expandToRaw = (lines = [], map = new Map()) => {
  * received as "masala" — so its cost is the sum of its parts. `costs` is a
  * Map of item id -> avg_cost for the raw ones.
  */
-export const effectiveCost = (itemId, map, costs, visited = new Set(), depth = 0) => {
+export const effectiveCost = (itemId, map, costs, yields = new Map(), visited = new Set(), depth = 0) => {
     const id = Number(itemId);
     const parts = map.get(id);
-    if (!parts || depth >= MAX_DEPTH || visited.has(id)) return Number(costs.get(id) ?? 0);
+    // A leaf costs what it cost to buy, divided by how much of it is usable:
+    // chicken at Rs 500/kg and 70% yield means usable chicken costs Rs 714/kg,
+    // and that is the number a recipe should be priced at.
+    if (!parts || depth >= MAX_DEPTH || visited.has(id)) {
+        return Number(costs.get(id) ?? 0) / yieldOf(id, yields);
+    }
     const deeper = new Set(visited).add(id);
     return parts.reduce(
-        (sum, p) => sum + p.qty * effectiveCost(p.itemId, map, costs, deeper, depth + 1),
+        (sum, p) => sum + p.qty * effectiveCost(p.itemId, map, costs, yields, deeper, depth + 1),
         0,
     );
 };
@@ -118,14 +147,18 @@ export const recomputeSubRecipeCosts = async (conn) => {
     if (!rows.length) return 0;
     const map = indexSubRecipes(rows);
 
-    const [items] = await conn.query('SELECT id, avg_cost FROM inventory_items');
+    const [items] = await conn.query('SELECT id, avg_cost, yield_pct FROM inventory_items');
     const costs = new Map(items.map((i) => [Number(i.id), Number(i.avg_cost)]));
+    // A phantom's cost is the cost of its USABLE parts: if the masala calls
+    // for 200 g of onion and onion yields 80%, the masala carries the price of
+    // the 250 g that had to be peeled.
+    const yields = new Map(items.map((i) => [Number(i.id), Number(i.yield_pct)]));
 
     // Cost every phantom from the RAW costs — effectiveCost walks the tree
     // itself, so the order rows are written in does not matter.
     let written = 0;
     for (const parent of map.keys()) {
-        const cost = Math.round(effectiveCost(parent, map, costs) * 10000) / 10000;
+        const cost = Math.round(effectiveCost(parent, map, costs, yields) * 10000) / 10000;
         if (cost === costs.get(parent)) continue;
         await conn.query(
             'UPDATE inventory_items SET avg_cost = ?, updated_at = UTC_TIMESTAMP(3) WHERE id = ?',
@@ -134,4 +167,15 @@ export const recomputeSubRecipeCosts = async (conn) => {
         written += 1;
     }
     return written;
+};
+
+/*
+ * item id -> yield percentage, for the callers above. One query, kept here so
+ * the four places that expand a recipe cannot disagree about which column it
+ * is or what shape the Map should be.
+ */
+export const loadYields = async (conn = null) => {
+    const sql = 'SELECT id, yield_pct FROM inventory_items WHERE yield_pct <> 100';
+    const rows = conn ? (await conn.query(sql))[0] : await (await import('../db/pool.mjs')).query(sql);
+    return new Map(rows.map((r) => [Number(r.id), Number(r.yield_pct)]));
 };
