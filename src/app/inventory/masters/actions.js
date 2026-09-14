@@ -2,6 +2,7 @@
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
+import { openBusinessDate } from '@/lib/day/openDay.mjs'
 
 /* The calendar day in Asia/Karachi (fixed UTC+5, no DST). */
 const karachiDay = () =>
@@ -14,15 +15,7 @@ const karachiDay = () =>
  * private.
  */
 const auditLog = async (conn, action, details) => {
-    const [rows] = await conn.query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    )
-    const d = rows[0]?.business_date
-    const businessDate = d
-        ? (d instanceof Date ? d.toISOString().slice(0, 10) : String(d))
-        : karachiDay()
+    const businessDate = await openBusinessDate(null, conn)
     await conn.query(
         `INSERT INTO audit_log (branch_id, business_date, action, details)
          VALUES (1, ?, ?, ?)`,

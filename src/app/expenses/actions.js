@@ -3,6 +3,7 @@
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRow, serializeRows } from '@/lib/db/serialize.mjs'
+import { openBusinessDate } from '@/lib/day/openDay.mjs'
 
 const PAID_FROM = ['drawer', 'bank', 'other']
 const STATUSES = ['paid', 'payable']
@@ -17,17 +18,6 @@ const karachiDay = () =>
  * in use, else the Karachi calendar day — the same resolution the order verbs
  * apply, so a 1 a.m. vegetable run lands on the same day as the 1 a.m. sales.
  */
-const openBusinessDate = async () => {
-    const rows = await query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    )
-    if (rows.length === 0) return karachiDay()
-    const d = rows[0].business_date
-    return d instanceof Date ? d.toISOString().slice(0, 10) : String(d)
-}
-
 /*
  * Money leaving the till is corrected loudly, never silently: every write in
  * this file drops an audit row inside the same transaction, so the voucher

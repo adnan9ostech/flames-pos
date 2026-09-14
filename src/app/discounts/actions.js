@@ -2,6 +2,7 @@
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
+import { openBusinessDate } from '@/lib/day/openDay.mjs'
 
 const SCOPES = ['order', 'category', 'item']
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -12,16 +13,7 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
  * close exists, the Karachi calendar day until then. Same resolution the
  * money verbs use, restated here because the kernel keeps its copy private.
  */
-const businessDate = async (now = new Date()) => {
-    const rows = await query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    )
-    if (rows.length === 0) return karachiDay(now)
-    const d = rows[0].business_date
-    return d instanceof Date ? d.toISOString().slice(0, 10) : String(d)
-}
+const businessDate = async () => openBusinessDate()
 
 const audit = (conn, bd, action, details) =>
     conn.query(

@@ -16,6 +16,9 @@
 import { query, withTransaction } from '../../../lib/db/pool.mjs';
 import { VOUCHER_TYPES } from '../../../lib/accounts/constants.mjs';
 import { money, ymd, todayKarachi, currentBusinessDate, nextVoucherNo, audit } from '../../../lib/accounts/kit.mjs';
+// Relative, not aliased: the suite loads this file in plain Node,
+// where '@/' does not resolve.
+import { openBusinessDate } from '../../../lib/day/openDay.mjs';;
 
 export const PAGE_SIZE = 100;
 /* The most one export may pull in a single call. */
@@ -62,12 +65,7 @@ const resolveFilters = async (f = {}) => {
     let from = isYmd(f.from) ? f.from : null;
     let to = isYmd(f.to) ? f.to : null;
     if (!from && !to) {
-        const rows = await query(
-            `SELECT business_date FROM business_days
-             WHERE branch_id = 1 AND closed_at IS NULL
-             ORDER BY business_date DESC LIMIT 1`,
-        );
-        from = to = rows.length ? ymd(rows[0].business_date) : todayKarachi();
+        from = to = await openBusinessDate();
     }
     from ??= to;
     to ??= from;

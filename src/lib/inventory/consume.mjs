@@ -15,6 +15,7 @@ import { withTransaction } from '../db/pool.mjs';
 import { postLedger } from '../db/inventory.mjs';
 import { RECIPE_VARIANT_FOR_LINE } from '../menu/rules.mjs';
 import { indexSubRecipes, expandToRaw } from './subrecipe.mjs';
+import { openBusinessDate } from '../day/openDay.mjs';;
 
 // 'Main Store', seeded by migration 002. The till has no warehouse concept,
 // so everything a sale consumes comes out of the main store until it does.
@@ -38,16 +39,7 @@ const asDay = (value) => {
 };
 
 /* A void books its stock return to the day it happens, like its payment row. */
-const currentBusinessDate = async (conn) => {
-    const [rows] = await conn.query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    );
-    if (rows.length === 0) return karachiDay();
-    const d = rows[0].business_date;
-    return d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
-};
+const currentBusinessDate = async (conn, branchId = null) => openBusinessDate(branchId, conn);
 
 export const consumeForOrder = async (order) => {
     try {

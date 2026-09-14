@@ -4,6 +4,7 @@ import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
 import { serializeRows } from '@/lib/db/serialize.mjs'
 import { receiveStock } from '@/lib/db/inventory.mjs'
+import { openBusinessDate } from '@/lib/day/openDay.mjs'
 
 /*
  * The general ledger, after the GRN has committed — the same posture as the
@@ -26,15 +27,7 @@ const karachiDay = () =>
  * verbs apply, restated here because the kernel keeps its copy private.
  */
 const auditLog = async (conn, action, details) => {
-    const [rows] = await conn.query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    )
-    const d = rows[0]?.business_date
-    const businessDate = d
-        ? (d instanceof Date ? d.toISOString().slice(0, 10) : String(d))
-        : karachiDay()
+    const businessDate = await openBusinessDate(null, conn)
     await conn.query(
         `INSERT INTO audit_log (branch_id, business_date, action, details)
          VALUES (1, ?, ?, ?)`,

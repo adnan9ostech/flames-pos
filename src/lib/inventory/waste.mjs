@@ -16,6 +16,7 @@ import { withTransaction } from '../db/pool.mjs';
 import { postLedger } from '../db/inventory.mjs';
 import { indexSubRecipes, expandToRaw } from './subrecipe.mjs';
 import { karachiDay } from '../day/karachi.mjs';
+import { openBusinessDate } from '../day/openDay.mjs';;
 
 const MAIN_WAREHOUSE_ID = 1;
 const round4 = (n) => Math.round(Number(n) * 10000) / 10000;
@@ -35,15 +36,10 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
             .filter((l) => l.menuItemId && l.qty > 0);
         if (clean.length === 0) throw new Error('Waste needs at least one dish');
 
-        const [days] = await conn.query(
-            'SELECT business_date FROM business_days WHERE branch_id = 1 AND closed_at IS NULL ORDER BY business_date DESC LIMIT 1',
-        );
         // The open trading day, or today's Karachi date when none is open —
         // the same fallback the orders kernel uses, so waste and sales land in
         // the same day-close.
-        const businessDate = days.length
-            ? String(days[0].business_date instanceof Date ? days[0].business_date.toISOString().slice(0, 10) : days[0].business_date).slice(0, 10)
-            : karachiDay();
+        const businessDate = await openBusinessDate(null, conn);
 
         const [doc] = await conn.query(
             'INSERT INTO waste_docs (branch_id, business_date, reason, posted_by) VALUES (1, ?, ?, ?)',

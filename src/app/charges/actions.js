@@ -2,6 +2,7 @@
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
+import { openBusinessDate } from '@/lib/day/openDay.mjs'
 
 const ORDER_TYPES = ['dine-in', 'takeaway', 'delivery']
 
@@ -11,16 +12,8 @@ const ORDER_TYPES = ['dine-in', 'takeaway', 'delivery']
  * money verbs use, restated here because the kernel keeps its copy private.
  */
 const businessDate = async () => {
-    const rows = await query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    )
-    if (rows.length === 0) {
-        return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
-    }
-    const d = rows[0].business_date
-    return d instanceof Date ? d.toISOString().slice(0, 10) : String(d)
+    // The open day for the branch this request is acting on.
+    return openBusinessDate(null)
 }
 
 const audit = (conn, bd, action, details) =>

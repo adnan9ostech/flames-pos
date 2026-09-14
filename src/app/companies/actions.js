@@ -11,6 +11,7 @@
 import { randomUUID } from 'node:crypto'
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requireUser, requirePermission } from '@/lib/db/auth.mjs'
+import { openBusinessDate } from '@/lib/day/openDay.mjs'
 
 /* Sums of DECIMAL(12,2) arrive as JS numbers; pin every derived figure back
  * to paise so a long charge/receipt chain can't accumulate float dust. */
@@ -23,14 +24,8 @@ const day = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v)
 /* The trading day an audit row belongs to — the open business day once
  * day-close is live, else the Karachi calendar day, matching orders.mjs. */
 const resolveBusinessDate = async (conn) => {
-    const [rows] = await conn.query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    )
-    return rows.length > 0
-        ? day(rows[0].business_date)
-        : new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
+    // The open day for the branch this request is acting on.
+    return openBusinessDate(null, conn)
 }
 
 const auditTx = async (conn, action, details) => {

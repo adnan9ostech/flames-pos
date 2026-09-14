@@ -9,6 +9,7 @@
 
 import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { openBusinessDate } from '@/lib/day/openDay.mjs'
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const RECEIPT_METHODS = ['cash', 'card', 'bank', 'cheque']
@@ -38,12 +39,8 @@ const karachiDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asi
 /* The trading day an audit row belongs to — the open business day once
  * day-close is live, else the Karachi calendar day, matching orders.mjs. */
 const resolveBusinessDate = async (conn) => {
-    const [rows] = await conn.query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = 1 AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-    )
-    return rows.length > 0 ? day(rows[0].business_date) : karachiDay()
+    // The open day for the branch this request is acting on.
+    return openBusinessDate(null, conn)
 }
 
 const auditTx = async (conn, action, details) => {
