@@ -307,9 +307,9 @@
 }
 
 .categoryTab.active {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border-color: var(--primary);
+    background: var(--selected);
+    color: var(--selected-foreground);
+    border-color: var(--selected-border);
     /* Was an emerald glow (rgba(16,185,129,0.3)) under an orange tab — a
        copy-paste from a green control, same bug as ModifierModal .optionBtn.
        Now the brand orange it belongs to. A deliberate, documented dark delta. */

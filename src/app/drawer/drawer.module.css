@@ -358,8 +358,8 @@
 }
 
 .typeBtn.typeActive {
-    background: var(--primary);
-    color: var(--primary-foreground);
+    background: var(--selected);
+    color: var(--selected-foreground);
 }
 
 .moveList {

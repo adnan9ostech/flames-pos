@@ -58,8 +58,8 @@
 }
 
 .filterTab.active {
-    background: var(--primary);
-    color: var(--primary-foreground);
+    background: var(--selected);
+    color: var(--selected-foreground);
 }
 
 .filterCount {
@@ -317,8 +317,8 @@
 }
 
 .segmentBtn.segmentActive {
-    background: var(--primary);
-    color: var(--primary-foreground);
+    background: var(--selected);
+    color: var(--selected-foreground);
 }
 
 .checkboxRow {

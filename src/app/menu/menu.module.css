@@ -195,9 +195,9 @@
 .filterTab:hover { color: var(--foreground); border-color: var(--primary) }
 
 .filterActive {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--primary-foreground);
+    background: var(--selected);
+    border-color: var(--selected-border);
+    color: var(--selected-foreground);
 }
 
 .searchBox {
@@ -846,7 +846,7 @@ textarea.input { min-height: 72px; resize: vertical }
 }
 
 .segment:hover { color: var(--foreground) }
-.segmentActive { background: var(--primary); color: var(--primary-foreground) }
+.segmentActive { background: var(--selected); color: var(--primary-foreground) }
 .segmentDot {
     display: inline-block;
     width: 6px;

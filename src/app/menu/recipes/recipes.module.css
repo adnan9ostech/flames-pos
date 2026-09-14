@@ -128,7 +128,23 @@
  * single most expensive thing about writing a hundred and twenty-five
  * recipes.
  */
-.newIngRow td { background: var(--primary-soft); }
+/*
+ * Tied to the picker that opened it — a left rule and an indent — so it reads
+ * as "that dropdown is asking", not as a second section of the page sitting
+ * between the table and its own Add button.
+ */
+.newIngRow td {
+    background: var(--primary-soft);
+    border-left: 3px solid var(--primary);
+    padding-left: 0.75rem;
+}
+
+.newIngTitle {
+    margin: 0 0 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.76rem;
+    font-weight: 600;
+}
 
 .newIngForm {
     display: flex;

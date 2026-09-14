@@ -165,9 +165,15 @@
     color: var(--foreground);
 }
 
+/*
+ * "You are here" on the rail, through the same tokens the report tabs use: a
+ * solid brand slab on black, a brand wash with brand ink on the light page.
+ * The rail carries this on every screen, so a dark rust brick sitting in a
+ * white sidebar all day is the loudest version of the problem.
+ */
 .link.active {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: var(--selected);
+    color: var(--selected-foreground);
 }
 
 .label {
@@ -363,4 +369,14 @@
 
 .childLink.active {
     border-left-color: var(--primary);
+}
+
+/*
+ * A section you are inside, but not the page you are on: its own screens are
+ * listed underneath, so this only has to say "this is the group" — bolder ink
+ * and the brand's colour, no fill. The fill belongs to exactly one row.
+ */
+.link.sectionOpen {
+    color: var(--primary);
+    font-weight: 700;
 }

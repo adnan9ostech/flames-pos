@@ -757,7 +757,7 @@ function RecipesScreen() {
                                                                     {i.name} ({i.unit_abbrev})
                                                                 </option>
                                                             ))}
-                                                            <option value={NEW_ING}>＋ New ingredient…</option>
+                                                            <option value={NEW_ING}>＋ Not in the list — create it…</option>
                                                         </select>
                                                     </td>
                                                     <td className={local.qtyCell}>
@@ -807,6 +807,17 @@ function RecipesScreen() {
                                                 {newFor === line.key && (
                                                     <tr className={local.newIngRow}>
                                                         <td colSpan={canEdit ? 6 : 5}>
+                                                            {/*
+                                                              * Said out loud, because two things on this screen
+                                                              * used to look like "add an ingredient": the button
+                                                              * under the table adds a ROW to this dish, and this
+                                                              * adds an INGREDIENT to the restaurant's list. The
+                                                              * heading and the word "create" are what tell them
+                                                              * apart.
+                                                              */}
+                                                            <p className={local.newIngTitle}>
+                                                                New ingredient — added to your ingredient list, then used on this line
+                                                            </p>
                                                             <div className={local.newIngForm}>
                                                                 <input
                                                                     className={`${styles.input} ${styles.inputSm}`}
@@ -841,7 +852,7 @@ function RecipesScreen() {
                                                                     disabled={adding || !newIng.name.trim() || !newIng.unit_id}
                                                                     onClick={() => createIngredient(activeVariant, line.key)}
                                                                 >
-                                                                    {adding ? 'Adding…' : 'Add & use'}
+                                                                    {adding ? 'Creating…' : 'Create & use'}
                                                                 </button>
                                                                 <button
                                                                     type="button"
@@ -877,7 +888,7 @@ function RecipesScreen() {
                                     onClick={() => addLine(activeVariant)}
                                 >
                                     <Plus size={15} aria-hidden="true" />
-                                    Add ingredient
+                                    Add a line to this dish
                                 </button>
                             )}
 

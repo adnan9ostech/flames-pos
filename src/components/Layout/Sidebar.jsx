@@ -52,16 +52,18 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
 
     const navLink = ({ href, label, icon, newTab, child = false }) => {
         const Icon = navIcon(icon);
-        // A child row lights only on its own page; a parent lights for the
-        // whole section under it, which is what tells you where you are.
-        const here = child
-            ? pathname === href
-            : pathname === href || pathname.startsWith(`${href}/`);
+        /*
+         * Exactly one row is filled: the page you are actually on. A parent
+         * whose child is open is merely OPEN — bolder, not filled — because
+         * two filled rows stacked read as two answers to "where am I".
+         */
+        const here = pathname === href;
+        const inside = !child && !here && pathname.startsWith(`${href}/`);
         return (
         <Link
             key={href}
             href={href}
-            className={`${styles.link} ${child ? styles.childLink : ''} ${here ? styles.active : ''}`}
+            className={`${styles.link} ${child ? styles.childLink : ''} ${here ? styles.active : ''} ${inside ? styles.sectionOpen : ''}`}
             title={collapsed ? label : undefined}
             {...(newTab ? { target: '_blank' } : {})}
         >

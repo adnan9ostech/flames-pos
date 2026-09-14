@@ -255,9 +255,9 @@
 .filterTab:hover { color: var(--foreground); border-color: var(--primary) }
 
 .filterActive {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--primary-foreground);
+    background: var(--selected);
+    border-color: var(--selected-border);
+    color: var(--selected-foreground);
 }
 
 .searchBox {
