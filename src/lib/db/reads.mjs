@@ -14,10 +14,29 @@ export const getCategories = async () =>
 
 // Archived dishes are off the menu everywhere the menu is read — till, KDS
 // lookups, customer view. They stay in the table for the bills that name them.
-export const getMenuItems = async () =>
+/*
+ * The menu, as this branch sells it.
+ *
+ * One menu for the company, with the DIFFERENCES held per branch: a dish that
+ * is off here, or costs more here. Everything else comes through untouched,
+ * which is the point — a dish priced once stays priced once, and nobody has to
+ * keep three menus in step.
+ *
+ * The override is applied in SQL rather than after the fact so that
+ * "unavailable here" and "unavailable everywhere" arrive as the same field and
+ * the till needs to know nothing about branches at all.
+ */
+export const getMenuItems = async (branchId = 1) =>
     serializeRows('menu_items', await query(
-        `SELECT * FROM menu_items WHERE is_archived = 0
-          ORDER BY sort_order, name`,
+        `SELECT m.*,
+                COALESCE(b.price, m.price) AS price,
+                CASE WHEN b.is_available = 0 THEN 0 ELSE m.is_available END AS is_available
+           FROM menu_items m
+           LEFT JOIN branch_menu_items b
+             ON b.menu_item_id = m.id AND b.branch_id = ?
+          WHERE m.is_archived = 0
+          ORDER BY m.sort_order, m.name`,
+        [branchId],
     ));
 
 export const getModifiers = async () =>

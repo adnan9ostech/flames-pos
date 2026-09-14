@@ -206,3 +206,51 @@ test('every sized dish that names a variation set matches it, position for posit
              OR JSON_EXTRACT(m.variants, '$[0].name') <> JSON_EXTRACT(v.options, '$[0]')`);
     assert.deepEqual(drifted, [], 'dishes whose sizes disagree with their set');
 });
+
+test('a branch sells the same menu, with only its own differences', async () => {
+    const { getMenuItems } = await import('../../src/lib/db/reads.mjs');
+    const tag = randomUUID().slice(0, 8);
+    const dishId = randomUUID();
+    await q(
+        "INSERT INTO menu_items (id, name, price, variants, modifiers) VALUES (?, ?, 500, '[]', '[]')",
+        [dishId, `Branch Dish ${tag}`],
+    );
+    const other = (await q(
+        "INSERT INTO branches (name, code, is_active) VALUES (?, ?, 1)", [`Second ${tag}`, `B${tag.slice(0, 4)}`],
+    )).insertId;
+
+    try {
+        // No override anywhere: both branches sell it at the menu's price.
+        const base = (await getMenuItems(1)).find((m) => m.id === dishId);
+        const away = (await getMenuItems(other)).find((m) => m.id === dishId);
+        assert.equal(Number(base.price), 500);
+        assert.equal(Number(away.price), 500);
+        assert.equal(base.is_available, true);
+
+        // Dearer at the second branch, and off there later.
+        await q(
+            'INSERT INTO branch_menu_items (branch_id, menu_item_id, price) VALUES (?, ?, 650)',
+            [other, dishId],
+        );
+        assert.equal(Number((await getMenuItems(other)).find((m) => m.id === dishId).price), 650);
+        assert.equal(Number((await getMenuItems(1)).find((m) => m.id === dishId).price), 500,
+            'the other branch is untouched');
+
+        await q('UPDATE branch_menu_items SET is_available = 0 WHERE branch_id = ? AND menu_item_id = ?',
+            [other, dishId]);
+        assert.equal((await getMenuItems(other)).find((m) => m.id === dishId).is_available, false);
+        assert.equal((await getMenuItems(1)).find((m) => m.id === dishId).is_available, true,
+            'off here is not off everywhere');
+
+        // And a dish taken off the menu for the whole company is off at every
+        // branch, whatever the override says.
+        await q('UPDATE menu_items SET is_available = 0 WHERE id = ?', [dishId]);
+        await q('UPDATE branch_menu_items SET is_available = 1 WHERE branch_id = ?', [other]);
+        assert.equal((await getMenuItems(other)).find((m) => m.id === dishId).is_available, false,
+            'a branch cannot switch on what the company switched off');
+    } finally {
+        await q('DELETE FROM branch_menu_items WHERE branch_id = ?', [other]);
+        await q('DELETE FROM branches WHERE id = ?', [other]);
+        await q('DELETE FROM menu_items WHERE id = ?', [dishId]);
+    }
+});

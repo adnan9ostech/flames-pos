@@ -1162,6 +1162,49 @@ Inventory:
   posting *failed* (an unmapped account, usually) and a button would fail the
   same way until the chart is fixed.
 
+## Branches, part one — 14 Sep 2026
+
+Migration 041. Suite **151/151**, build green. The spine is in; the scoping is
+half done, and the half that is missing is named below rather than glossed.
+
+**Done**
+
+- **Schema.** `branches` gains code/address/phone/active; `users.branch_id`
+  (NULL = every branch, which is how an owner and an accountant see the
+  company); printers move to one-per-role-**per-branch**; and
+  `branch_menu_items` holds only the DIFFERENCES — a dish off at one outlet, or
+  priced differently there. No row means the menu's own answer, so a dish
+  priced once cannot drift branch by branch. That is the owner's own
+  requirement: same menu, not everything everywhere, sometimes not at the same
+  price.
+- **One rule** for which branch a request is (`src/lib/db/branch.mjs`): tied to
+  a branch → that branch, no switching; tied to none → the branch last picked,
+  in a cookie; neither → the lowest active branch, which on one outlet is
+  invisible. The cookie is a preference and never a permission: checked against
+  the table every time, ignored for anyone tied to a branch.
+- **The kernel does not decide it.** Which outlet a sale belongs to is a fact
+  about the request; `orders.mjs` knows nothing about requests, which is what
+  lets the suite drive it. The action layer resolves and passes it in.
+- **Scoped:** open tabs, the kitchen board, the version poll, the unpaid count,
+  the Orders screen (branch first and unconditional), Day Close, the Drawer,
+  and the menu read — which now applies the per-branch price and availability
+  in SQL, so the till needs to know nothing about branches at all. A branch can
+  switch a dish off; it cannot switch on what the company switched off.
+
+**Not done, and why a second branch must not be created yet**
+
+Twenty-five queries still carry the literal `branch_id = 1`: the reports, the
+"which day is open" lookup that a dozen screens share, the ledger poster and
+the notice board. They are filtered — just to the constant. Until each takes
+the resolved branch, a second outlet would read the first one's numbers on
+those screens.
+
+So there is deliberately **no Branches screen**: nothing in the app can create
+a second branch, which means the unsafe state is unreachable rather than merely
+undocumented. The remaining work, in order: parameterise those 25, add the
+branch switcher to the rail, then the Branches CRUD, then per-branch menu
+overrides on the Menu screen.
+
 ## White label: the brand is data now — 14 Sep 2026
 
 Migrations 039 and 040. Suite 150/150, build green, proven by repainting the

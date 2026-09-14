@@ -3,6 +3,7 @@
  * screen ever wants just one of them. Public by design — the /customer page
  * renders this with no session, matching the old anon-read RLS policy.
  */
+import { currentBranchId } from '@/lib/db/branch.mjs';
 import { getCategories, getMenuItems, getModifiers, getDeals, getOutOfStockDishes, getStoreSettings, getSalesChannels } from '@/lib/db/reads.mjs';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ export async function GET() {
     try {
         const [categories, items, modifiers, deals, settings] = await Promise.all([
             getCategories(),
-            getMenuItems(),
+            getMenuItems(await currentBranchId()),
             getModifiers(),
             getDeals(),
             getStoreSettings(),
