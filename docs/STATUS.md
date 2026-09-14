@@ -1418,6 +1418,12 @@ Not worth building for one restaurant: everything multi-branch (branch-wise
 toggle, transfer/stock requests, warehouse stock, air inventory, branch
 devices, marketplace, rider management, BI report).
 
+**SUPERSEDED on 14 Sep 2026** for the branch half of that list — Adnan asked
+for branches and white label together, so the spine is now built and live. See
+"Branches, per-branch settings and yield" below. Transfer/stock requests
+between outlets remain unbuilt and remain the right call until there is a
+second kitchen actually asking for stock.
+
 Going the other way, this app already carries what Blink's screens do not show:
 double-entry accounting with journals, FBR Digital Invoicing, and day close +
 handover.
@@ -1431,3 +1437,69 @@ handover.
 - The plan of record: `/Users/adnanmalik/.claude/plans/jaunty-fluttering-quokka.md`
   (machine-local); session memory in
   `~/.claude/projects/-Users-adnanmalik-Flames-by-the-Indus-POS/memory/`.
+
+
+## Branches, per-branch settings and yield (14 Sep 2026)
+
+Built after a walk through Blink's `/branch`, `/branch_settings` and
+`/branch_ingredient_warehouse` at Adnan's request.
+
+**The branch spine.** `branch_id` was already on fifteen tables, all writing 1.
+`src/lib/db/branch.mjs` turns that constant into an answer: a user tied to a
+branch works there and cannot switch; one tied to none works at the branch a
+cookie remembers; failing both, the lowest active branch. The cookie is a
+preference, re-validated against the table on every read, never a permission.
+
+Two refactors made the reads safe rather than threading a parameter through
+forty screens:
+
+- `src/lib/day/openDay.mjs` — twenty-four copies of "which day is open"
+  collapsed into one that resolves the branch itself.
+- `src/lib/db/audit.mjs` — ten copies of the audit INSERT, every one writing
+  `branch_id` as 1. A mis-filed audit row is worse than a missing one.
+
+**Zero literal `branch_id = 1` remain in `src`.** Keep it that way; grep is
+the check.
+
+**Per-branch settings are DIFFERENCES, not copies.** `branch_settings` has one
+nullable column per overridable field and NULL means "the company's answer", so
+an outlet that agrees with everything has no row and raising the company's GST
+still reaches it. This is deliberately unlike Blink, which writes all twenty-five
+fields to every branch and lets them drift.
+
+What is per branch: tax rate and authority (FBR / PRA / SRB / KPRA / BRA — a
+Lahore outlet genuinely answers to a different body at a different rate), the
+outlet's own FBR POS registration, bill address and footer, trading hours,
+till float and variance tolerance. What is not, and must stay in
+`store_settings`: brand, KOT split, drawer, tokens, rounding.
+
+The merge tests `== null`, never falsiness. A branch exempt from sales tax sets
+0, and `||` would read that as unset and charge it 16%. There is a test for
+that line alone.
+
+**FBR tokens are NOT in the table** — credentials stay server-env only, per the
+project rule. A second outlet supplies `FBR_TOKEN_<branch id>`.
+
+**Yield %** on `inventory_items`, default 100. The recipe stays written in what
+the chef plates; yield is the bridge to what the shelf gave up. The division
+happens ONCE, at the leaf of `expandToRaw`, which is the only thing anybody
+ever bought — cost follows for free because cost is computed off the quantity.
+A phantom is never divided. Refused outside 1-100 at the form and defended
+again at the divisor, so a 0 cannot empty the store.
+
+Ingredients also gained stock value, 28-day average daily consumption (divided
+by days that actually traded, not by the calendar) and days of cover.
+
+**Screens**: Settings → Branches (list + editor, every override box empty by
+default with the company's answer as its placeholder), and a rail switcher that
+draws nothing at all on a single-outlet restaurant.
+
+**Still unbuilt from that walk**, in the order worth doing: per-branch menu
+availability and price on the Menu screen (`branch_menu_items` already carries
+it and `getMenuItems` already applies it — only the UI is missing), inclusive
+tax, dine-in guest count, mandatory table/waiter, and warehouse-to-branch stock
+requests.
+
+Verified: 160 tests, build green, twenty-two screens loaded in a real browser
+with a clean console, and a live two-branch proof — the same Rs 1,000 bill
+taxed 15% at Islamabad and 5% at Lahore in the same run.
