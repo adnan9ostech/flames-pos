@@ -32,6 +32,7 @@ import TabsDrawer from '@/components/POS/TabsDrawer';
 import LiveClock from '@/components/Layout/LiveClock';
 import { useRole } from '@/components/Layout/AppLayout';
 
+import Link from 'next/link';
 import {
     Soup, Flame, Utensils, Cookie, GlassWater, Plus, CirclePlus,
     Search, Banknote, CreditCard, X, Minus, UserRound, Armchair, Phone, MapPin,
@@ -261,7 +262,7 @@ export default function POSPage() {
     const [customerAddress, setCustomerAddress] = useState('');
     const [customerFound, setCustomerFound] = useState(false);
 
-    // Load menu data from Supabase
+    // Load the menu
     useEffect(() => {
         const loadData = async () => {
             setIsLoading(true);
@@ -1377,9 +1378,20 @@ export default function POSPage() {
                                     <p>{loadError}</p>
                                 </>
                             ) : loadedItemCount === 0 ? (
+                                /*
+                                 * A brand-new install lands here, and this told
+                                 * it to check Supabase row-level policies —
+                                 * advice for a database this app stopped using
+                                 * before it shipped, on the first screen a new
+                                 * restaurant ever sees. It now says the true
+                                 * thing and points at the screen that fixes it.
+                                 */
                                 <>
-                                    <h3>No menu items returned</h3>
-                                    <p>Check Supabase row access, policies, or the correct project environment.</p>
+                                    <h3>There are no dishes yet</h3>
+                                    <p>
+                                        Add them under <Link href="/menu">Menu</Link>, or switch on the ones that
+                                        are there but currently off.
+                                    </p>
                                 </>
                             ) : (
                                 <h3>No items found</h3>

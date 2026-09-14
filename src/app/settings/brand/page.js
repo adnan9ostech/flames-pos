@@ -42,6 +42,7 @@ export default function BrandPage() {
         setForm({
             name: res.data.brand_name || res.data.merchant_name || '',
             colour: res.data.brand_colour || '',
+            tagline: res.data.brand_tagline || '',
             logoLight: res.data.brand_logo_light || '',
             logoDark: res.data.brand_logo_dark || '',
         })
@@ -131,6 +132,23 @@ export default function BrandPage() {
                     <p className="mt-1 text-xs text-muted-foreground">
                         Shown on the browser tab, the login screen, the customer menu and the printed reports. The
                         name that goes on the BILL is the merchant name, under General.
+                    </p>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-foreground mb-1" htmlFor="brand_tagline">Tagline</label>
+                    <input
+                        id="brand_tagline"
+                        className="w-full min-h-[44px] px-3 rounded-lg border border-border bg-background text-foreground"
+                        value={form.tagline}
+                        maxLength={96}
+                        placeholder="Authentic Pakistani Cuisine"
+                        onChange={(e) => setForm((f) => ({ ...f, tagline: e.target.value }))}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        The line under the logo on the customer menu. Left empty, no line is drawn — this was
+                        fixed text in the code until now, which meant every restaurant&rsquo;s menu described this
+                        one&rsquo;s food.
                     </p>
                 </div>
 

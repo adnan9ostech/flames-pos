@@ -15,7 +15,8 @@ export async function getBrandSettings() {
     try {
         await requirePermission('settings')
         const rows = await query(
-            `SELECT brand_name, brand_logo_light, brand_logo_dark, brand_colour, merchant_name
+            `SELECT brand_name, brand_logo_light, brand_logo_dark, brand_colour,
+                    brand_tagline, merchant_name
                FROM store_settings LIMIT 1`,
         )
         return { data: rows[0] ?? {} }
@@ -24,7 +25,7 @@ export async function getBrandSettings() {
     }
 }
 
-export async function saveBrand({ name, colour, logoLight, logoDark } = {}) {
+export async function saveBrand({ name, colour, tagline, logoLight, logoDark } = {}) {
     try {
         await requirePermission('settings')
         const clean = String(name ?? '').trim().slice(0, 96)
@@ -37,9 +38,11 @@ export async function saveBrand({ name, colour, logoLight, logoDark } = {}) {
 
         await query(
             `UPDATE store_settings SET
-               brand_name = ?, brand_colour = ?, brand_logo_light = ?, brand_logo_dark = ?,
+               brand_name = ?, brand_colour = ?, brand_tagline = ?,
+               brand_logo_light = ?, brand_logo_dark = ?,
                updated_at = UTC_TIMESTAMP(3)`,
-            [clean, hex, String(logoLight ?? '').trim().slice(0, 255), String(logoDark ?? '').trim().slice(0, 255)],
+            [clean, hex, String(tagline ?? '').trim().slice(0, 96),
+                String(logoLight ?? '').trim().slice(0, 255), String(logoDark ?? '').trim().slice(0, 255)],
         )
         return { success: 'Brand saved. Reload any open screen to see it.' }
     } catch (e) {

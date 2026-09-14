@@ -197,7 +197,8 @@ export const getOrdersPage = async ({
 export const getBrand = async () => {
     try {
         const rows = await query(
-            `SELECT brand_name, brand_logo_light, brand_logo_dark, brand_colour, merchant_name
+            `SELECT brand_name, brand_logo_light, brand_logo_dark, brand_colour,
+                    brand_tagline, merchant_name
                FROM store_settings LIMIT 1`,
         );
         const r = rows[0] ?? {};
@@ -206,10 +207,11 @@ export const getBrand = async () => {
             logoLight: r.brand_logo_light || '',
             logoDark: r.brand_logo_dark || '',
             colour: r.brand_colour || '',
+            tagline: r.brand_tagline || '',
         };
     } catch {
         // A database blip must cost the shell a name, not the whole page.
-        return { name: 'POS', logoLight: '', logoDark: '', colour: '' };
+        return { name: 'POS', logoLight: '', logoDark: '', colour: '', tagline: '' };
     }
 };
 

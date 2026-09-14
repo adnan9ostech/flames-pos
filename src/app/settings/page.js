@@ -17,6 +17,8 @@ const EMPTY = {
     merchant_city: '',
     merchant_address: '',
     merchant_phone: '',
+    merchant_ntn: '',
+    merchant_strn: '',
     raast_id: '',
     qr_enabled: true,
     void_requires_pin: false,
@@ -67,7 +69,8 @@ export default function SettingsPage() {
     }, [message])
 
     const isDirty = useMemo(
-        () => ['merchant_name', 'merchant_city', 'merchant_address', 'merchant_phone', 'raast_id']
+        () => ['merchant_name', 'merchant_city', 'merchant_address', 'merchant_phone',
+            'merchant_ntn', 'merchant_strn', 'raast_id']
             .some(k => (settings[k] || '').trim() !== (saved[k] || '').trim())
             || settings.qr_enabled !== saved.qr_enabled
             || settings.cash_change !== saved.cash_change
@@ -393,6 +396,49 @@ export default function SettingsPage() {
                             <p className="mt-1.5 text-xs text-muted">
                                 Printed on every receipt, so a customer can ring about a delivery
                                 or a missing item. Leave empty to keep it off the bill.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label htmlFor="merchant_ntn" className="block text-sm font-medium text-foreground mb-1.5">
+                                NTN
+                            </label>
+                            <input
+                                id="merchant_ntn"
+                                type="text"
+                                name="merchant_ntn"
+                                value={settings.merchant_ntn || ''}
+                                onChange={handleChange}
+                                maxLength={32}
+                                autoComplete="off"
+                                className={fieldClass}
+                                placeholder="1234567-8"
+                            />
+                            <p className="mt-1.5 text-xs text-muted">
+                                Your National Tax Number, printed on the bill. Left empty, the
+                                line is left off entirely — a wrong tax number on a customer&rsquo;s
+                                receipt is worse than none.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label htmlFor="merchant_strn" className="block text-sm font-medium text-foreground mb-1.5">
+                                STRN
+                            </label>
+                            <input
+                                id="merchant_strn"
+                                type="text"
+                                name="merchant_strn"
+                                value={settings.merchant_strn || ''}
+                                onChange={handleChange}
+                                maxLength={32}
+                                autoComplete="off"
+                                className={fieldClass}
+                                placeholder="1234567890123"
+                            />
+                            <p className="mt-1.5 text-xs text-muted">
+                                Sales Tax Registration Number, printed beside the NTN. Same rule:
+                                blank keeps it off the bill.
                             </p>
                         </div>
 

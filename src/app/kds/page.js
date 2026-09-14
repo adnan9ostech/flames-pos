@@ -448,14 +448,21 @@ export default function KDSPage() {
         <div className={styles.screen}>
             <header className={styles.topBar}>
                 <div className={styles.brand}>
-                    <Image
-                        src={brand.logoLight}
-                        alt={brand.name}
-                        width={180}
-                        height={54}
-                        priority
-                        className={styles.logo}
-                    />
+                    {/* The name as a wordmark when there is no file: an empty
+                        src is a React error and a blank space where the
+                        restaurant's identity should be. */}
+                    {brand.logoLight ? (
+                        <Image
+                            src={brand.logoLight}
+                            alt={brand.name}
+                            width={180}
+                            height={54}
+                            priority
+                            className={styles.logo}
+                        />
+                    ) : (
+                        <span className={styles.logoText}>{brand.name}</span>
+                    )}
                     <span className={styles.divider} />
                     <div>
                         <h1 className={styles.title}>Kitchen Display</h1>

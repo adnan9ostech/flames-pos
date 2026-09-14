@@ -9,7 +9,7 @@ import { createContext, useContext } from 'react';
  * display and the customer menu all want the same two strings, and four
  * round trips for them would be four round trips.
  */
-const BrandContext = createContext({ name: 'POS', logoLight: '', logoDark: '', colour: '' });
+const BrandContext = createContext({ name: 'POS', logoLight: '', logoDark: '', colour: '', tagline: '' });
 
 export const useBrand = () => useContext(BrandContext);
 

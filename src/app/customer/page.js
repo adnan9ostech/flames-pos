@@ -113,23 +113,33 @@ export default function CustomerMenuPage() {
                         {/* Two assets, swapped in CSS: the source SVG's wordmark is
                             white and vanishes on the light header, so light gets the
                             dark-ink variant. Same pattern as the sidebar. */}
-                        <Image
-                            src={brand.logoLight}
-                            alt={brand.name}
-                            width={180}
-                            height={54}
-                            priority
-                            className={`${styles.logo} ${styles.logoOnDark}`}
-                        />
-                        <Image
-                            src={brand.logoDark}
-                            alt=""
-                            aria-hidden="true"
-                            width={180}
-                            height={54}
-                            className={`${styles.logo} ${styles.logoOnLight}`}
-                        />
-                        <p className={styles.tagline}>Authentic Pakistani Cuisine</p>
+                        {brand.logoLight && brand.logoDark ? (
+                            <>
+                                <Image
+                                    src={brand.logoLight}
+                                    alt={brand.name}
+                                    width={180}
+                                    height={54}
+                                    priority
+                                    className={`${styles.logo} ${styles.logoOnDark}`}
+                                />
+                                <Image
+                                    src={brand.logoDark}
+                                    alt=""
+                                    aria-hidden="true"
+                                    width={180}
+                                    height={54}
+                                    className={`${styles.logo} ${styles.logoOnLight}`}
+                                />
+                            </>
+                        ) : (
+                            <p className={styles.logoText}>{brand.name}</p>
+                        )}
+                        {/* Whatever this restaurant says about itself, or
+                            nothing. This read "Authentic Pakistani Cuisine" as
+                            literal text — a sentence about one restaurant's
+                            food, on the one screen customers actually read. */}
+                        {brand.tagline && <p className={styles.tagline}>{brand.tagline}</p>}
                     </div>
                     <div className={styles.searchBar}>
                         <Search size={20} />

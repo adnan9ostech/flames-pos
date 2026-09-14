@@ -392,3 +392,84 @@ Only after every box above is ticked:
 4. **Pause the Vercel project** so the old origin stops serving a live till.
 5. **Revoke the Supabase anon key** — the old client bundle carries it, and
    the pause in step 4 does not un-publish cached copies.
+
+
+---
+
+## Standing up a SECOND restaurant on this box (14 Sep 2026)
+
+Everything above is the first-time path for one restaurant. This is what
+changes when the POS is sold to another one.
+
+### The shape, and why there is no master login
+
+There are two different things people mean by "another one", and keeping them
+apart is the whole design:
+
+| | Branches | White label |
+|---|---|---|
+| What it is | One company, several outlets | A different company entirely |
+| Database | **Shared** — one install | **Its own**, always |
+| Managed from | That restaurant's own Settings → Branches | Provisioning, then their own Settings |
+| Who logs in | The restaurant's own admin | Their own admin. Nobody else. |
+
+A branch is not a tenant. One company's outlets share a menu, a customer book
+and a chart of accounts, and they are meant to — that is what `branch_id` and
+`branch_settings` are for, and it is all inside one database.
+
+A white-label customer is a tenant, and it gets a **whole database and a whole
+vhost**, because the isolation that matters here is not a `WHERE` clause. Their
+money, their FBR registration under their own NTN, their staff's passwords.
+
+**There is deliberately no console you log into that can reach every
+customer.** One such login is one phished password away from every restaurant's
+takings and every restaurant's tax credentials, and there is no version of that
+trade worth making for a handful of installs. Provisioning therefore runs on
+the box, as the operator who already has database access, and it can CREATE an
+install without being able to READ one. If it ever grows a "look at customer X"
+flag, it has become the thing this paragraph exists to prevent.
+
+### The command
+
+```
+node scripts/provision.mjs \
+     --db ostech_mandi \
+     --name "Mandi House" \
+     --colour '#1f7a4d' \
+     --admin owner \
+     --port 3021
+```
+
+It creates the database, runs every migration through the real migrator (not a
+copy of it), writes the brand, renames branch 1 to the new restaurant, and
+seeds one admin flagged to change their password at first sign-in. It prints
+the generated password once, and a `SESSION_SECRET` — **per install**, because
+two restaurants sharing one would make each other's session cookies valid.
+
+It refuses a database that already has tables. Provisioning over a trading
+restaurant is the one mistake that cannot be undone from here.
+
+### What it deliberately leaves to you
+
+The `.env.production`, the PM2 entry and the Apache userdata include. Those are
+per-vhost changes on a box with 150 other sites, and the rule at the top of
+this document applies to them. The command prints exactly what to paste.
+
+### Verified
+
+A probe install was provisioned and the app booted against it: rail, customer
+menu, kitchen display and PWA manifest all read the new restaurant's name in
+its own colour, with a clean console and no reference to any other install.
+
+That test is what found the leaks worth knowing about, all now fixed:
+
+- migration 040 filled ANY blank logo column with this restaurant's SVGs, and a
+  new install has blank logos by definition — so the first `deploy.sh` branded
+  the new customer as Flames by the Indus. Guarded by name now; 046 cleans up.
+- `public/manifest.webmanifest` was static and named this restaurant in four
+  places, so installing the till to a phone home screen captioned it wrongly.
+  Served from the database now.
+- Every `<Image src={brand.logo…}>` was handed `""` on an install with no logo
+  — a React error and a blank rail. They draw the name as a wordmark instead.
+- The customer menu's tagline and the receipt preview's NTN/STRN were literal
+  text. Both are settings now, and both print nothing when unset.

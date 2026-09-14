@@ -47,6 +47,34 @@
 }
 
 /*
+ * The wordmark for a restaurant that has not uploaded a logo — which is every
+ * newly provisioned one. Set in the app's own face rather than left to an
+ * image that is not there, and truncated rather than allowed to widen the rail
+ * or wrap it onto two lines.
+ *
+ * Collapsed, it shows the first letter only: the rail is 27px of usable width
+ * there, which fits a mark and not a name.
+ */
+.logoText {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.collapsed .logoText {
+    font-size: 1.4rem;
+    /* One glyph wide; the rest is clipped by the rail's own overflow. */
+    width: 27px;
+    flex-shrink: 0;
+    text-overflow: clip;
+}
+
+/*
  * The asset is a wordmark whose flame mark is its leftmost 18.3%, so the
  * collapsed rail crops to just that: an oversized render inside a narrow
  * window. Tailwind's preflight (max-width:100%; height:auto) would shrink

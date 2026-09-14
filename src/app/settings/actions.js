@@ -32,6 +32,11 @@ export async function updateSettings(formData) {
         const merchant_city = clean('merchant_city')
         const merchant_address = clean('merchant_address')
         const merchant_phone = clean('merchant_phone')
+        // The company's tax registration, printed on the bill. Blank stays
+        // blank and the receipt then omits the line — a made-up tax number on
+        // a customer's bill is worse than no line at all.
+        const merchant_ntn = clean('merchant_ntn')
+        const merchant_strn = clean('merchant_strn')
         const raast_id = clean('raast_id')
 
         // Sent as an explicit "true"/"false" string rather than a bare checkbox:
@@ -78,23 +83,27 @@ export async function updateSettings(formData) {
         if (existing) {
             await query(
                 `UPDATE store_settings SET
-                   merchant_name = ?, merchant_city = ?, merchant_address = ?, merchant_phone = ?, raast_id = ?,
+                   merchant_name = ?, merchant_city = ?, merchant_address = ?, merchant_phone = ?,
+                   merchant_ntn = ?, merchant_strn = ?, raast_id = ?,
                    qr_enabled = ?, void_requires_pin = ?, cash_change = ?, card_ref_required = ?, token_mode = ?, stock_gate = ?, round_total = ?,
                    default_opening_float = ?, cash_variance_tolerance = ?,
                    updated_at = UTC_TIMESTAMP(3)
                  WHERE id = ?`,
-                [merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
+                [merchant_name, merchant_city, merchant_address, merchant_phone,
+                    merchant_ntn, merchant_strn, raast_id,
                     qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0, card_ref_required ? 1 : 0, token_mode, stock_gate, round_total,
                     default_opening_float, cash_variance_tolerance, existing.id],
             )
         } else {
             await query(
                 `INSERT INTO store_settings
-                   (id, merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
+                   (id, merchant_name, merchant_city, merchant_address, merchant_phone,
+                    merchant_ntn, merchant_strn, raast_id,
                     qr_enabled, void_requires_pin, cash_change, card_ref_required, token_mode, stock_gate, round_total,
                     default_opening_float, cash_variance_tolerance)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [randomUUID(), merchant_name, merchant_city, merchant_address, merchant_phone, raast_id,
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [randomUUID(), merchant_name, merchant_city, merchant_address, merchant_phone,
+                    merchant_ntn, merchant_strn, raast_id,
                     qr_enabled ? 1 : 0, void_requires_pin ? 1 : 0, cash_change ? 1 : 0, card_ref_required ? 1 : 0, token_mode, stock_gate, round_total,
                     default_opening_float, cash_variance_tolerance],
             )

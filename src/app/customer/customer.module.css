@@ -69,6 +69,17 @@
 :root[data-theme='light'] .logoOnDark { display: none; }
 :root[data-theme='light'] .logoOnLight { display: block; }
 
+/* Same job as .logo, in type: the wordmark for a restaurant that has uploaded
+   no file. It needs no light/dark pair — text takes its colour from the theme,
+   which is the whole reason the two image variants exist. */
+.logoText {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+    margin: 0 0 0.15rem;
+}
+
 .tagline {
     font-size: 0.85rem;
     color: var(--muted-foreground);

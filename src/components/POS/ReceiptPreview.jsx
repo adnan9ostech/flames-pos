@@ -121,6 +121,21 @@ const ReceiptPreview = ({
     // when absent so a database without the column behaves as it did before.
     const qrAllowed = settings?.qr_enabled !== false && Boolean(settings?.raast_id);
 
+    /*
+     * The header, from this deployment's own settings rather than from the
+     * restaurant this app was first written for. Each piece is allowed to be
+     * absent and the line it belongs to then disappears — a white-labelled
+     * install that has not uploaded a logo draws its name as text, which is a
+     * perfectly good wordmark, and one that has not entered a tax number
+     * prints no tax line rather than somebody else's.
+     */
+    const receiptLogo = settings?.brand_logo_dark || settings?.brand_logo_light || '';
+    const address = settings?.merchant_address || settings?.merchant_city || '';
+    const registration = [
+        settings?.merchant_ntn ? `NTN: ${settings.merchant_ntn}` : null,
+        settings?.merchant_strn ? `STRN: ${settings.merchant_strn}` : null,
+    ].filter(Boolean).join(' | ');
+
     // Settings may not have loaded on first paint, so both fall back rather than
     // rendering "undefined" on a document a customer keeps.
     const taxLabel = settings?.tax_label || 'GST';
@@ -165,13 +180,25 @@ const ReceiptPreview = ({
                     <div className={styles.header}>
                         {/* Sized and centred from CSS rather than inline, so the
                             print rules can reach it */}
-                        <img
-                            src="/flames-by-the-indus-logo-for-receipt.svg"
-                            alt={settings?.merchant_name || settings?.brand_name || ""}
-                            className={styles.logoImg}
-                        />
-                        <p>{settings?.merchant_name || settings?.brand_name} - {settings?.merchant_address || settings?.merchant_city || 'Islamabad'}</p>
-                        <p>NTN: 1234567-8 | STRN: 1234567890123</p>
+                        {/* This restaurant's logo, not the one this app was
+                            first built for. Drawn only when there is one — a
+                            broken image is a worse wordmark than the name. */}
+                        {receiptLogo && (
+                            <img
+                                src={receiptLogo}
+                                alt={settings?.merchant_name || settings?.brand_name || ""}
+                                className={styles.logoImg}
+                            />
+                        )}
+                        <p>{settings?.merchant_name || settings?.brand_name}{address ? ` - ${address}` : ''}</p>
+                        {/*
+                          * The real registration or no line at all. This read
+                          * "NTN: 1234567-8 | STRN: 1234567890123" as literal
+                          * text: placeholder digits belonging to nobody, on a
+                          * screen a cashier turns towards a customer. A tax
+                          * number is either right or absent.
+                          */}
+                        {registration && <p>{registration}</p>}
                         {includeTax && (
                             <div className={styles.fbrHeader}>
                                 <img src="/fbr-logo.png" alt="FBR" className={styles.fbrLogo} />

@@ -36,6 +36,18 @@
     object-fit: contain;
 }
 
+/* The restaurant's name, for an install with no logo file. Sized to sit on
+   the same baseline as the image it replaces so the divider beside it does not
+   move. */
+.logoText {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+    line-height: 46px;
+    white-space: nowrap;
+}
+
 .divider {
     width: 1px;
     height: 42px;

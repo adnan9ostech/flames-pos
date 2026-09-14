@@ -33,6 +33,9 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
     // there; expanded, they sit beside text and can afford to be smaller —
     // eighteen rows have to fit a laptop viewport.
     const iconSize = collapsed ? 24 : 17;
+    // Both files, or neither: the pair is a light/dark swap and one of the two
+    // missing would show a gap in whichever theme lacks it.
+    const hasLogos = Boolean(brand.logoLight && brand.logoDark);
     const links = primaryNav(perms);
     const groups = sidebarSections(perms);
 
@@ -126,7 +129,20 @@ const Sidebar = ({ collapsed = false, onToggle, role, name, perms = [] }) => {
                   * the flame itself.
                   */}
                 <Link href="/pos" className={styles.logo} aria-label="Go to POS home">
-                    {collapsed ? (
+                    {/*
+                      * A restaurant that has not uploaded a logo gets its name
+                      * as a wordmark, which is a perfectly good one. This is
+                      * not a nicety: <Image src=""> is a React error and a
+                      * request for the whole page again, and a freshly
+                      * provisioned white-label install has blank logos BY
+                      * DEFINITION — so the first thing a new customer saw was
+                      * a broken rail.
+                      */}
+                    {!hasLogos ? (
+                        <span className={styles.logoText}>
+                            {collapsed ? (brand.name[0] || '?').toUpperCase() : brand.name}
+                        </span>
+                    ) : collapsed ? (
                         // Crop the wordmark down to the flame mark on the left
                         <span className={styles.logoMark}>
                             <Image
