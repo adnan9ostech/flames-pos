@@ -11,8 +11,12 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 const MAX_PAGE_SIZE = Math.max(...ORDERS_PAGE_SIZES);
 
 export async function GET(request) {
+    // Declared out here, not inside the try: the branch lookup below needs it,
+    // and a const scoped to the try is a ReferenceError the build cannot see.
+    // Its three sibling routes were already written this way.
+    let user;
     try {
-        const user = await requirePermission('orders');
+        user = await requirePermission('orders');
     } catch (e) {
         return Response.json({ error: e.message }, { status: e.status ?? 401 });
     }
