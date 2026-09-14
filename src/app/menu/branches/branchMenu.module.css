@@ -1,0 +1,288 @@
+/*
+ * The branch price grid. Everything shared with the other Menu screens comes
+ * from menu.module.css; this file is only the shapes this one owns — the
+ * sideways-scrolling table with an outlet per column, and the price/on-off
+ * pair that sits in every cell.
+ */
+
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: 3rem 0;
+}
+
+/* ---- The one-branch state ---- */
+
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+}
+
+.empty h2 { font-size: 1.1rem; font-weight: 700; color: var(--foreground) }
+.empty p { max-width: 46ch; font-size: 0.88rem; line-height: 1.55 }
+
+.emptyLink {
+    margin-top: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.87rem;
+    font-weight: 600;
+}
+
+/* ---- Banner ---- */
+
+.banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid;
+    font-size: 0.87rem;
+}
+
+.bannerOk { background: var(--success-soft); border-color: var(--success-border); color: var(--success-text) }
+.bannerError { background: var(--danger-soft); border-color: var(--danger-border); color: var(--danger-text) }
+
+/* ---- Controls ---- */
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+}
+
+.searchWrap { position: relative; flex: 1; min-width: 220px }
+
+.searchIcon {
+    position: absolute;
+    left: 0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-foreground);
+    pointer-events: none;
+}
+
+.search {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 0.75rem 0 2.2rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.87rem;
+    color: var(--foreground);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.count { font-size: 0.8rem; color: var(--muted-foreground); white-space: nowrap }
+
+/* The asymmetry between price and availability, said once, above the grid
+   rather than repeated in 134 tooltips. */
+.rule {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.rule svg { flex-shrink: 0; margin-top: 0.1rem }
+
+/* ---- The grid ---- */
+
+/*
+ * Ten outlets are as legible as two: the table scrolls inside this box and the
+ * page never scrolls sideways. The dish column is sticky so a name stays
+ * readable however far right the scroll goes — without it, comparing the
+ * fourth outlet's price means scrolling back to find out which dish it is.
+ */
+.tableWrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.87rem;
+}
+
+.table th,
+.table td {
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface-raise);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.table tbody tr:last-child td { border-bottom: 0 }
+.table tbody tr:hover td { background: var(--surface-raise) }
+
+.dishCol { min-width: 230px }
+.menuCol { min-width: 110px; text-align: right }
+.branchCol { min-width: 175px }
+
+/* Sticky dish column: it has to sit above the scrolling cells but below the
+   header row, hence the z-index ladder (header 2, header-corner 3, cell 1). */
+.dishCell,
+.dishCol {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+}
+
+.dishCol { z-index: 3; background: var(--surface-raise) }
+.table tbody tr:hover .dishCell { background: var(--surface-raise) }
+
+.dishName { display: block; font-weight: 600; color: var(--foreground) }
+
+.dishCat {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+}
+
+.offChip {
+    display: inline-block;
+    margin-top: 0.25rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-text);
+    font-size: 0.68rem;
+}
+
+/* A dish nobody can sell anywhere is dimmed: its branch controls are inert,
+   and the row should say so before somebody clicks one. */
+.offMenu td { opacity: 0.62 }
+
+.menuCell { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted-foreground) }
+
+.branchName { display: block; font-weight: 700; color: var(--foreground); text-transform: none; font-size: 0.85rem }
+
+.branchMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.resetBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.1rem 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.68rem;
+    cursor: pointer;
+}
+
+.resetBtn:hover:not(:disabled) { color: var(--danger-text); border-color: var(--danger-border) }
+.resetBtn:disabled { opacity: 0.5; cursor: progress }
+
+/* ---- One cell: a price and an on/off ---- */
+
+.cellInner { display: flex; align-items: center; gap: 0.4rem }
+
+.price {
+    width: 96px;
+    min-height: 38px;
+    padding: 0 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.87rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.price:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--focus) }
+.price:disabled { opacity: 0.55; cursor: not-allowed }
+
+/* A box holding a real override reads as a decision; an empty one is showing
+   the menu's price as a placeholder and must not. */
+.priceSet {
+    font-weight: 700;
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, var(--background));
+}
+
+.toggle {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0 0.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.toggleOn { color: var(--success-text); border-color: var(--success-border); background: var(--success-soft) }
+.toggleOff { color: var(--danger-text); border-color: var(--danger-border); background: var(--danger-soft) }
+.toggle:disabled { opacity: 0.45; cursor: not-allowed }
+
+.noRows {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--muted-foreground);
+}

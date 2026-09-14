@@ -188,3 +188,38 @@ export const RECIPE_COST_TABLE = `SELECT rl.menu_item_id, rl.variant_name,
       FROM recipe_lines rl
       JOIN inventory_items ii ON ii.id = rl.inventory_item_id
      GROUP BY rl.menu_item_id, rl.variant_name`;
+
+/*
+ * What a branch's exception to the menu actually amounts to.
+ *
+ * `branch_menu_items` stores only DEPARTURES, and this is the one decision
+ * that keeps it that way. It lives here rather than in the server action
+ * because the rule is what matters and the suite cannot load a 'use server'
+ * file — the action calls this, the tests call this, and there is no second
+ * copy of the judgement to drift.
+ *
+ * Returns { price, isAvailable, isOverride }. `isOverride` false means the
+ * branch agrees with the menu in both respects and the row should be DELETED,
+ * not written as a pair of defaults.
+ *
+ * The subtle half is the price. A branch price EQUAL to the menu's is
+ * agreement, not an exception, and storing it would freeze that outlet at
+ * today's number: raise the menu next month and the branch silently keeps the
+ * old price, having recorded a difference nobody ever meant. So it collapses
+ * to null.
+ */
+export const branchMenuOverride = (submittedPrice, submittedAvailable, menuPrice) => {
+    const isAvailable = submittedAvailable !== false;
+
+    const raw = String(submittedPrice ?? '').trim();
+    if (raw === '') return { price: null, isAvailable, isOverride: !isAvailable };
+
+    const n = Number(raw);
+    if (!Number.isFinite(n)) throw new Error('A branch price must be a number');
+    if (n < 0) throw new Error('A branch price must be zero or more');
+    if (n > 9_999_999) throw new Error('That price is implausibly large');
+
+    const rounded = Math.round(n * 100) / 100;
+    const price = rounded === Math.round(Number(menuPrice) * 100) / 100 ? null : rounded;
+    return { price, isAvailable, isOverride: price !== null || !isAvailable };
+};
