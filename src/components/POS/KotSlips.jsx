@@ -74,7 +74,7 @@ const KotSlips = ({ job }) => {
 
             {/* Shouted, boxed, above everything a cook reads: this food has
                 already been fired once. */}
-            {meta.reprint && <div className={styles.reprint}>Reprint — do not cook twice</div>}
+            {meta.reprint && <div className={styles.reprint}>Reprint: do not cook twice</div>}
 
             <div className={styles.meta}>
                 <div className={styles.metaRow}>

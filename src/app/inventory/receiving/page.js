@@ -120,7 +120,7 @@ export default function ReceivingPage() {
         if (res.error) {
             setFormError(res.error)
         } else {
-            setPosted(`GRN #${res.data.id} posted — Rs. ${rupees(res.data.total)}`)
+            setPosted(`GRN #${res.data.id} posted: Rs. ${rupees(res.data.total)}`)
             setForm((f) => ({ ...f, draftId: '', invoice: '', notes: '' }))
             setLines([newLine()])
             await load()
@@ -282,7 +282,7 @@ export default function ReceivingPage() {
                         <label className={styles.fieldLabel}>
                             Demand draft
                             <select className={styles.inputSelect} value={form.draftId} onChange={pickDraft}>
-                                <option value="">None — direct receiving</option>
+                                <option value="">None: direct receiving</option>
                                 {openDrafts.map((d) => (
                                     <option key={d.id} value={d.id}>
                                         Draft #{d.id} · {d.lines.length} item{d.lines.length === 1 ? '' : 's'}
@@ -599,7 +599,7 @@ function PageHeader() {
                 </Link>
                 <h1 className={styles.title}>Receiving</h1>
                 <p className={styles.subtitle}>
-                    Goods in — every GRN moves stock, sets average cost and grows the
+                    Goods in: every GRN moves stock, sets average cost and grows the
                     supplier payable.
                 </p>
             </div>

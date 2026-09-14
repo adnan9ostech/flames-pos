@@ -158,7 +158,7 @@ export default function InventoryReportsPage() {
     /* ===== Current Stock ===== */
 
     const renderStock = () => {
-        if (data.stock.length === 0) return empty('No stock movements yet — the report starts at the first receiving.')
+        if (data.stock.length === 0) return empty('No stock movements yet. The report starts at the first receiving.')
         const seen = new Set()
         return (
             <table className={styles.table}>

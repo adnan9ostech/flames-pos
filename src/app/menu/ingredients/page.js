@@ -146,7 +146,7 @@ export default function IngredientsPage() {
         setOverride(null)
         setMessage({
             type: 'success',
-            text: form.id ? `${saved.name} saved` : `${saved.name} added — next one`,
+            text: form.id ? `${saved.name} saved` : `${saved.name} added: next one`,
         })
         // Stays open, keeping the category and the unit: the owner is typing
         // a shopping list, not filling one form.
@@ -190,7 +190,7 @@ export default function IngredientsPage() {
                 <div>
                     <h1 className={styles.title}>Ingredients</h1>
                     <p className={styles.subtitle}>
-                        What the kitchen buys, and what it costs — the prices every recipe is
+                        What the kitchen buys, and what it costs. The prices every recipe is
                         costed at.
                     </p>
                 </div>
@@ -213,7 +213,7 @@ export default function IngredientsPage() {
                     <strong>Cost per unit is yours to set until the first delivery.</strong>{' '}
                     An ingredient with no purchase history has no computed cost, so type what you
                     pay. From the first stock receiving onward the moving average owns the figure
-                    and replaces anything set by hand — each row says which of the two it is on
+                    and replaces anything set by hand, and each row says which of the two it is on
                     right now.
                 </p>
             </div>
@@ -338,7 +338,7 @@ export default function IngredientsPage() {
                                 <tr>
                                     <td colSpan={canEdit ? 6 : 5} className={styles.emptyCell}>
                                         {items.length === 0
-                                            ? 'No ingredients yet — add the ones the recipes need, with what you pay for them.'
+                                            ? 'No ingredients yet: add the ones the recipes need, with what you pay for them.'
                                             : 'No ingredient matches.'}
                                     </td>
                                 </tr>
@@ -503,7 +503,7 @@ export default function IngredientsPage() {
                             </div>
 
                             <details className={local.moreFields} open={Boolean(form.category || form.reorder_level || !form.is_active)}>
-                                <summary>More — category, reorder level, active</summary>
+                                <summary>More: category, reorder level, active</summary>
 
                                 <div className={styles.fieldRow}>
                                     <div className={styles.field}>
@@ -546,7 +546,7 @@ export default function IngredientsPage() {
                                         checked={form.is_active}
                                         onChange={(e) => setField('is_active', e.target.checked)}
                                     />
-                                    Active — offered when building a recipe
+                                    Active: offered when building a recipe
                                 </label>
                             </details>
 
@@ -582,7 +582,7 @@ export default function IngredientsPage() {
                             <span className={styles.hint}>
                                 {form.id
                                     ? 'Saving returns the form to a fresh ingredient, keeping this category and unit.'
-                                    : 'The form stays open and keeps the category and unit — type the next name and cost.'}
+                                    : 'The form stays open and keeps the category and unit. Type the next name and cost.'}
                             </span>
                         </form>
                     </div>

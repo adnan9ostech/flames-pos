@@ -86,7 +86,7 @@ export default function DayClosePage() {
             setCloseError(res.error);
         } else {
             setState(res.data);
-            setNote(`${formatBusinessDay(res.data.openDay.business_date)} is open — tonight's orders land on it.`);
+            setNote(`${formatBusinessDay(res.data.openDay.business_date)} is open: tonight's orders land on it.`);
         }
         setStarting(false);
     };
@@ -101,7 +101,7 @@ export default function DayClosePage() {
             setState(res.data);
             setConfirming(false);
             setForceAck(false);
-            setNote(`Day closed — ${formatBusinessDay(res.data.openDay.business_date)} is now the open business day.`);
+            setNote(`Day closed: ${formatBusinessDay(res.data.openDay.business_date)} is now the open business day.`);
         }
         setClosing(false);
     };
@@ -164,12 +164,12 @@ export default function DayClosePage() {
                     <div className={styles.dayMeta}>
                         {openDay.state === 'open'
                             ? `Opened ${formatDateTime(new Date(openDay.opened_at))}`
-                            : 'No day has been started yet — orders follow the Karachi calendar day until you start one.'}
+                            : 'No day has been started yet. Orders follow the Karachi calendar day until you start one.'}
                     </div>
                     {openDay.stale && (
                         <div className={styles.staleNote}>
                             <AlertTriangle size={14} aria-hidden="true" />
-                            This day is behind today — start today&apos;s day so tonight&apos;s orders land on the right date.
+                            This day is behind today. Start today&apos;s day so tonight&apos;s orders land on the right date.
                         </div>
                     )}
                     {/* Soft warning only: the ledger never blocks a settle, so it
@@ -179,7 +179,7 @@ export default function DayClosePage() {
                             <AlertTriangle size={14} aria-hidden="true" />
                             <span>
                                 {ledgerGaps} settled bill{ledgerGaps === 1 ? '' : 's'} from this day{' '}
-                                {ledgerGaps === 1 ? 'has' : 'have'} not reached the ledger —{' '}
+                                {ledgerGaps === 1 ? 'has' : 'have'} not reached the ledger.{' '}
                                 see <Link href="/accounts/health">Posting Health</Link>.
                             </span>
                         </div>
@@ -295,7 +295,7 @@ export default function DayClosePage() {
                     {pending.length === 0 ? (
                         <div className={styles.clearNote}>
                             <CheckCircle2 size={16} aria-hidden="true" />
-                            No unpaid bills — the day is clear to close.
+                            No unpaid bills: the day is clear to close.
                         </div>
                     ) : (
                         <div className={styles.tableWrap}>
@@ -344,7 +344,7 @@ export default function DayClosePage() {
                     </h2>
                     {state.history.length === 0 ? (
                         <div className={styles.stateBlock}>
-                            <p>No closes yet — tonight&apos;s will be the first.</p>
+                            <p>No closes yet: tonight&apos;s will be the first.</p>
                         </div>
                     ) : (
                         <div className={styles.tableWrap}>
@@ -431,14 +431,14 @@ export default function DayClosePage() {
                                             so this day&apos;s cash was never counted.{' '}
                                         </>
                                     )}
-                                    Deal with that first — or tick here to close anyway, which is
+                                    Deal with that first, or tick here to close anyway, which is
                                     recorded in the audit trail.
                                 </span>
                             </label>
                         ) : (
                             <div className={styles.clearNote}>
                                 <CheckCircle2 size={16} aria-hidden="true" />
-                                No unpaid bills, drawer counted — clear to close.
+                                No unpaid bills, drawer counted. Clear to close.
                             </div>
                         )}
 

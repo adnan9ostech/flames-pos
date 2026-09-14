@@ -53,7 +53,7 @@ const accountByLinkCode = async (conn, code) => {
 };
 
 const need = (accountId, what) => {
-    if (!accountId) throw new Error(`no account resolves for ${what} — map it under Accounts before this can post`);
+    if (!accountId) throw new Error(`no account resolves for ${what}. Map it under Accounts before this can post`);
     return accountId;
 };
 

@@ -71,7 +71,7 @@ const CompanyPicker = ({ onSelect, onClose }) => {
                     ) : filtered.length === 0 ? (
                         <p className={styles.stateText}>
                             {companies.length === 0
-                                ? 'No active companies — an admin sets them up under Companies.'
+                                ? 'No active companies: an admin sets them up under Companies.'
                                 : 'No company matches that search.'}
                         </p>
                     ) : (

@@ -147,7 +147,7 @@ const resolveApSuppliers = async (conn, supplierId) =>
 const resolveInventory = (conn) => accountByLinkCode(conn, 'INVENTORY');
 
 const need = (accountId, what) => {
-    if (!accountId) throw new Error(`no account resolves for ${what} — map it under Accounts before this can post`);
+    if (!accountId) throw new Error(`no account resolves for ${what}. Map it under Accounts before this can post`);
     return accountId;
 };
 
@@ -399,7 +399,7 @@ const receivingTx = async (conn, receivingId, userId) => {
     // The stored header total, never re-summed from the lines: the receiving
     // verb rounded it once, and that is the figure the supplier ledger shows.
     const total = money(r.total);
-    if (total <= 0) return skipped('receiving total is zero — nothing owed');
+    if (total <= 0) return skipped('receiving total is zero. Nothing owed');
 
     const inventoryAccount = need(await resolveInventory(conn), 'the stock control account (link code INVENTORY)');
     const apAccount = need(await resolveApSuppliers(conn, r.supplier_id), 'the suppliers payable control (link code AP)');
@@ -457,7 +457,7 @@ const drawerCloseTx = async (conn, sessionId, userId) => {
     const variance = s.variance == null
         ? money(Number(s.counted_amount) - Number(s.expected_amount))
         : money(s.variance);
-    if (variance === 0) return skipped('drawer counted to the rupee — no variance to book');
+    if (variance === 0) return skipped('drawer counted to the rupee, so there is no variance to book');
 
     const bd = ymd(s.business_date);
     const { settings, skip } = await gate(conn, bd);

@@ -77,7 +77,7 @@ export default function VoucherListPage() {
                 <div>
                     <h1 className={styles.title}>Vouchers</h1>
                     <p className={styles.subtitle}>
-                        Every journal in the books — sales and settlements the till posted itself, and the ones a person entered.
+                        Every journal in the books. Sales and settlements the till posted itself, and the ones a person entered.
                     </p>
                 </div>
                 <div className={`${styles.headerActions} no-print`}>

@@ -161,7 +161,7 @@ export default function FloorPage() {
                     <tbody>
                         {rows.length === 0 && (
                             <tr><td colSpan={columnCount} className={styles.empty}>
-                                Nothing here yet — add the first one.
+                                Nothing here yet: add the first one.
                             </td></tr>
                         )}
                         {rows.map((row) => (
@@ -256,7 +256,7 @@ function DeleteDialog({ kind, row, impact, typed, setTyped, busy, onCancel, onRe
                         <p className={styles.dialogBody}>
                             This waiter is linked to <strong>{impact.orders} order{impact.orders === 1 ? '' : 's'}</strong>.
                             Those bills keep printing the name, but they stop counting toward
-                            any waiter in reports — sales by waiter for past days will change.
+                            any waiter in reports. Sales by waiter for past days will change.
                             The deletion is written to the audit log.
                         </p>
                     ) : (
@@ -269,7 +269,7 @@ function DeleteDialog({ kind, row, impact, typed, setTyped, busy, onCancel, onRe
                         <p className={styles.dialogBody}>
                             <strong>{impact.orders} past order{impact.orders === 1 ? '' : 's'}</strong> used this table.
                             Orders store the table as text, so those bills and reports are
-                            unaffected — the table just stops being offered at the till.
+                            unaffected: the table just stops being offered at the till.
                         </p>
                     ) : (
                         <p className={styles.dialogBody}>

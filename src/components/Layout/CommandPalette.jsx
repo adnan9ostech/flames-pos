@@ -174,7 +174,7 @@ export default function CommandPalette({ open, onClose, perms = [] }) {
                         ref={inputRef}
                         type="text"
                         className={styles.input}
-                        placeholder="Search screens — try “z report”, “stock”, “tax”"
+                        placeholder="Search screens: try “z report”, “stock”, “tax”"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         role="combobox"
@@ -236,7 +236,7 @@ export default function CommandPalette({ open, onClose, perms = [] }) {
                         <div className={styles.empty}>
                             <p className={styles.emptyTitle}>Nothing matches “{query.trim()}”</p>
                             <p className={styles.emptyHint}>
-                                Try what you’d call it out loud — “best sellers”, “end of day”, “grn”.
+                                Try what you’d call it out loud. “best sellers”, “end of day”, “grn”.
                             </p>
                         </div>
                     )}

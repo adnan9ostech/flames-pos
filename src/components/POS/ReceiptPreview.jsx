@@ -182,7 +182,7 @@ const ReceiptPreview = ({
 
                     {/* A copy must say it's a copy: two clean prints of one
                         sale is how a bill gets presented twice. */}
-                    {reprint && <div className={styles.reprintBanner}>REPRINT — COPY OF ORIGINAL</div>}
+                    {reprint && <div className={styles.reprintBanner}>REPRINT: COPY OF ORIGINAL</div>}
 
                     {/* Meta */}
                     <div className={styles.meta}>

@@ -89,7 +89,7 @@ export default function ExpenseVoucherPage() {
         setMessage({
             type: 'success',
             text: kind === 'post'
-                ? `${data.voucher_no} posted — journal ${data.journals.map((j) => j.voucher_no).join(', ')}`
+                ? `${data.voucher_no} posted: journal ${data.journals.map((j) => j.voucher_no).join(', ')}`
                 : `${data.voucher_no} saved`,
         })
         window.scrollTo({ top: 0 })
@@ -115,7 +115,7 @@ export default function ExpenseVoucherPage() {
         if (res.error) { setPayError(res.error); return }
         setPaying(false)
         setVoucher(res.data)
-        setMessage({ type: 'success', text: `Payment recorded — journal ${res.data.journal.voucher_no}. ${res.data.owed > 0 ? `Rs. ${rupees(res.data.owed)} still owed.` : 'Paid in full.'}` })
+        setMessage({ type: 'success', text: `Payment recorded: journal ${res.data.journal.voucher_no}. ${res.data.owed > 0 ? `Rs. ${rupees(res.data.owed)} still owed.` : 'Paid in full.'}` })
     }
 
     const doReverse = async () => {
@@ -125,7 +125,7 @@ export default function ExpenseVoucherPage() {
         setConfirming(false)
         if (res.error) { setMessage({ type: 'error', text: res.error }); return }
         setVoucher(res.data)
-        setMessage({ type: 'success', text: `${res.data.voucher_no} reversed by ${res.data.reversal.map((j) => j.voucher_no).join(', ')} — its lines are off the Expenses screen` })
+        setMessage({ type: 'success', text: `${res.data.voucher_no} reversed by ${res.data.reversal.map((j) => j.voucher_no).join(', ')}: its lines are off the Expenses screen` })
     }
 
     const isDraft = voucher?.status === 'draft'
@@ -282,7 +282,7 @@ export default function ExpenseVoucherPage() {
                                 {voucher.payments.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className={styles.cellMuted}>
-                                            No payments — the whole voucher is booked as a payable.
+                                            No payments: the whole voucher is booked as a payable.
                                         </td>
                                     </tr>
                                 ) : voucher.payments.map((p) => (
@@ -441,7 +441,7 @@ export default function ExpenseVoucherPage() {
                     <div className={styles.modal}>
                         <h2 id="ev-reverse-title" className={styles.modalTitle}>Reverse {voucher.voucher_no}?</h2>
                         <p className={styles.modalBody}>
-                            A contra journal is written for each of its {voucher.journals.filter((j) => !j.source_type.endsWith('_reversal')).length} journal{voucher.journals.length === 1 ? '' : 's'}, dated the open business day; the originals stay. Its {voucher.expenses.length} row{voucher.expenses.length === 1 ? '' : 's'} come off the Expenses screen, so any drawer that counted them will expect more cash. The voucher becomes void and cannot be edited or re-posted — enter a new one if it was merely wrong.
+                            A contra journal is written for each of its {voucher.journals.filter((j) => !j.source_type.endsWith('_reversal')).length} journal{voucher.journals.length === 1 ? '' : 's'}, dated the open business day; the originals stay. Its {voucher.expenses.length} row{voucher.expenses.length === 1 ? '' : 's'} come off the Expenses screen, so any drawer that counted them will expect more cash. The voucher becomes void and cannot be edited or re-posted. Enter a new one if it was merely wrong.
                         </p>
                         <label className={styles.field}>
                             <span className={styles.fieldLabel}>Reason</span>

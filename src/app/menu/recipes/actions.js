@@ -59,7 +59,7 @@ const cleanLines = (input) => {
     }
     const seen = new Set(lines.map((l) => l.inventory_item_id))
     if (seen.size !== lines.length) {
-        throw new Error('The same ingredient appears twice — combine the quantities')
+        throw new Error('The same ingredient appears twice. Combine the quantities')
     }
     return lines
 }
@@ -302,7 +302,7 @@ export async function copyRecipe({
         const fromName = String(fromVariant ?? '')
         const toName = String(toVariant ?? '')
         if (fromId === toId && fromName === toName) {
-            throw new Error('That is the same recipe — pick a different size or dish')
+            throw new Error('That is the same recipe. Pick a different size or dish')
         }
         const bd = await businessDate()
 
@@ -335,7 +335,7 @@ export async function copyRecipe({
             if (existing.lineCount > 0 && !overwrite) {
                 throw new Error(
                     `${target.name} ${toName || '(base)'} already has ${existing.lineCount} `
-                    + `${existing.lineCount === 1 ? 'line' : 'lines'} — confirm to replace them`,
+                    + `${existing.lineCount === 1 ? 'line' : 'lines'}: confirm to replace them`,
                 )
             }
 

@@ -42,7 +42,7 @@ const ENGINE_REVERSES = Object.fromEntries(Object.entries(ENGINE_REVERSAL_OF).ma
 /* Where a machine posting IS corrected, in the words the refusal shows. */
 const correctionFor = (j) => {
     const t = String(j.source_type);
-    if (t.startsWith('order_')) return `void the bill (${j.reference}) instead — the ledger writes the contra itself`;
+    if (t.startsWith('order_')) return `Void the bill (${j.reference}) instead. The ledger writes the contra itself`;
     if (t.startsWith('expense_')) return `reverse expense voucher ${j.reference} under Accounts › Expense Vouchers instead`;
     return 'correct it with a contra voucher from Add Transaction';
 };
@@ -318,7 +318,7 @@ export const reverseJournal = (journalId, { userId = null } = {}) =>
         if (original.status !== 'posted') throw new Error('Only a posted voucher can be reversed');
         if (!MANUAL_SOURCE_TYPES.has(original.source_type)) {
             throw new Error(
-                `${original.voucher_no} was posted automatically (${original.source_type}) — ${correctionFor(original)}`,
+                `${original.voucher_no} was posted automatically (${original.source_type}). ${correctionFor(original)}`,
             );
         }
 

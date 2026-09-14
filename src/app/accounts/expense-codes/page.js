@@ -332,7 +332,7 @@ export default function ExpenseCodesPage() {
                                             <span className={styles.cellSub}>
                                                 {c.payable_account_id
                                                     ? <>Payable: <span className={styles.cellCode}>{c.payable_number}</span> {c.payable_name}</>
-                                                    : 'No payable account — must be paid on the voucher'}
+                                                    : 'No payable account: must be paid on the voucher'}
                                             </span>
                                         </td>
                                         <td>
@@ -456,7 +456,7 @@ export default function ExpenseCodesPage() {
                                     onChange={(e) => setForm((p) => ({ ...p, payable_account_id: e.target.value }))}
                                     disabled={form.payable_locked}
                                 >
-                                    <option value="">None — must be paid on the voucher</option>
+                                    <option value="">None: must be paid on the voucher</option>
                                     {payableOptions.map((a) => (
                                         <option key={a.id} value={a.id}>{a.account_number} · {a.name}</option>
                                     ))}
@@ -464,7 +464,7 @@ export default function ExpenseCodesPage() {
                                 {form.payable_locked ? (
                                     <span className={styles.hint}>
                                         <Lock size={11} /> Voucher lines are booked against this payable account, and a later
-                                        payment must clear the same one — so it is fixed. To use another, switch this code off and add a new one.
+                                        payment must clear the same one, so it is fixed. To use another, switch this code off and add a new one.
                                     </span>
                                 ) : (
                                     <span className={styles.hint}>
@@ -479,7 +479,7 @@ export default function ExpenseCodesPage() {
                                     checked={form.is_active}
                                     onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
                                 />
-                                <span>Active — offered on voucher lines</span>
+                                <span>Active: offered on voucher lines</span>
                             </label>
 
                             <div className={`${styles.formActions} ${editing ? styles.formActionsSplit : ''}`}>

@@ -154,7 +154,7 @@ export async function saveIngredient(input) {
                     if (cost !== oldCost) {
                         if (existing[0].has_receipts && !input?.confirmCostOverride) {
                             throw new Error(
-                                `${existing[0].name} is costed from its receivings at Rs. ${oldCost} — `
+                                `${existing[0].name} is costed from its receivings at Rs. ${oldCost}: `
                                 + 'confirm to overwrite it by hand',
                             )
                         }
@@ -290,7 +290,7 @@ export async function deleteIngredient(id) {
                 const names = used.slice(0, 4).map((r) => r.name).join(', ')
                 const more = used.length > 4 ? ` and ${used.length - 4} more` : ''
                 throw new Error(
-                    `${name} is in the recipe for ${names}${more} — take it off those recipes first, `
+                    `${name} is in the recipe for ${names}${more}. Take it off those recipes first, `
                     + 'or switch it off instead',
                 )
             }
@@ -317,7 +317,7 @@ export async function deleteIngredient(id) {
                     p.ledger && 'the stock ledger',
                 ].filter(Boolean).join(', ')
                 throw new Error(
-                    `${name} is named by ${where} — switch it off instead, so the stock history `
+                    `${name} is named by ${where}. Switch it off instead, so the stock history `
                     + 'keeps the name it was recorded under',
                 )
             }
@@ -328,7 +328,7 @@ export async function deleteIngredient(id) {
                 // Backstop for a table added after this was written: a raw
                 // foreign-key error is not a sentence anyone can act on.
                 if (e.code === 'ER_ROW_IS_REFERENCED_2' || e.errno === 1451) {
-                    throw new Error(`${name} is still referenced elsewhere — switch it off instead`)
+                    throw new Error(`${name} is still referenced elsewhere. Switch it off instead`)
                 }
                 throw e
             }

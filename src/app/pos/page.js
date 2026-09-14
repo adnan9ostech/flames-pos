@@ -431,7 +431,7 @@ export default function POSPage() {
     const addDeal = (deal) => {
         const { lines, saving } = explodeDeal(deal, menuData.items);
         if (!lines.length) {
-            setNotice(`${deal.name} has no dishes on the menu any more — fix it on the Deals screen.`);
+            setNotice(`${deal.name} has no dishes on the menu any more. Fix it on the Deals screen.`);
             return;
         }
         ensureRequestId();
@@ -446,7 +446,7 @@ export default function POSPage() {
             setShowDiscount(true);
         }
         setNotice(saving > 0
-            ? `${deal.name} added — Rs. ${money(saving)} off.`
+            ? `${deal.name} added: Rs. ${money(saving)} off.`
             : `${deal.name} added.`);
     };
 
@@ -674,7 +674,7 @@ export default function POSPage() {
          * already stored; only the paper is missing.
          */
         if (printTransport === 'agent') {
-            setNotice('Receipt not printed — the print agent is not running. Start it, then reprint from Orders.');
+            setNotice('Receipt not printed: the print agent is not running. Start it, then reprint from Orders.');
             /*
              * And on the notice board, because the cashier who saw this is
              * about to serve the next table and the manager who can restart
@@ -729,8 +729,8 @@ export default function POSPage() {
         if (printTransport === 'agent') {
             const printed = await printKotViaAgent(order.id, { round: roundNo });
             if (!printed) {
-                setNotice('Kitchen ticket not printed — the print agent is not running.');
-                reportEvent('print_failed', 'A kitchen ticket did not print — the print agent is not running.').catch(() => {});
+                setNotice('Kitchen ticket not printed. The print agent is not running.');
+                reportEvent('print_failed', 'A kitchen ticket did not print. The print agent is not running.').catch(() => {});
             }
             return;
         }
@@ -820,7 +820,7 @@ export default function POSPage() {
             setCustomerName(found.name === 'Walk-in' ? '' : found.name || '');
             if (found.address) setCustomerAddress(found.address);
             setCustomerFound(true);
-            setNotice(`Found ${found.name} — ${found.total_orders || 0} previous orders.`);
+            setNotice(`Found ${found.name}: ${found.total_orders || 0} previous orders.`);
         } else {
             setCustomerFound(false);
             setNotice('No previous orders for that number.');
@@ -893,7 +893,7 @@ export default function POSPage() {
         settleRequestIdRef.current = null;
         setNotice(cart.length > 0
             ? 'Tab left open. The unsent items are still in the cart.'
-            : 'Tab left open — find it again under Open Tabs.');
+            : 'Tab left open: find it again under Open Tabs.');
     };
 
     // ---- Sending food and taking money -------------------------------------
@@ -990,7 +990,7 @@ export default function POSPage() {
             setActiveTabId(created.id);
             setCart([]);
             requestIdRef.current = null;
-            setNotice(`Tab #${getOrderNumber(created)} opened — add rounds any time, pay at the end.`);
+            setNotice(`Tab #${getOrderNumber(created)} opened: add rounds any time, pay at the end.`);
         } catch (error) {
             console.error('Failed to open tab', error);
             alert('Failed to open tab');
@@ -1815,7 +1815,7 @@ export default function POSPage() {
                                 setPaymentMode('city_ledger');
                                 if (!company) setShowCompanyPicker(true);
                             }}
-                            title="Charge to a company account — settled later by receipt"
+                            title="Charge to a company account. Settled later by receipt"
                         >
                             <Layers size={16} aria-hidden="true" />
                             Company
@@ -1828,7 +1828,7 @@ export default function POSPage() {
                             className={styles.companyBtn}
                             onClick={() => setShowCompanyPicker(true)}
                         >
-                            {company ? `Charging: ${company.name} — change` : 'Choose the company…'}
+                            {company ? `Charging: ${company.name}: change` : 'Choose the company…'}
                         </button>
                     )}
 

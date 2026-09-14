@@ -126,7 +126,7 @@ export async function moveDish(id, direction) {
             );
             if (dish.length === 0) throw new Error('That dish no longer exists');
             if (!dish[0].category_id) {
-                throw new Error('This dish has no category, so there is no order to move it within — give it one first');
+                throw new Error('This dish has no category, so there is no order to move it within. Give it one first');
             }
 
             const [siblings] = await conn.query(

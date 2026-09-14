@@ -147,7 +147,7 @@ export async function toggleAccount(id) {
             const [rows] = await conn.query('SELECT * FROM accounts WHERE id = ? FOR UPDATE', [accountId])
             if (rows.length === 0) throw new Error('That account no longer exists')
             if (rows[0].is_system) {
-                throw new Error(`${rows[0].name} is a system account the ledger posts to — it cannot be switched off`)
+                throw new Error(`${rows[0].name} is a system account the ledger posts to. It cannot be switched off`)
             }
             await conn.query(
                 'UPDATE accounts SET is_active = 1 - is_active, updated_at = UTC_TIMESTAMP(3) WHERE id = ?',

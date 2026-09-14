@@ -52,7 +52,7 @@ export default function WastePage() {
         })
         setBusy(false)
         if (res.error) { setMessage({ type: 'error', text: res.error }); return }
-        setMessage({ type: 'success', text: `Waste recorded — ${money(res.data.cost)} of food` })
+        setMessage({ type: 'success', text: `Waste recorded: ${money(res.data.cost)} of food` })
         setReason('')
         setLines([newLine()])
         load()
@@ -73,7 +73,7 @@ export default function WastePage() {
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Waste</h1>
                     <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-                        Food that was cooked and then thrown away — a dropped plate, a dish sent back, a takeaway
+                        Food that was cooked and then thrown away. A dropped plate, a dish sent back, a takeaway
                         nobody collected. Recorded in dishes; the ingredients behind them come off the shelf, because
                         they really were used. This is not a void: a void un-rings something that was never made.
                     </p>
@@ -94,7 +94,7 @@ export default function WastePage() {
                 <label className="block text-xs uppercase tracking-wide text-muted-foreground mb-1">Why</label>
                 <input
                     className="w-full min-h-[44px] px-3 rounded-lg border border-border bg-background text-foreground"
-                    placeholder="Required — what happened"
+                    placeholder="Required: what happened"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                 />

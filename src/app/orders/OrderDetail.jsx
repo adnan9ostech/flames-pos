@@ -76,12 +76,12 @@ const describeTrail = (entry) => {
             };
         case 'settle_order':
             return {
-                title: `Settled — ${methodName(d.method)}`,
+                title: `Settled: ${methodName(d.method)}`,
                 note: [d.total != null && formatRupees(d.total), d.invoice].filter(Boolean).join(' · '),
             };
         case 'void_order':
             return {
-                title: `Voided — ${d.reason || 'no reason recorded'}`,
+                title: `Voided: ${d.reason || 'no reason recorded'}`,
                 note: [d.by && `by ${d.by}`, d.was_paid && 'the bill had been settled']
                     .filter(Boolean).join(' · '),
             };
@@ -310,7 +310,7 @@ export default function OrderDetail({
                                 {cancelled ? (
                                     <p className={styles.voidBanner}>
                                         <Ban size={14} aria-hidden="true" />
-                                        Voided{order.cancel_reason ? ` — ${order.cancel_reason}` : ''}
+                                        Voided{order.cancel_reason ? `: ${order.cancel_reason}` : ''}
                                         {order.cancelled_by ? ` · by ${order.cancelled_by}` : ''}
                                     </p>
                                 ) : (
@@ -507,11 +507,11 @@ export default function OrderDetail({
                                     reader has to work out what it means. */}
                                 {cancelled ? (
                                     <p className={styles.moneyState}>
-                                        This order was voided — it counts towards nothing.
+                                        This order was voided. It counts towards nothing.
                                     </p>
                                 ) : owed > 0 ? (
                                     <p className={`${styles.moneyState} ${styles.owed}`}>
-                                        Unpaid — {formatRupees(owed)} still owed.
+                                        Unpaid: {formatRupees(owed)} still owed.
                                     </p>
                                 ) : (
                                     <p className={`${styles.moneyState} ${styles.settled}`}>

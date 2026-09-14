@@ -303,7 +303,7 @@ export default function HourlySalesPage() {
                             <tfoot>
                                 <tr className={styles.tfootRow}>
                                     <td>
-                                        Totals — {tableRows.length} trading{' '}
+                                        Totals: {tableRows.length} trading{' '}
                                         {tableRows.length === 1 ? 'hour' : 'hours'}
                                     </td>
                                     <td className={styles.alignRight}>{totals.bills}</td>

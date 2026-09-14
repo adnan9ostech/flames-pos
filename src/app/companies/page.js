@@ -129,7 +129,7 @@ export default function CompaniesPage() {
             ) : companies.length === 0 ? (
                 <div className={styles.stateBlock}>
                     <Building2 size={32} />
-                    <p>No companies yet — add the first account to start charging to the ledger.</p>
+                    <p>No companies yet: add the first account to start charging to the ledger.</p>
                 </div>
             ) : (
                 <div className={styles.tableWrap}>
@@ -327,7 +327,7 @@ export default function CompaniesPage() {
                         <div className={styles.statementHeader}>
                             <h3 className={styles.modalTitle}>
                                 <FileText size={18} aria-hidden="true" />
-                                {statement.company.name} — statement
+                                {statement.company.name}: statement
                             </h3>
                             <button
                                 type="button"
@@ -346,7 +346,7 @@ export default function CompaniesPage() {
                             </div>
                         ) : statement.entries.length === 0 ? (
                             <div className={styles.stateBlock}>
-                                <p>No ledger activity yet — charges appear here as the till settles bills to this account.</p>
+                                <p>No ledger activity yet. Charges appear here as the till settles bills to this account.</p>
                             </div>
                         ) : (
                             <div className={styles.statementWrap}>
@@ -371,7 +371,7 @@ export default function CompaniesPage() {
                                                     {entry.kind === 'charge' ? (
                                                         <>
                                                             <span className={styles.cellStrong}>
-                                                                {entry.amount < 0 ? 'Void — order' : 'Order'} #{entry.order_number}
+                                                                {entry.amount < 0 ? 'Void: order' : 'Order'} #{entry.order_number}
                                                             </span>
                                                             {entry.invoice_number && (
                                                                 <div className={styles.cellSub}>{entry.invoice_number}</div>

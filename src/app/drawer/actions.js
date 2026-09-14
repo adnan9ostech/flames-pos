@@ -347,7 +347,7 @@ export async function closeDrawer({
             const typed = cleanAmount(counted_amount, 'Counted amount')
             if (fromNotes !== typed) {
                 return {
-                    error: `The notes add up to Rs. ${fromNotes.toLocaleString('en-PK')}, but the total says Rs. ${typed.toLocaleString('en-PK')} — recount or clear the breakdown.`,
+                    error: `The notes add up to Rs. ${fromNotes.toLocaleString('en-PK')}, but the total says Rs. ${typed.toLocaleString('en-PK')}: recount or clear the breakdown.`,
                 }
             }
         }
@@ -385,8 +385,8 @@ export async function closeDrawer({
             if (needsReason(variance, tolerance) && !why) {
                 throw new Error(
                     variance < 0
-                        ? `The drawer is short by Rs. ${Math.abs(variance).toLocaleString('en-PK')} — write why before closing.`
-                        : `The drawer is over by Rs. ${variance.toLocaleString('en-PK')} — write why before closing.`,
+                        ? `The drawer is short by Rs. ${Math.abs(variance).toLocaleString('en-PK')}: write why before closing.`
+                        : `The drawer is over by Rs. ${variance.toLocaleString('en-PK')}: write why before closing.`,
                 )
             }
 

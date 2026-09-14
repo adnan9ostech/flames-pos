@@ -328,14 +328,14 @@ const checkAllocation = (allocation, paidFromOf) => {
         const amount = money(a.line.amount);
         if (a.unpaid > 0 && a.unpaid < amount) {
             throw new Error(
-                `Line ${i + 1} (${a.line.code}, ${rupees(amount)}) is only part-paid — a line is paid in full `
+                `Line ${i + 1} (${a.line.code}, ${rupees(amount)}) is only part-paid. A line is paid in full `
                 + 'from one account or left unpaid. Adjust the payments, or split the line in two.',
             );
         }
         const sources = [...new Set(a.paidBy.map((x) => paidFromOf(x.payment.account_id)))];
         if (sources.length > 1) {
             throw new Error(
-                `Line ${i + 1} (${a.line.code}) is paid from ${sources.join(' and ')} — pay each line from one `
+                `Line ${i + 1} (${a.line.code}) is paid from ${sources.join(' and ')}: pay each line from one `
                 + 'account, or split the line in two.',
             );
         }
@@ -480,7 +480,7 @@ export const saveDraft = async (conn, input, userId = null) => {
 export const deleteDraft = async (conn, voucherId, userId = null) => {
     const doc = await loadDocument(conn, requireId(voucherId, 'voucher'), { forUpdate: true });
     if (doc.voucher.status !== 'draft') {
-        throw new Error(`Voucher ${doc.voucher.voucher_no} is ${doc.voucher.status} — only a draft can be deleted; reverse a posted one instead`);
+        throw new Error(`Voucher ${doc.voucher.voucher_no} is ${doc.voucher.status}. Only a draft can be deleted; reverse a posted one instead`);
     }
     await conn.query('DELETE FROM expense_vouchers WHERE id = ?', [doc.voucher.id]);
     await audit(conn, {
@@ -496,7 +496,7 @@ export const deleteDraft = async (conn, voucherId, userId = null) => {
 const loadSettings = async (conn) => {
     const [rows] = await conn.query('SELECT * FROM gl_settings WHERE id = 1');
     if (!rows[0]) throw new Error('The ledger is not set up (gl_settings has no row)');
-    if (!rows[0].posting_enabled) throw new Error('Ledger posting is switched off — nothing can be posted until it is on');
+    if (!rows[0].posting_enabled) throw new Error('Ledger posting is switched off. Nothing can be posted until it is on');
     return rows[0];
 };
 
@@ -519,7 +519,7 @@ export const postVoucher = async (conn, voucherLike, userId = null) => {
     }
     const branchId = voucher.branch_id;
     const latest = await latestPostingDate(conn, branchId);
-    if (bd > latest) throw new Error(`The voucher date cannot be after ${latest} — nothing posts ahead of the books`);
+    if (bd > latest) throw new Error(`The voucher date cannot be after ${latest}. Nothing posts ahead of the books`);
     const total = money(lines.reduce((s, l) => s + Number(l.amount), 0));
     const paidTotal = money(payments.reduce((s, p) => s + Number(p.amount), 0));
     if (paidTotal > total) throw new Error(`Payments (${rupees(paidTotal)}) exceed the voucher total (${rupees(total)})`);
@@ -533,7 +533,7 @@ export const postVoucher = async (conn, voucherLike, userId = null) => {
     checkAllocation(allocation, paidFromOf);
     for (const a of allocation) {
         if (a.unpaid > 0 && !a.line.payable_account_id) {
-            throw new Error(`Expense code ${a.line.code} (${a.line.code_name}) has no payable account — pay this voucher in full or set one on the code`);
+            throw new Error(`Expense code ${a.line.code} (${a.line.code_name}) has no payable account. Pay this voucher in full or set one on the code`);
         }
     }
 
@@ -561,7 +561,7 @@ export const postVoucher = async (conn, voucherLike, userId = null) => {
             })), 'credit'),
         ],
     });
-    if (!journal) throw new Error(`Voucher ${voucher.voucher_no} already has a journal — it was posted by someone else`);
+    if (!journal) throw new Error(`Voucher ${voucher.voucher_no} already has a journal. It was posted by someone else`);
 
     // The projection. Rows completed by a payment are 'paid' from wherever
     // that payment came (checkAllocation made sure that is one place); the
@@ -627,10 +627,10 @@ export const addPayment = async (conn, voucherLike, payment, userId = null) => {
 
     const doc = await loadDocument(conn, voucherId, { forUpdate: true });
     const { voucher, lines, payments } = doc;
-    if (voucher.status !== 'posted') throw new Error(`Voucher ${voucher.voucher_no} is ${voucher.status} — only a posted voucher takes a payment`);
+    if (voucher.status !== 'posted') throw new Error(`Voucher ${voucher.voucher_no} is ${voucher.status}. Only a posted voucher takes a payment`);
     const branchId = voucher.branch_id;
     const latest = await latestPostingDate(conn, branchId);
-    if (clean.paid_on > latest) throw new Error(`The payment date cannot be after ${latest} — nothing posts ahead of the books`);
+    if (clean.paid_on > latest) throw new Error(`The payment date cannot be after ${latest}. Nothing posts ahead of the books`);
     const owed = money(voucher.total - voucher.paid_total);
     if (owed <= 0) throw new Error(`Voucher ${voucher.voucher_no} is already paid in full`);
     if (clean.amount > owed) throw new Error(`${rupees(clean.amount)} is more than the ${rupees(owed)} still owed`);
@@ -648,8 +648,8 @@ export const addPayment = async (conn, voucherLike, payment, userId = null) => {
         let sum = 0;
         const steps = before.filter((b) => b.unpaid > 0).map((b) => (sum = money(sum + b.unpaid)));
         throw new Error(
-            `${rupees(clean.amount)} would leave line ${partial + 1} (${after[partial].line.code}) part-paid — `
-            + `a payment clears whole lines. Pay ${listOr(steps)}.`,
+            `${rupees(clean.amount)} would leave line ${partial + 1} (${after[partial].line.code}) part-paid. `
+            + `A payment clears whole lines. Pay ${listOr(steps)}.`,
         );
     }
     checkAllocation(after, paidFromOf);
@@ -680,7 +680,7 @@ export const addPayment = async (conn, voucherLike, payment, userId = null) => {
         if (!bookedPayables.includes(target)) {
             throw new Error(
                 `Expense code ${line.code} no longer points at the payable account voucher ${voucher.voucher_no} `
-                + 'was booked with — restore it on the code before paying',
+                + 'was booked with: restore it on the code before paying',
             );
         }
         return target;
@@ -750,7 +750,7 @@ export const reverseVoucher = async (conn, voucherLike, userId = null, reason = 
     await loadSettings(conn);
     const doc = await loadDocument(conn, voucherId, { forUpdate: true });
     const { voucher, lines } = doc;
-    if (voucher.status !== 'posted') throw new Error(`Voucher ${voucher.voucher_no} is ${voucher.status} — only a posted voucher can be reversed`);
+    if (voucher.status !== 'posted') throw new Error(`Voucher ${voucher.voucher_no} is ${voucher.status}. Only a posted voucher can be reversed`);
 
     const branchId = voucher.branch_id;
     const day = await currentBusinessDate(conn, branchId);

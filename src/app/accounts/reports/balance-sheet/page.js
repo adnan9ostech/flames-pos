@@ -26,7 +26,7 @@ const Section = ({ title, groups, extra = [], total, emptyText }) => (
         ))}
         {extra.map((l) => (
             <tr key={l.name} className={styles.rowIndent}>
-                <td>{l.name}<span className={styles.cellSub}>computed — income less expenses, not yet closed to retained earnings</span></td>
+                <td>{l.name}<span className={styles.cellSub}>computed: income less expenses, not yet closed to retained earnings</span></td>
                 <td className={styles.cellMuted}>—</td>
                 <td className={styles.cellNum}><Money value={l.amount} /></td>
             </tr>
@@ -132,7 +132,7 @@ export default function BalanceSheetPage() {
                         <>
                             <AlertTriangle size={16} aria-hidden="true" />
                             <span className={styles.chip + ' ' + styles.chipDanger}>Does not balance</span>
-                            Assets exceed liabilities plus equity by Rs. {rupees(data.difference)} — a journal has been altered outside the poster. Check the trial balance.
+                            Assets exceed liabilities plus equity by Rs. {rupees(data.difference)}: a journal has been altered outside the poster. Check the trial balance.
                         </>
                     )}
                 </div>

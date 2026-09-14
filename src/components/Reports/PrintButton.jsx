@@ -26,7 +26,7 @@ export default function PrintButton({ label = 'Save as PDF', title = null }) {
             type="button"
             className={`${styles.btn} no-print`}
             onClick={() => window.print()}
-            title={title ?? 'Opens the browser print dialog — choose "Save as PDF"'}
+            title={title ?? 'Opens the browser print dialog. Choose "Save as PDF"'}
         >
             <FileDown size={15} aria-hidden="true" />
             {label}

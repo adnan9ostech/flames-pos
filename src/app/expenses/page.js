@@ -271,7 +271,7 @@ export default function ExpensesPage() {
                             <div>
                                 <h2 className={styles.cardTitle}>New voucher</h2>
                                 <p className={styles.cardHint}>
-                                    Money going out that isn&apos;t a refund — mandi runs, repairs, bills.
+                                    Money going out that isn&apos;t a refund. Mandi runs, repairs, bills.
                                 </p>
                             </div>
                         </div>
@@ -359,7 +359,7 @@ export default function ExpensesPage() {
                                         id="exp_description"
                                         type="text"
                                         className={styles.input}
-                                        placeholder="Tomatoes and onions — Sunday mandi"
+                                        placeholder="Tomatoes and onions: Sunday mandi"
                                         value={description}
                                         maxLength={191}
                                         onChange={(e) => setDescription(e.target.value)}
@@ -426,7 +426,7 @@ export default function ExpensesPage() {
                                             checked={payable}
                                             onChange={(e) => setPayable(e.target.checked)}
                                         />
-                                        Payable — record now, pay later
+                                        Payable: record now, pay later
                                     </label>
                                 </div>
                             </div>
@@ -502,7 +502,7 @@ export default function ExpensesPage() {
                                 <ClipboardList size={32} />
                                 <p>
                                     {tab === 'payables'
-                                        ? 'Nothing owed — every voucher is settled.'
+                                        ? 'Nothing owed: every voucher is settled.'
                                         : 'No expenses in this range.'}
                                 </p>
                             </div>
@@ -548,7 +548,7 @@ export default function ExpensesPage() {
                                                         <Link
                                                             href={`/accounts/expense-vouchers/${r.voucher_id}`}
                                                             className={styles.cellMuted}
-                                                            title="Entered as an expense voucher — pay or reverse it there"
+                                                            title="Entered as an expense voucher. Pay or reverse it there"
                                                         >
                                                             {r.voucher_no || 'voucher'}
                                                         </Link>
@@ -679,7 +679,7 @@ export default function ExpensesPage() {
                             Delete this voucher?
                         </h3>
                         <p className={styles.modalBody}>
-                            {rs(deleteTarget.amount)} — {deleteTarget.description}
+                            {rs(deleteTarget.amount)}: {deleteTarget.description}
                             {deleteTarget.payee ? ` (${deleteTarget.payee})` : ''}.
                             The full voucher is written to the audit log before it goes.
                         </p>

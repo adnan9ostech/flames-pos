@@ -121,7 +121,7 @@ export default function PurchaseOrdersPage() {
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Purchase Orders</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            What was ordered, at what price, for when — so a short or dearer delivery is a
+                            What was ordered, at what price, for when, so a short or dearer delivery is a
                             conversation with evidence.
                         </p>
                     </div>

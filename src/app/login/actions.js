@@ -59,7 +59,7 @@ export async function login(formData) {
         return { error: 'Incorrect email or password' }
     }
     if (!user.is_active) {
-        return { error: 'This account has been suspended — ask an admin.' }
+        return { error: 'This account has been suspended. Ask an admin.' }
     }
 
     attempts.delete(throttleKey)

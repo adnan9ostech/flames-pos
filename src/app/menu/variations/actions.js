@@ -58,7 +58,7 @@ const cleanSetOptions = (rows) => {
         seen.add(key);
         out.push({ orig: r?.orig ? String(r.orig) : null, name });
     }
-    if (out.length < MIN_OPTIONS) throw new Error('A size set needs at least two options — one size is a price, not a choice');
+    if (out.length < MIN_OPTIONS) throw new Error('A size set needs at least two options. One size is a price, not a choice');
     if (out.length > MAX_VARIANTS) throw new Error(`At most ${MAX_VARIANTS} sizes in a set`);
     return out;
 };
@@ -168,7 +168,7 @@ export async function saveVariationSet(input) {
             const claimed = new Set();
             for (const r of rows) {
                 if (!r.orig) continue;
-                if (!old.includes(r.orig)) throw new Error(`"${r.orig}" is not a size in this set any more — reload the screen`);
+                if (!old.includes(r.orig)) throw new Error(`"${r.orig}" is not a size in this set any more. Reload the screen`);
                 if (claimed.has(r.orig)) throw new Error(`Two rows both claim to be "${r.orig}"`);
                 claimed.add(r.orig);
             }
@@ -199,7 +199,7 @@ export async function saveVariationSet(input) {
                 throw new Error(
                     removed.length > 0
                         ? `${removed.length === 1 ? `Size "${removed[0]}"` : `Those ${removed.length} sizes`} cannot be removed while `
-                          + `${linkRows.length} dish${linkRows.length === 1 ? '' : 'es'} use this set — the dishes would `
+                          + `${linkRows.length} dish${linkRows.length === 1 ? '' : 'es'} use this set. The dishes would `
                           + `keep a price for a size the set no longer knows. Detach ${who} first.`
                         : `The order cannot be changed while ${linkRows.length} dish${linkRows.length === 1 ? '' : 'es'} `
                           + 'use this set: the order is smallest to largest and every linked dish\'s prices ascend in it, '
@@ -335,7 +335,7 @@ export async function deleteVariationSet(id) {
                 throw new Error(
                     `"${rows[0].name}" is used by ${links.length} dish${links.length === 1 ? '' : 'es'} `
                     + `(${names.join(', ')}${more > 0 ? ` and ${more} more` : ''}). `
-                    + 'Switch it off instead — it leaves every picker and every priced dish keeps its sizes.',
+                    + 'Switch it off instead. It leaves every picker and every priced dish keeps its sizes.',
                 );
             }
 

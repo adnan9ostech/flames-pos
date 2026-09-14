@@ -259,7 +259,7 @@ export default function VoucherPage() {
                     <div className={styles.modal}>
                         <h2 className={styles.modalTitle} id="reverse-title">Reverse {journal.voucher_no}?</h2>
                         <p className={styles.modalBody}>
-                            A new JV will post today with every line swapped — debits become credits and credits become debits —
+                            A new JV will post today with every line swapped. Debits become credits and credits become debits,
                             for {rsTotal(journal.debit_total)}. {journal.voucher_no} itself stays on the books unchanged; the pair nets to zero.
                             This cannot be undone except by reversing the reversal.
                         </p>

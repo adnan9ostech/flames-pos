@@ -219,7 +219,7 @@ export async function startBusinessDay({ date = null } = {}) {
                 );
                 if (n > 0) {
                     return {
-                        error: `${openDate} is still open with ${n} order${n === 1 ? '' : 's'} on it — close that day first.`,
+                        error: `${openDate} is still open with ${n} order${n === 1 ? '' : 's'} on it: close that day first.`,
                     };
                 }
 
@@ -295,7 +295,7 @@ export async function closeBusinessDay({ force = false } = {}) {
         if (openDrawers.length > 0 && !force) {
             const which = openDrawers.map((d) => d.cashier_role).join(', ')
             return {
-                error: `The ${which} drawer is still open — count and close it so the day's cash is recorded, then close the day.`,
+                error: `The ${which} drawer is still open. Count and close it so the day's cash is recorded, then close the day.`,
             }
         }
 
@@ -333,7 +333,7 @@ export async function closeBusinessDay({ force = false } = {}) {
                     [BRANCH_ID, closedDate],
                 )
                 if (n === 0) {
-                    return { error: `${closedDate} has not started yet — there is nothing to close.` }
+                    return { error: `${closedDate} has not started yet. There is nothing to close.` }
                 }
             }
 
@@ -349,7 +349,7 @@ export async function closeBusinessDay({ force = false } = {}) {
             const pending = await pendingBillsOn(closedDate, conn)
             if (pending.length > 0 && !force) {
                 return {
-                    error: `${pending.length} unpaid bill${pending.length === 1 ? ' is' : 's are'} still open on ${closedDate} — settle or void ${pending.length === 1 ? 'it' : 'them'} before closing the day.`,
+                    error: `${pending.length} unpaid bill${pending.length === 1 ? ' is' : 's are'} still open on ${closedDate}. Settle or void ${pending.length === 1 ? 'it' : 'them'} before closing the day.`,
                 }
             }
 

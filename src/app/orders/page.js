@@ -735,7 +735,7 @@ export default function OrdersPage() {
                             {order.status === 'cancelled' && order.cancel_reason && (
                                 <div className={styles.voidNote}>
                                     <Ban size={13} aria-hidden="true" />
-                                    Voided — {order.cancel_reason}
+                                    Voided: {order.cancel_reason}
                                 </div>
                             )}
                         </div>

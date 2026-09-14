@@ -124,7 +124,7 @@ const scanStaleTabs = async () => {
         kind: 'tab_stale',
         severity: 'warn',
         title: `Order #${r.order_number} has been open ${Math.floor(r.mins / 60)}h`,
-        body: `${r.table_number ? `Table ${r.table_number}` : 'No table'} — ${money(r.total)} unpaid.`,
+        body: `${r.table_number ? `Table ${r.table_number}` : 'No table'}: ${money(r.total)} unpaid.`,
         href: '/orders',
         permission: null,
         dedupeKey: `tab_stale:${r.id}`,

@@ -97,7 +97,7 @@ export default function CustomersPage() {
                         <p className="p-8 text-center text-sm text-muted-foreground">
                             {search
                                 ? 'Nobody matches that.'
-                                : 'No customers yet — a name and number taken at the till lands here.'}
+                                : 'No customers yet: a name and number taken at the till lands here.'}
                         </p>
                     ) : rows.map((c) => (
                         <button
@@ -152,7 +152,7 @@ export default function CustomersPage() {
                                         <h3 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Orders</h3>
                                         {!detail?.orders?.length ? (
                                             <p className="text-sm text-muted-foreground">
-                                                Nothing under this number yet — the count above came from sales taken before
+                                                Nothing under this number yet. The count above came from sales taken before
                                                 the number was recorded on the bill.
                                             </p>
                                         ) : (

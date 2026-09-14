@@ -131,7 +131,7 @@ export default function VariationsPage() {
                 type: 'success',
                 text: editing
                     ? (renames.length > 0
-                        ? `Renamed everywhere — ${renames.map((r) => `${r.from} → ${r.to}`).join(', ')}. Past bills untouched.`
+                        ? `Renamed everywhere: ${renames.map((r) => `${r.from} → ${r.to}`).join(', ')}. Past bills untouched.`
                         : 'Size set updated')
                     : `"${form.name.trim()}" added`,
             });
@@ -175,7 +175,7 @@ export default function VariationsPage() {
                 <div>
                     <h1 className={styles.title}>Sizes &amp; Variations</h1>
                     <p className={styles.subtitle}>
-                        A size set is one shared thing — “Half / Full” linked to thirty dishes,
+                        A size set is one shared thing. “Half / Full” linked to thirty dishes,
                         not a word retyped on each. The set owns the names and their order,
                         smallest first; every dish owns its own prices.
                     </p>
@@ -310,7 +310,7 @@ export default function VariationsPage() {
                                                     onClick={() => flip(s)}
                                                     disabled={!canEdit}
                                                     aria-pressed={s.is_active}
-                                                    title={s.is_active ? 'Switch off — it leaves every picker' : 'Switch back on'}
+                                                    title={s.is_active ? 'Switch off: it leaves every picker' : 'Switch back on'}
                                                 >
                                                     {s.is_active ? 'Active' : 'Off'}
                                                 </button>
@@ -334,7 +334,7 @@ export default function VariationsPage() {
                                                             disabled={s.dishes.length > 0}
                                                             aria-label={`Delete ${s.name}`}
                                                             title={s.dishes.length > 0
-                                                                ? `Used by ${s.dishes.length} dishes — switch it off instead`
+                                                                ? `Used by ${s.dishes.length} dishes. Switch it off instead`
                                                                 : 'Delete this set'}
                                                         >
                                                             <Trash2 size={15} />
@@ -373,7 +373,7 @@ export default function VariationsPage() {
                                 </span>
                             </label>
 
-                            <p className={styles.cardSection}>Sizes — smallest first</p>
+                            <p className={styles.cardSection}>Sizes: smallest first</p>
 
                             {editing && inUse && (
                                 <div className={`${styles.note} ${styles.noteWarn} ${local.inlineNote}`}>
@@ -382,7 +382,7 @@ export default function VariationsPage() {
                                         {formatNumber(linked.length)} dish{linked.length === 1 ? '' : 'es'} use
                                         this set. Renaming a size is safe and reaches all of them; removing one
                                         or changing the order is not offered, because both reprice dishes
-                                        without touching a price. Adding a size is safe — the dishes get it
+                                        without touching a price. Adding a size is safe. The dishes get it
                                         once someone prices it.
                                     </span>
                                 </div>
@@ -436,7 +436,7 @@ export default function VariationsPage() {
                                                 disabled={pinned || form.rows.length <= 2}
                                                 aria-label={`Remove size ${i + 1}`}
                                                 title={pinned
-                                                    ? 'Detach the dishes first — removing this would leave them priced for a size the set no longer knows'
+                                                    ? 'Detach the dishes first. Removing this would leave them priced for a size the set no longer knows'
                                                     : form.rows.length <= 2 ? 'A set needs two sizes' : 'Remove'}
                                             >
                                                 <X size={15} />
@@ -461,7 +461,7 @@ export default function VariationsPage() {
                                     checked={form.is_active}
                                     onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
                                 />
-                                <span>Active — offered when a dish picks its sizes</span>
+                                <span>Active: offered when a dish picks its sizes</span>
                             </label>
 
                             <div className={`${styles.formActions} ${editing ? styles.formActionsSplit : ''}`}>
@@ -509,7 +509,7 @@ export default function VariationsPage() {
                             <li>the set&apos;s own option list</li>
                             <li>
                                 the size list of all <strong>{formatNumber(linked.length)} linked
-                                dish{linked.length === 1 ? '' : 'es'}</strong> — prices and their order unchanged
+                                dish{linked.length === 1 ? '' : 'es'}</strong>: prices and their order unchanged
                             </li>
                             <li>those dishes&apos; <strong>per-size recipes</strong>, so costing keeps matching</li>
                         </ul>
@@ -517,7 +517,7 @@ export default function VariationsPage() {
                             <AlertTriangle size={16} aria-hidden="true" />
                             <span>
                                 Bills already rung are <strong>not</strong> touched. The size printed on an
-                                order line is the text that was sold, and it stays as it was rung — so an old
+                                order line is the text that was sold, and it stays as it was rung, so an old
                                 receipt still says “Half” after today.
                             </span>
                         </div>
@@ -546,7 +546,7 @@ export default function VariationsPage() {
                         <div className={styles.modalBody}>
                             These dishes use “{gapsSet.name}” but carry no price for the sizes below, so
                             the till does not offer them. A size is written onto a dish only once it has a
-                            price — an unpriced size would ring up free.
+                            price: an unpriced size would ring up free.
                         </div>
                         <div className={local.dishList}>
                             {gapsSet.dishes.filter((d) => d.missing.length > 0).map((d) => (

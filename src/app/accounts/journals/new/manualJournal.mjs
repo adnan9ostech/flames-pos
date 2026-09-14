@@ -56,7 +56,7 @@ export const postManualJournal = async ({ businessDate, description, reference, 
         const byId = new Map(accounts.map((a) => [Number(a.id), a]));
         for (const id of ids) {
             const a = byId.get(id);
-            if (!a) throw new Error('One of the accounts no longer exists — reload and try again');
+            if (!a) throw new Error('One of the accounts no longer exists. Reload and try again');
             if (!a.is_active) throw new Error(`${a.account_number} ${a.name} is inactive and cannot be posted to`);
         }
 
@@ -77,7 +77,7 @@ export const postManualJournal = async ({ businessDate, description, reference, 
             // Cannot happen while the counter row is locked, but the contract
             // is the contract: hand the number back and refuse loudly.
             await conn.query('ROLLBACK TO SAVEPOINT manual_jv');
-            throw new Error(`Voucher ${voucherNo} was already posted — try again`);
+            throw new Error(`Voucher ${voucherNo} was already posted. Try again`);
         }
 
         await conn.query(

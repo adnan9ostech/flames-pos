@@ -146,7 +146,7 @@ export default function CategoriesPage() {
                 <div>
                     <h1 className={styles.title}>Categories</h1>
                     <p className={styles.subtitle}>
-                        The sections of the till grid, in this order — and the kitchen&apos;s
+                        The sections of the till grid, in this order, and the kitchen&apos;s
                         stations: one slip prints per category, with the category name alone at
                         the top for the runner to sort by. Move a category and you move where its
                         pass comes off the printer.
@@ -352,7 +352,7 @@ export default function CategoriesPage() {
                                 </div>
                                 <span className={styles.hint}>
                                     Six glyphs, because these are the only six the till and the customer
-                                    menu know how to draw — anything else shows as a plate.
+                                    menu knows how to draw, and anything else shows as a plate.
                                 </span>
                             </div>
 
@@ -391,7 +391,7 @@ export default function CategoriesPage() {
                                     {doomed.live_count === 1 ? '' : 'es'} on the menu
                                     {doomed.archived_count > 0
                                         ? ` and ${formatNumber(doomed.archived_count)} archived`
-                                        : ''}. Deleting it would not fail — it would quietly unfile them:
+                                        : ''}. Deleting it would not fail. It would quietly unfile them:
                                 </div>
                                 <ul className={local.impact}>
                                     <li>they would <strong>drop off every tab</strong> of the till grid (still findable under “All”)</li>
@@ -438,7 +438,7 @@ export default function CategoriesPage() {
                         ) : (
                             <>
                                 <div className={styles.modalBody}>
-                                    It holds no dishes — not archived ones either — so nothing on the
+                                    It holds no dishes, not archived ones either, so nothing on the
                                     till, the kitchen printer or any past bill changes. The row is
                                     written into the audit log before it goes.
                                 </div>

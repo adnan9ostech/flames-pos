@@ -72,7 +72,7 @@ export async function removeChannel(id) {
         if (row.is_default) return { error: 'Make another channel the default first' }
         if (Number(row.orders) > 0) {
             await query('UPDATE sales_channels SET is_active = 0 WHERE id = ?', [id])
-            return { success: 'Channel switched off — its orders still name it' }
+            return { success: 'Channel switched off: its orders still name it' }
         }
         await query('DELETE FROM sales_channels WHERE id = ?', [id])
         return { success: 'Channel removed' }

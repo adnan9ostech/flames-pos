@@ -99,7 +99,7 @@ export default function TrialBalancePage() {
                         <>
                             <AlertTriangle size={16} aria-hidden="true" />
                             <span className={styles.chip + ' ' + styles.chipDanger}>Out of balance</span>
-                            Out of balance by Rs. {rupees(Math.abs(data.difference || data.totals.closing))} — a journal has been altered outside the poster. Check the ledger before relying on any statement.
+                            Out of balance by Rs. {rupees(Math.abs(data.difference || data.totals.closing))}: a journal has been altered outside the poster. Check the ledger before relying on any statement.
                         </>
                     )}
                 </div>
@@ -114,7 +114,7 @@ export default function TrialBalancePage() {
                 ) : rows.length === 0 ? (
                     <div className={styles.stateBlock}>
                         <Scale size={28} />
-                        <p>Nothing was posted in this period{hideQuiet ? ' — untick the filter to list every account' : ''}.</p>
+                        <p>Nothing was posted in this period{hideQuiet ? ': untick the filter to list every account' : ''}.</p>
                     </div>
                 ) : (
                     <table className={styles.table}>

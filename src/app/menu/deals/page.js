@@ -103,7 +103,7 @@ export default function DealsPage() {
                         <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Deals</h1>
                         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
                             A set of dishes for one price. Ringing one puts the dishes on the bill at their normal
-                            prices and the difference into the order&rsquo;s discount — so the kitchen gets real
+                            prices and the difference into the order&rsquo;s discount, so the kitchen gets real
                             tickets, the stock room consumes real recipes, and the customer sees what they saved.
                         </p>
                     </div>
@@ -155,7 +155,7 @@ export default function DealsPage() {
                                         <span className="text-card-foreground font-semibold">{money(deal.price)}</span>
                                         {saving > 0
                                             ? <span className="text-muted-foreground"> · was {money(listTotal)}, saves {money(saving)}</span>
-                                            : <span className="text-danger-text"> · the dishes now cost {money(listTotal)} — this deal saves nothing</span>}
+                                            : <span className="text-danger-text"> · the dishes now cost {money(listTotal)}. This deal saves nothing</span>}
                                         <span className="text-muted-foreground">
                                             {' · '}{deal.order_types.length ? deal.order_types.join(', ') : 'all order types'}
                                         </span>
@@ -181,7 +181,7 @@ export default function DealsPage() {
                         <div className="grid gap-3 sm:grid-cols-[2fr_1fr] mb-3">
                             <input
                                 className="min-h-[44px] px-3 rounded-lg border border-border bg-background text-foreground"
-                                placeholder="Name — Family Platter"
+                                placeholder="Name: Family Platter"
                                 value={form.name}
                                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                             />
@@ -195,7 +195,7 @@ export default function DealsPage() {
 
                         <input
                             className="w-full min-h-[44px] px-3 mb-3 rounded-lg border border-border bg-background text-foreground"
-                            placeholder="Description (optional) — what the till shows under the name"
+                            placeholder="Description (optional): what the till shows under the name"
                             value={form.description}
                             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                         />

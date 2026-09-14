@@ -43,7 +43,7 @@ export default function ChannelsPage() {
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Sales Channels</h1>
                     <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-                        Where an order came from — the counter, or an app that sent it. The till only shows the
+                        Where an order came from. The counter, or an app that sent it. The till only shows the
                         picker once there is more than one. What it does <em>not</em> do yet is money: an
                         aggregator&rsquo;s commission and the days it holds your cash are a receivable, and that is
                         its own piece of work.

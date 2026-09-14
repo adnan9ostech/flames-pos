@@ -103,7 +103,7 @@ export async function saveExpenseCategory(input) {
                 if (!a) throw new Error('That account no longer exists')
                 const codes = Array.isArray(a.link_codes) ? a.link_codes : []
                 if (!codes.includes(EXPENSE_LINK)) {
-                    throw new Error(`${a.account_number} ${a.name} is not marked for use as an expense account — set that on the chart first`)
+                    throw new Error(`${a.account_number} ${a.name} is not marked for use as an expense account. Set that on the chart first`)
                 }
                 if (!a.is_active) throw new Error(`${a.account_number} ${a.name} is switched off on the chart`)
             }

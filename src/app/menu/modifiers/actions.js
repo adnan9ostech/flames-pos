@@ -120,7 +120,7 @@ export async function saveModifier(input) {
                             `The key "${was.key}" is frozen: ${dishes.length} dish`
                             + `${dishes.length === 1 ? '' : 'es'} store it by name (${nameList(dishes)}). `
                             + 'Changing it would leave those dishes pointing at nothing and the till would '
-                            + 'drop the modifier without saying so. Rename the modifier instead — the name '
+                            + 'drop the modifier without saying so. Rename the modifier instead. The name '
                             + 'is what staff read; the key is only plumbing.',
                         );
                     }
@@ -179,7 +179,7 @@ export async function deleteModifier(id) {
                 throw new Error(
                     `"${mod.name}" is used by ${dishes.length} dish${dishes.length === 1 ? '' : 'es'} `
                     + `(${nameList(dishes)}). Those dishes store the key "${mod.key}", and deleting the `
-                    + 'modifier would leave the key pointing at nothing — the till drops it silently, so '
+                    + 'modifier would leave the key pointing at nothing. The till drops it silently, so '
                     + 'the choice would just stop being offered. Take it off those dishes first.',
                 );
             }

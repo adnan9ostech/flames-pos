@@ -198,7 +198,7 @@ function buildCards(previews) {
             href: '/reports/daily-sales',
             Icon: CalendarDays,
             title: 'Daily Food Sales',
-            blurb: 'Every order of a trading day, line by line — voids struck through with their reason, not hidden.',
+            blurb: 'Every order of a trading day, line by line. Voids struck through with their reason, not hidden.',
             value: `${dailySales.orders.toLocaleString('en-PK')}`,
             unit: dailySales.orders === 1 ? 'order' : 'orders',
             sub: `Rs ${rs(dailySales.revenue)} across the range`,
@@ -213,7 +213,7 @@ function buildCards(previews) {
             href: '/reports/hourly',
             Icon: Clock,
             title: 'Hourly Sales',
-            blurb: 'When the money actually comes in, hour by hour — the shape a rota gets written against.',
+            blurb: 'When the money actually comes in, hour by hour. The shape a rota gets written against.',
             value: `Rs ${rs(hourly.peakRevenue)}`,
             unit: 'in the busiest hour',
             sub: hourly.peakHour === null
@@ -264,7 +264,7 @@ function buildCards(previews) {
             href: '/reports/gross-profit',
             Icon: Percent,
             title: 'Gross Profit',
-            blurb: 'What each dish earns after its recipe costs — priced at today’s moving-average ingredient cost.',
+            blurb: 'What each dish earns after its recipe costs. Priced at today’s moving-average ingredient cost.',
             value: profit.marginPct === null ? '—' : `${profit.marginPct.toFixed(1)}%`,
             unit: 'margin',
             /*
@@ -276,7 +276,7 @@ function buildCards(previews) {
             sub: profit.marginPct === null
                 ? 'No dish sold here has a costed recipe yet'
                 : profit.uncostedCount > 0
-                    ? `Rs ${rs(profit.cogs)} COGS — excl. ${plural(profit.uncostedCount, 'item', 'items')} without recipes`
+                    ? `Rs ${rs(profit.cogs)} COGS: excl. ${plural(profit.uncostedCount, 'item', 'items')} without recipes`
                     : `Rs ${rs(profit.cogs)} COGS on Rs ${rs(profit.revenue)} sold`,
             preview: profit.marginPct !== null && (
                 <MiniBars data={profitSplit} labelKey="label" valueKey="amount"
@@ -372,7 +372,7 @@ export default function ReportsPage() {
             <div className="report-print-header hidden">
                 <div className="flex items-center gap-3">
                     <Flame className="h-7 w-7" />
-                    <h1 className="text-2xl font-bold">Flames by the Indus — Analytics Report</h1>
+                    <h1 className="text-2xl font-bold">Flames by the Indus. Analytics Report</h1>
                 </div>
                 <p className="text-sm text-muted mt-1">
                     Period: {periodLabel} · Generated {formatDateTime(new Date())}
@@ -506,7 +506,7 @@ export default function ReportsPage() {
                         <p className="text-sm font-medium text-muted-foreground mb-1">Open Tabs</p>
                         <h3 className="text-2xl font-bold text-card-foreground">Rs. {rs(stats.openTabs?.amount)}</h3>
                         <p className="mt-2 text-xs text-muted">
-                            {stats.openTabs?.count || 0} unpaid {(stats.openTabs?.count || 0) === 1 ? 'tab' : 'tabs'} — not in revenue
+                            {stats.openTabs?.count || 0} unpaid {(stats.openTabs?.count || 0) === 1 ? 'tab' : 'tabs'}, not in revenue
                         </p>
                     </div>
                     <div className="h-12 w-12 bg-warning-soft rounded-full flex items-center justify-center flex-shrink-0">
@@ -518,7 +518,7 @@ export default function ReportsPage() {
             {/* Hero chart: the money over time, one series, on the range above. */}
             <div className="bg-surface p-6 rounded-xl shadow-sm border border-border report-card">
                 <h3 className="text-lg font-semibold text-card-foreground">Revenue by trading day</h3>
-                <p className="text-sm text-muted-foreground mt-1 mb-6">Settled bills only — open tabs are counted in their own tile above.</p>
+                <p className="text-sm text-muted-foreground mt-1 mb-6">Settled bills only: open tabs are counted in their own tile above.</p>
                 <div className="h-[300px] w-full">
                     {stats.chartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -569,7 +569,7 @@ export default function ReportsPage() {
                     <h2 id="reports-heading" className={styles.sectionTitle}>Reports</h2>
                     <p className={styles.sectionHint}>
                         {previewError
-                            ? `Previews unavailable — ${previewError}`
+                            ? `Previews unavailable: ${previewError}`
                             : `Each one answers a different question about ${periodLabel}. The figures below match the report they open.`}
                     </p>
                 </div>
@@ -739,7 +739,7 @@ export default function ReportsPage() {
                     <div className="flex items-center gap-2 mb-6">
                         <TrendingUp className="h-5 w-5 text-primary" />
                         <h3 className="text-lg font-semibold text-card-foreground">Trending Now</h3>
-                        <span className="text-xs text-muted font-normal">— fastest-growing items vs. the previous period</span>
+                        <span className="text-xs text-muted font-normal">fastest-growing items vs. the previous period</span>
                     </div>
                     {stats.trendingItems && stats.trendingItems.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

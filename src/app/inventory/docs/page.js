@@ -268,7 +268,7 @@ export default function StockDocsPage() {
             lines: countedEntries.map(([itemId, v]) => ({ itemId: Number(itemId), countedQty: Number(v) })),
         }, (d) => {
             const n = d.variances.filter((v) => v.delta !== 0).length
-            return `Count #${d.id} posted — ${n === 0 ? 'no corrections needed' : `${n} correction${n === 1 ? '' : 's'}`}`
+            return `Count #${d.id} posted: ${n === 0 ? 'no corrections needed' : `${n} correction${n === 1 ? '' : 's'}`}`
         })
         if (ok) setCount((f) => ({ ...f, counts: {} }))
     }
@@ -411,7 +411,7 @@ export default function StockDocsPage() {
                             </div>
                             {lineEditor(adjust, setAdjust, { signed: true, hintWarehouse: adjust.warehouseId })}
                             <p className={styles.hint}>
-                                Positive adds stock, negative removes it — a −2 writes two off.
+                                Positive adds stock, negative removes it. A −2 writes two off.
                             </p>
                             {notes}
                             {postButton('Post adjustment', postAdjustment)}
@@ -537,7 +537,7 @@ function PageHeader() {
                 </Link>
                 <h1 className={styles.title}>Stock Documents</h1>
                 <p className={styles.subtitle}>
-                    Transfers, adjustments, misc consumption and counts — every one posts
+                    Transfers, adjustments, misc consumption and counts. Every one posts
                     through the same ledger the sales engine writes.
                 </p>
             </div>

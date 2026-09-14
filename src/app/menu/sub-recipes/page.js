@@ -102,7 +102,7 @@ function SubRecipesScreen() {
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Sub-recipes</h1>
                         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-                            The batches made before a dish is cooked — a masala, a paste, a stock. A dish that calls
+                            The batches made before a dish is cooked. A masala, a paste, a stock. A dish that calls
                             for 80g of masala takes the <em>spices</em> off the shelf: the batch itself is never
                             bought and never counted, and its cost is the sum of its parts.
                         </p>
@@ -130,7 +130,7 @@ function SubRecipesScreen() {
             <div className="space-y-3">
                 {board.subRecipes.length === 0 && (
                     <p className="text-sm text-muted-foreground p-8 text-center bg-surface rounded-xl border border-border">
-                        No sub-recipes yet. Until one exists, every recipe is written straight from raw ingredients —
+                        No sub-recipes yet. Until one exists, every recipe is written straight from raw ingredients,
                         which works, and means the masala&rsquo;s fifteen spices are copied into every dish that uses it.
                     </p>
                 )}
@@ -170,7 +170,7 @@ function SubRecipesScreen() {
                             <option value="">Ingredient…</option>
                             {board.items.map((i) => (
                                 <option key={i.id} value={i.id}>
-                                    {i.name} ({i.unit_abbrev}){phantoms.has(Number(i.id)) ? ' — has a recipe' : ''}
+                                    {i.name} ({i.unit_abbrev}){phantoms.has(Number(i.id)) ? ': has a recipe' : ''}
                                 </option>
                             ))}
                         </select>
@@ -222,7 +222,7 @@ function SubRecipesScreen() {
 
                         <p className="mt-4 text-xs text-muted-foreground">
                             Saving with no ingredients removes the sub-recipe and turns it back into a plain
-                            ingredient — that is how to undo one.
+                            ingredient: that is how to undo one.
                         </p>
 
                         <div className="mt-4 flex justify-end gap-3">

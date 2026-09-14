@@ -196,7 +196,7 @@ export const cancelOrder = async (orderId, { reason } = {}) => {
             throw new Error('This order is already voided.');
         }
         if (order?.payment_status === 'paid') {
-            throw new Error('This bill is already settled — voiding it would need a refund.');
+            throw new Error('This bill is already settled. Voiding it would need a refund.');
         }
         if (!reason || !reason.trim()) {
             throw new Error('A reason is required to void an order.');

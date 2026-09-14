@@ -226,7 +226,7 @@ test('g. reversing a manual voucher writes a contra JV on the open day, lines sw
         for (const engine of [sv, sm]) {
             await assert.rejects(
                 reverseJournal(engine.id, { userId: fx.users.admin }),
-                new RegExp(`${engine.voucher_no} was posted automatically \\(${engine.source_type}\\) — void the bill \\(${cashOrder.invoice_number}\\)`),
+                new RegExp(`${engine.voucher_no} was posted automatically \\(${engine.source_type}\\)\\. Void the bill \\(${cashOrder.invoice_number}\\)`),
             );
         }
         assert.equal((await journalById(sv.id)).reversal, null);

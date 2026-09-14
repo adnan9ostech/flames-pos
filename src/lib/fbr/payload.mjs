@@ -104,7 +104,7 @@ export const buildFbrPayload = (order, lines, settings = {}) => {
         bposid: env.FBR_BPOSID || '',
         invoiceType: 2, // Sale
         invoiceDate: karachiStamp(order.paid_at ? new Date(order.paid_at) : new Date()),
-        ntN_CNIC: env.FBR_SELLER_NTN || '', // seller NTN — walk-in retail
+        ntN_CNIC: env.FBR_SELLER_NTN || '', // seller NTN. Walk-in retail
         buyerSellerName: order.customer_name || 'Walk-in Customer',
         destinationAddress: settings.merchant_address || settings.merchant_city || 'Islamabad',
         saleType: env.FBR_SALE_TYPE || '',

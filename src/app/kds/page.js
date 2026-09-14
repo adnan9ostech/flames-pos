@@ -232,7 +232,7 @@ export default function KDSPage() {
                                 const printed = await printKotViaAgent(o.id, {
                                     round: seen === undefined ? null : (o.round_count || 1),
                                 });
-                                if (!printed) console.warn('Kitchen ticket not printed — the print agent is not running.');
+                                if (!printed) console.warn('Kitchen ticket not printed. The print agent is not running.');
                             }
                             setOrders(active);
                             return;
@@ -381,7 +381,7 @@ export default function KDSPage() {
         // stamped as a reprint. The browser path is not a fallback here.
         if (transportRef.current === 'agent') {
             const printed = await printKotViaAgent(order.id, { reprint: true });
-            if (!printed) console.warn('Reprint failed — the print agent is not running.');
+            if (!printed) console.warn('Reprint failed: the print agent is not running.');
             setPrintingId(null);
             return;
         }

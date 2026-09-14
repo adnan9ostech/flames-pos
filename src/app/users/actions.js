@@ -239,7 +239,7 @@ export async function setPermissions({ id, overrides }) {
         // An admin holds everything by definition; there is nothing here to
         // tune, and a stored override would be a lie the UI has to explain.
         if (row.role === 'admin') {
-            return { error: 'An admin has full access — there is nothing to change.' }
+            return { error: 'An admin has full access. There is nothing to change.' }
         }
 
         const defaults = ROLE_DEFAULTS[row.role] || {}

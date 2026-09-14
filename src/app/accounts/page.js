@@ -23,14 +23,14 @@ const GROUPS = [
         tiles: [
             { href: '/accounts/chart', Icon: BookOpen, title: 'Chart of Accounts', blurb: 'Every account the books are kept in' },
             { href: '/accounts/ledger', Icon: ScrollText, title: 'GL Transaction', blurb: 'Every posted line, filtered by date and account' },
-            { href: '/accounts/journals/new', Icon: FilePlus2, title: 'Add Transaction', blurb: 'A manual journal voucher — debits must equal credits' },
+            { href: '/accounts/journals/new', Icon: FilePlus2, title: 'Add Transaction', blurb: 'A manual journal voucher. Debits must equal credits' },
             { href: '/accounts/journals', Icon: Files, title: 'Voucher List', blurb: 'All vouchers, machine-posted and manual' },
         ],
     },
     {
         title: 'Expense',
         tiles: [
-            { href: '/accounts/expense-vouchers/new', Icon: ReceiptText, title: 'Add Expense Voucher', blurb: 'Record spending — draft until you post it' },
+            { href: '/accounts/expense-vouchers/new', Icon: ReceiptText, title: 'Add Expense Voucher', blurb: 'Record spending: draft until you post it' },
             { href: '/accounts/expense-vouchers', Icon: Files, title: 'Expense Voucher List', blurb: 'Drafts, posted, and what is still owed' },
             { href: '/accounts/expense-categories?new=1', Icon: FolderOpen, title: 'Add Expense Category', blurb: 'A heading codes are grouped under' },
             { href: '/accounts/expense-categories', Icon: FolderOpen, title: 'Expense Category List', blurb: 'Utilities, salaries, rent…' },
@@ -146,7 +146,7 @@ export default function AccountsHub() {
                         <div className={styles.statValue}>
                             {stats ? stats.draftVouchers : loading}
                         </div>
-                        <div className={styles.statHint}>Saved but not yet posted — not in the books</div>
+                        <div className={styles.statHint}>Saved but not yet posted, not in the books</div>
                     </div>
                 </div>
             </div>

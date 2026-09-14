@@ -131,7 +131,7 @@ export default function GrossProfitPage() {
                 <div>
                     <h1 className={styles.title}>Gross Profit</h1>
                     <p className={styles.subtitle}>
-                        Revenue against recipe cost per dish, worst margin first — settled orders only.
+                        Revenue against recipe cost per dish, worst margin first. Settled orders only.
                     </p>
                 </div>
                 <PrintButton />
@@ -208,7 +208,7 @@ export default function GrossProfitPage() {
                         <div className={styles.coverageNote}>
                             <AlertTriangle size={14} aria-hidden="true" />
                             {totals.uncostedCount} {totals.uncostedCount === 1 ? 'dish has' : 'dishes have'} no
-                            recipe — {money(totals.uncostedRevenue)} of revenue is uncosted and sits outside
+                            recipe: {money(totals.uncostedRevenue)} of revenue is uncosted and sits outside
                             the COGS and margin figures below.
                         </div>
                     )}
@@ -320,7 +320,7 @@ export default function GrossProfitPage() {
                                     {excludedNoRecipe > 0 && (
                                         <>
                                             {excludedNoRecipe} {excludedNoRecipe === 1 ? 'dish is' : 'dishes are'} left
-                                            off this chart for having no recipe — an uncosted dish has an unknown
+                                            off this chart for having no recipe. An uncosted dish has an unknown
                                             margin, not a 100% one.
                                         </>
                                     )}

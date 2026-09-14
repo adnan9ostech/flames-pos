@@ -225,7 +225,7 @@ export default function CityLedgerPage() {
                     {invoices.length === 0 ? (
                         <div className={styles.stateBlock}>
                             <ReceiptText size={32} />
-                            <p>No invoices yet — pick a company and a period above to raise the first one.</p>
+                            <p>No invoices yet: pick a company and a period above to raise the first one.</p>
                         </div>
                     ) : (
                         <div className={styles.tableWrap}>
@@ -300,7 +300,7 @@ export default function CityLedgerPage() {
                                     <option value="">On account</option>
                                     {openInvoicesFor.map((i) => (
                                         <option key={i.id} value={i.id}>
-                                            {i.invoice_no} — due {rupees(i.due)}
+                                            {i.invoice_no}: due {rupees(i.due)}
                                         </option>
                                     ))}
                                 </select>
@@ -372,7 +372,7 @@ export default function CityLedgerPage() {
                     {receipts.length === 0 ? (
                         <div className={styles.stateBlock}>
                             <Banknote size={32} />
-                            <p>No receipts yet — record the first payment above when it arrives.</p>
+                            <p>No receipts yet: record the first payment above when it arrives.</p>
                         </div>
                     ) : (
                         <div className={styles.tableWrap}>
@@ -412,7 +412,7 @@ export default function CityLedgerPage() {
                 aging.length === 0 ? (
                     <div className={styles.stateBlock}>
                         <Hourglass size={32} />
-                        <p>Nothing to age — no company accounts have activity yet.</p>
+                        <p>Nothing to age: no company accounts have activity yet.</p>
                     </div>
                 ) : (
                     <div className={styles.tableWrap}>

@@ -335,7 +335,7 @@ function RecipesScreen() {
         setMessage({
             type: 'success',
             text: saved.line_count > 0
-                ? `${labelOf(saved.variant_name)} saved — ${cost(saved.unit_cost)} a portion`
+                ? `${labelOf(saved.variant_name)} saved: ${cost(saved.unit_cost)} a portion`
                 : `${labelOf(saved.variant_name)} cleared`,
         })
     }
@@ -359,7 +359,7 @@ function RecipesScreen() {
         setCopyOpen(false)
         setMessage({
             type: 'success',
-            text: `${result.dish} — ${labelOf(result.variant_name)} now has ${result.line_count} `
+            text: `${result.dish}: ${labelOf(result.variant_name)} now has ${result.line_count} `
                 + `${result.line_count === 1 ? 'line' : 'lines'} at ${cost(result.unit_cost)}`,
         })
         if (result.menu_item_id === selectedId && selected) openDish(selected)
@@ -620,7 +620,7 @@ function RecipesScreen() {
                                         <p>
                                             A sold portion uses <strong>its own size&apos;s lines when that
                                             size has any</strong>, otherwise the base. So the base alone
-                                            costs every size — give a size its own lines only when it
+                                            costs every size: give a size its own lines only when it
                                             genuinely differs.
                                             {activeVariant !== BASE && (
                                                 linesOf(activeVariant).length > 0
@@ -757,7 +757,7 @@ function RecipesScreen() {
                                                                     {i.name} ({i.unit_abbrev})
                                                                 </option>
                                                             ))}
-                                                            <option value={NEW_ING}>＋ Not in the list — create it…</option>
+                                                            <option value={NEW_ING}>＋ Not in the list. Create it…</option>
                                                         </select>
                                                     </td>
                                                     <td className={local.qtyCell}>
@@ -816,7 +816,7 @@ function RecipesScreen() {
                                                               * apart.
                                                               */}
                                                             <p className={local.newIngTitle}>
-                                                                New ingredient — added to your ingredient list, then used on this line
+                                                                New ingredient: added to your ingredient list, then used on this line
                                                             </p>
                                                             <div className={local.newIngForm}>
                                                                 <input
@@ -872,8 +872,8 @@ function RecipesScreen() {
                                             <tr>
                                                 <td colSpan={canEdit ? 6 : 5} className={styles.emptyCell}>
                                                     {activeVariant === BASE
-                                                        ? 'No ingredients yet — this dish consumes no stock when sold.'
-                                                        : `No lines of its own — ${activeVariant} costs at the base recipe.`}
+                                                        ? 'No ingredients yet: this dish consumes no stock when sold.'
+                                                        : `No lines of its own. ${activeVariant} costs at the base recipe.`}
                                                 </td>
                                             </tr>
                                         )}
@@ -1017,7 +1017,7 @@ function CopyDialog({ board, dish, variant, onClose, onDone }) {
                             {withLines.length === 0 && <option value="">No recipe exists yet</option>}
                             {withLines.map((d) => (
                                 <option key={d.id} value={d.id}>
-                                    {d.name}{d.category_name ? ` — ${d.category_name}` : ''}
+                                    {d.name}{d.category_name ? `: ${d.category_name}` : ''}
                                 </option>
                             ))}
                         </select>
@@ -1032,7 +1032,7 @@ function CopyDialog({ board, dish, variant, onClose, onDone }) {
                         >
                             {fromOptions.map((r) => (
                                 <option key={r.variant_name || '__base'} value={r.variant_name}>
-                                    {labelOf(r.variant_name)} — {r.line_count} {r.line_count === 1 ? 'line' : 'lines'}
+                                    {labelOf(r.variant_name)}: {r.line_count} {r.line_count === 1 ? 'line' : 'lines'}
                                 </option>
                             ))}
                         </select>
@@ -1050,7 +1050,7 @@ function CopyDialog({ board, dish, variant, onClose, onDone }) {
                         >
                             {board.dishes.map((d) => (
                                 <option key={d.id} value={d.id}>
-                                    {d.name}{d.category_name ? ` — ${d.category_name}` : ''}
+                                    {d.name}{d.category_name ? `: ${d.category_name}` : ''}
                                 </option>
                             ))}
                         </select>
@@ -1074,14 +1074,14 @@ function CopyDialog({ board, dish, variant, onClose, onDone }) {
                     <p className={styles.modalBody}>
                         {source.line_count} {source.line_count === 1 ? 'line' : 'lines'},{' '}
                         {cost(source.unit_cost)} a portion at today&apos;s ingredient costs. Quantities
-                        copy across unchanged — a Full that is a Half and a half still needs editing after.
+                        copy across unchanged: a Full that is a Half and a half still needs editing after.
                     </p>
                 )}
 
                 {targetExisting && targetExisting.line_count > 0 && (
                     <div className={`${styles.note} ${styles.noteWarn}`}>
                         <AlertTriangle size={16} aria-hidden="true" />
-                        {toDish.name} — {labelOf(toVariant)} already has {targetExisting.line_count}{' '}
+                        {toDish.name}: {labelOf(toVariant)} already has {targetExisting.line_count}{' '}
                         {targetExisting.line_count === 1 ? 'line' : 'lines'} at {cost(targetExisting.unit_cost)}.
                         Copying replaces them.
                     </div>

@@ -147,7 +147,7 @@ const cleanDish = (input) => {
             const rowPrice = priceOf.get(rowName.toLowerCase());
             if (rowPrice < previous) {
                 throw new Error(
-                    `${rowName} is priced below the size listed before it. Sizes run smallest to largest — the till opens on the first and puts the last on the tile. Saved as priced, these would read ${variants.map((v) => v.name).join(' → ')}.`,
+                    `${rowName} is priced below the size listed before it. Sizes run smallest to largest. The till opens on the first and puts the last on the tile. Saved as priced, these would read ${variants.map((v) => v.name).join(' → ')}.`,
                 );
             }
             previous = rowPrice;
@@ -218,7 +218,7 @@ export async function saveDish(input) {
 
         const saved = await withTransaction(async (conn) => {
             const [cats] = await conn.query('SELECT id, name FROM categories WHERE id = ?', [clean.category_id]);
-            if (cats.length === 0) throw new Error('That category no longer exists — pick another');
+            if (cats.length === 0) throw new Error('That category no longer exists. Pick another');
 
             // Modifier keys are checked against what exists rather than
             // trusted: the list is stored as keys, and a key nothing answers
@@ -238,11 +238,11 @@ export async function saveDish(input) {
                     'SELECT id, name, options, is_active FROM variation_sets WHERE id = ?',
                     [clean.variation_set_id],
                 );
-                if (sets.length === 0) throw new Error('That size set no longer exists — pick another, or use custom sizes');
+                if (sets.length === 0) throw new Error('That size set no longer exists. Pick another, or use custom sizes');
                 const options = Array.isArray(sets[0].options) ? sets[0].options : [];
                 if (options.join('|') !== clean.variants.map((v) => v.name).join('|')) {
                     throw new Error(
-                        `These sizes no longer match "${sets[0].name}" (${options.join(', ')}) — pick the set again, or switch to custom sizes`,
+                        `These sizes no longer match "${sets[0].name}" (${options.join(', ')}): pick the set again, or switch to custom sizes`,
                     );
                 }
                 if (!sets[0].is_active) {
@@ -253,7 +253,7 @@ export async function saveDish(input) {
                         ? await conn.query('SELECT variation_set_id FROM menu_items WHERE id = ?', [dishId])
                         : [[]];
                     const kept = was.length > 0 && String(was[0].variation_set_id) === clean.variation_set_id;
-                    if (!kept) throw new Error(`"${sets[0].name}" is switched off — pick an active set, or use custom sizes`);
+                    if (!kept) throw new Error(`"${sets[0].name}" is switched off: pick an active set, or use custom sizes`);
                 }
                 variationSetId = Number(clean.variation_set_id);
             }

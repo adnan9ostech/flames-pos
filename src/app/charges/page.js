@@ -166,7 +166,7 @@ export default function ChargesPage() {
                 <div>
                     <h1 className={styles.title}>Charges</h1>
                     <p className={styles.subtitle}>
-                        Service charge, delivery fee, POS fee — applied to every matching bill automatically.
+                        Service charge, delivery fee, POS fee. Applied to every matching bill automatically.
                     </p>
                 </div>
             </div>
@@ -196,7 +196,7 @@ export default function ChargesPage() {
                     ) : charges.length === 0 ? (
                         <div className={styles.stateBlock}>
                             <Percent size={28} />
-                            <p>No charges yet — add the first one alongside.</p>
+                            <p>No charges yet: add the first one alongside.</p>
                         </div>
                     ) : (
                         <table className={styles.table}>
@@ -348,7 +348,7 @@ export default function ChargesPage() {
                             />
                             <span>
                                 Charge before tax
-                                <span className={styles.hint}>The charge joins the taxable base — GST is charged on it too.</span>
+                                <span className={styles.hint}>The charge joins the taxable base. GST is charged on it too.</span>
                             </span>
                         </label>
 
@@ -442,7 +442,7 @@ export default function ChargesPage() {
                         </h3>
                         <p className={styles.modalBody}>
                             It stops applying to new bills immediately. Bills already settled keep
-                            it — they carry their own copy. To pause it instead, switch it off.
+                            it: they carry their own copy. To pause it instead, switch it off.
                         </p>
                         <div className={styles.modalActions}>
                             <button

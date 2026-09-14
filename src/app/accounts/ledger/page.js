@@ -137,7 +137,7 @@ export default function GeneralLedgerPage() {
                     r.debit || '', r.credit || '',
                 ]),
             )
-            if (more) setMessage({ type: 'warn', text: `The export stops at ${EXPORT_CAP.toLocaleString('en-PK')} lines — narrow the range for the rest.` })
+            if (more) setMessage({ type: 'warn', text: `The export stops at ${EXPORT_CAP.toLocaleString('en-PK')} lines: narrow the range for the rest.` })
         } catch (e) {
             setMessage({ type: 'error', text: e.message })
         }

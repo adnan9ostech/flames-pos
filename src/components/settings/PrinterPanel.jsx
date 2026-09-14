@@ -28,7 +28,7 @@ const ROLES = [
 const CUTS = [
     ['full', 'Cuts right through'],
     ['partial', 'Leaves a small tab'],
-    ['none', 'No cutter — feed to tear'],
+    ['none', 'No cutter: feed to tear'],
 ]
 
 const blank = (role) => ({
@@ -117,7 +117,7 @@ export default function PrinterPanel() {
                         <Printer className="h-4 w-4" />Printers on this terminal
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground max-w-2xl">
-                        Picked here, not typed into a file — change the printer and the next bill goes to it, with
+                        Picked here, not typed into a file. Change the printer and the next bill goes to it, with
                         nothing restarted. The list comes from the machine you are sitting at, which is why the
                         kitchen&rsquo;s printer is chosen on the kitchen&rsquo;s machine.
                     </p>
@@ -147,8 +147,8 @@ export default function PrinterPanel() {
                 <div className="flex items-start gap-2 p-3 rounded-lg border bg-warning-soft border-warning-border text-warning-text text-sm">
                     <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                     <span>
-                        The print agent is not running on this machine, so there is nothing to list. Start it —{' '}
-                        <code>bash scripts/print/install-agent-service.sh</code> — then press Rescan. Whatever is
+                        The print agent is not running on this machine, so there is nothing to list. Start it with{' '}
+                        <code>bash scripts/print/install-agent-service.sh</code>, then press Rescan. Whatever is
                         already saved below still applies to the terminals that do have it running.
                     </span>
                 </div>
@@ -185,18 +185,18 @@ export default function PrinterPanel() {
                                 <option value="">Pick a printer…</option>
                                 {available.map((a) => (
                                     <option key={`${a.transport}:${a.target}`} value={a.target}>
-                                        {a.label}{a.likelyThermal ? ' — looks thermal' : ''}{a.present ? '' : ' (offline)'}
+                                        {a.label}{a.likelyThermal ? ' (looks thermal)' : ''}{a.present ? '' : ' (offline)'}
                                     </option>
                                 ))}
                                 {/* A printer this machine cannot see, saved from another terminal, must
                                     still show as the current choice rather than reading as blank. */}
                                 {d.target && !available.some((a) => a.target === d.target) && (
-                                    <option value={d.target}>{d.target} — saved, not visible here</option>
+                                    <option value={d.target}>{d.target} (saved, not visible here)</option>
                                 )}
                             </select>
                             <input
                                 className="min-h-[44px] px-3 rounded-lg border border-border bg-background text-foreground"
-                                placeholder="Call it something — Counter printer"
+                                placeholder="Call it something, like Counter printer"
                                 value={d.label}
                                 onChange={(e) => setField(key, { label: e.target.value })}
                             />
@@ -224,7 +224,7 @@ export default function PrinterPanel() {
                                     {CUTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                                 </select>
                             </label>
-                            <label className="text-xs text-muted-foreground" title="Paper fed before the cut — raise it if the last line stays inside the printer">
+                            <label className="text-xs text-muted-foreground" title="Paper fed before the cut. Raise it if the last line stays inside the printer">
                                 Feed before cut
                                 <input
                                     className="mt-1 w-full min-h-[40px] px-2 rounded-lg border border-border bg-background text-foreground text-sm text-right"

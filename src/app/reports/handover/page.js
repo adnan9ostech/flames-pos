@@ -285,7 +285,7 @@ export default function HandoverReportPage() {
                 <div className={styles.masthead}>
                     <div className={styles.mastheadName}>
                         <Flame size={20} aria-hidden="true" />
-                        Flames by the Indus — Handover
+                        Flames by the Indus. Handover
                     </div>
                     <div className={styles.mastheadMeta}>
                         {formatBusinessDay(r.businessDate)} · Generated {formatDateTime(new Date())}

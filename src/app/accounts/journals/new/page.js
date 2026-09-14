@@ -164,7 +164,7 @@ export default function AddTransactionPage() {
                     <h1 className={styles.title}>Add Transaction</h1>
                     <p className={styles.subtitle}>
                         A manual journal voucher. It posts the moment you save, so debits must equal
-                        credits — a mistake is put right with a second voucher, never by editing this one.
+                        credits: a mistake is put right with a second voucher, never by editing this one.
                     </p>
                 </div>
                 <div className={styles.headerActions}>
@@ -254,7 +254,7 @@ export default function AddTransactionPage() {
                 <label className={styles.checkLine}>
                     <input type="checkbox" checked={opening} onChange={(e) => toggleOpening(e.target.checked)} />
                     <span>
-                        Opening balances — the pre-cutover position, posted against Opening Balance Equity.
+                        Opening balances: the pre-cutover position, posted against Opening Balance Equity.
                         Sets the reference to <code>{OPENING_REFERENCE}</code> and adds the equity line.
                     </span>
                 </label>
@@ -287,7 +287,7 @@ export default function AddTransactionPage() {
                                                 <option value="">Account…</option>
                                                 {form.accounts.map((acc) => (
                                                     <option key={acc.id} value={acc.id}>
-                                                        {acc.account_number} — {acc.name}
+                                                        {acc.account_number}: {acc.name}
                                                     </option>
                                                 ))}
                                             </select>

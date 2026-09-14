@@ -403,7 +403,7 @@ test('d. a reversal writes contras on the open day, voids the document and delet
     // A void voucher is finished: no second reversal, no payment, no delete.
     await assert.rejects(tx((conn) => reverseVoucher(conn, id, fx.users.admin)), /is void/);
     await assert.rejects(tx((conn) => addPayment(conn, id, { account_id: acct.cash, amount: 1, paid_on: day }, fx.users.admin)), /is void/);
-    await assert.rejects(tx((conn) => deleteDraft(conn, id, fx.users.admin)), /only a draft can be deleted/);
+    await assert.rejects(tx((conn) => deleteDraft(conn, id, fx.users.admin)), /Only a draft can be deleted/);
 });
 
 test('e. drafts are validated on the way in, editable in place, and deletable; posted ones are not', async () => {
@@ -467,7 +467,7 @@ test('e. drafts are validated on the way in, editable in place, and deletable; p
     assert.deepEqual(rows.map((r) => [r.status, r.paid_from]), [['paid', 'bank'], ['payable', 'other']], 'each line says one true thing');
 
     await assert.rejects(tx((conn) => saveDraft(conn, { id, ...base }, fx.users.admin)), /can no longer be edited/);
-    await assert.rejects(tx((conn) => deleteDraft(conn, id, fx.users.admin)), /only a draft can be deleted/);
+    await assert.rejects(tx((conn) => deleteDraft(conn, id, fx.users.admin)), /Only a draft can be deleted/);
 
     // A fresh draft can go.
     const gone = await tx((conn) => saveDraft(conn, base, fx.users.admin));
@@ -572,7 +572,7 @@ test('g. a line paid from two sources, or a payment that stops mid-line, is refu
     await tx((conn) => postVoucher(conn, owed, fx.users.admin));
     await assert.rejects(
         tx((conn) => addPayment(conn, owed, { account_id: acct.cash, amount: 500, paid_on: day }, fx.users.admin)),
-        /Rs\. 500\.00 would leave line 1 \(TST-ELEC\) part-paid — a payment clears whole lines\. Pay Rs\. 700\.00 or Rs\. 1,000\.00\./,
+        /Rs\. 500\.00 would leave line 1 \(TST-ELEC\) part-paid\. A payment clears whole lines\. Pay Rs\. 700\.00 or Rs\. 1,000\.00\./,
     );
     assert.equal(await count('SELECT COUNT(*) AS n FROM expense_voucher_payments WHERE voucher_id = ?', [owed]), 0, 'a refused payment is not recorded');
     assert.equal(money((await one('SELECT paid_total FROM expense_vouchers WHERE id = ?', [owed])).paid_total), 0);
@@ -591,7 +591,7 @@ test('h. nothing posts ahead of the books: a voucher or a payment dated after th
     }, fx.users.admin));
     await assert.rejects(
         tx((conn) => postVoucher(conn, id, fx.users.admin)),
-        /The voucher date cannot be after \d{4}-\d{2}-\d{2} — nothing posts ahead of the books/,
+        /The voucher date cannot be after \d{4}-\d{2}-\d{2}\. Nothing posts ahead of the books/,
     );
     assert.equal((await one('SELECT status FROM expense_vouchers WHERE id = ?', [id])).status, 'draft');
     assert.equal((await projectedFor(id)).length, 0);

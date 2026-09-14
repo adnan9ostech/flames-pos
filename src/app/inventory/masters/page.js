@@ -605,7 +605,7 @@ function PageHeader() {
                 </Link>
                 <h1 className={styles.title}>Masters</h1>
                 <p className={styles.subtitle}>
-                    Units, suppliers and warehouses — and a read-only look at what is on the
+                    Units, suppliers and warehouses, and a read-only look at what is on the
                     shelf. Ingredients themselves are added and priced in{' '}
                     <Link href="/menu/ingredients" className={styles.inlineLink}>Menu → Ingredients</Link>,
                     which is the only screen that can set a rate. Average cost then follows

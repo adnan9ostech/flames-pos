@@ -110,7 +110,7 @@ export async function generateInvoice({ companyId, from, to } = {}) {
                 result = inserted[0]
             } catch (e) {
                 if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) {
-                    throw new Error('Two invoices were being numbered at once — try again')
+                    throw new Error('Two invoices were being numbered at once. Try again')
                 }
                 throw e
             }

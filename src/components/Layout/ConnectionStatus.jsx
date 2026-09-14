@@ -35,8 +35,8 @@ export default function ConnectionStatus() {
             {offline ? <WifiOff size={15} aria-hidden="true" /> : <RefreshCw size={15} className={styles.spin} aria-hidden="true" />}
             <span>
                 {offline
-                    ? 'No connection — orders can’t be sent or updated'
-                    : 'Reconnecting — this screen may be out of date'}
+                    ? 'No connection: orders can’t be sent or updated'
+                    : 'Reconnecting: this screen may be out of date'}
             </span>
         </div>
     );

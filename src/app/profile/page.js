@@ -111,7 +111,7 @@ export default function ProfilePage() {
             // The handover is over the moment the password is the holder's own.
             setHandover(false)
             setUser((u) => ({ ...u, must_change_password: false }))
-            setPwNote({ type: 'ok', text: `${res.data} — your other devices have been signed out.` })
+            setPwNote({ type: 'ok', text: `${res.data}: your other devices have been signed out.` })
         }
         setSavingPw(false)
     }
@@ -156,7 +156,7 @@ export default function ProfilePage() {
                         <p className={styles.bannerTitle}>Set your own password</p>
                         <p className={styles.bannerBody}>
                             The one you were given is known to whoever gave it to you. Choose a
-                            password only you know before you carry on — everything you ring up
+                            password only you know before you carry on, because everything you ring up
                             is recorded under this account.
                         </p>
                     </div>
@@ -278,7 +278,7 @@ export default function ProfilePage() {
                             <h2 className={styles.cardTitle}>Password</h2>
                             <p className={styles.cardHint}>
                                 Use at least 8 characters. Your current password is asked for even
-                                though you are signed in — an unattended till is exactly where
+                                though you are signed in. An unattended till is exactly where
                                 someone would otherwise lock you out of your own account.
                             </p>
                         </div>
@@ -382,7 +382,7 @@ export default function ProfilePage() {
                         <div>
                             <h2 className={styles.cardTitle}>What you can access</h2>
                             <p className={styles.cardHint}>
-                                The screens this login opens. An admin changes these — ask if
+                                The screens this login opens. An admin changes these. Ask if
                                 something you need for your shift is missing.
                             </p>
                         </div>

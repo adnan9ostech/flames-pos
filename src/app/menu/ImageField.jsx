@@ -55,7 +55,7 @@ const shrink = (file) => new Promise((resolve, reject) => {
     };
     img.onerror = () => {
         URL.revokeObjectURL(url);
-        reject(new Error('That file is not a photo this browser can read — try a JPEG, PNG or WebP'));
+        reject(new Error('That file is not a photo this browser can read. Try a JPEG, PNG or WebP'));
     };
     img.src = url;
 });
@@ -77,7 +77,7 @@ const upload = (blob, name, onProgress) => new Promise((resolve, reject) => {
         if (xhr.status >= 200 && xhr.status < 300 && body.url) resolve(body.url);
         else reject(new Error(body.error || `The photo could not be saved (${xhr.status})`));
     };
-    xhr.onerror = () => reject(new Error('The photo could not reach the server — check the connection'));
+    xhr.onerror = () => reject(new Error('The photo could not reach the server. Check the connection'));
     xhr.send(form);
 });
 
@@ -92,7 +92,7 @@ export default function ImageField({ value, onChange, disabled = false, label = 
         if (!file) return;
         setError('');
         if (!/^image\//.test(file.type)) {
-            setError('That is not a photo — pick a JPEG, PNG or WebP');
+            setError('That is not a photo. Pick a JPEG, PNG or WebP');
             return;
         }
         setBusy(true);
@@ -100,7 +100,7 @@ export default function ImageField({ value, onChange, disabled = false, label = 
         try {
             const { blob, name } = await shrink(file);
             if (blob.size > IMAGE_MAX_BYTES) {
-                throw new Error(`Even shrunk, that photo is ${mb(blob.size)} — the limit is ${mb(IMAGE_MAX_BYTES)}`);
+                throw new Error(`Even shrunk, that photo is ${mb(blob.size)}. The limit is ${mb(IMAGE_MAX_BYTES)}`);
             }
             const url = await upload(blob, name, setProgress);
             onChange(url);

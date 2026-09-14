@@ -229,7 +229,7 @@ export default function DrawerPage() {
                 <div className={styles.closedNote} role="status">
                     <CheckCircle2 size={16} aria-hidden="true" />
                     <span>
-                        Drawer closed — expected {money(closedResult.expected_amount)}, counted{' '}
+                        Drawer closed: expected {money(closedResult.expected_amount)}, counted{' '}
                         {money(closedResult.counted_amount)},{' '}
                         <span className={varianceClass(Number(closedResult.variance))}>
                             {varianceWord(Number(closedResult.variance))}
@@ -268,7 +268,7 @@ export default function DrawerPage() {
                             <span>
                                 <strong>{money(state.lastClose.carry_forward)}</strong> was left in
                                 this drawer at the {state.lastClose.business_date} close
-                                {' — '}that is what it should hold now. Count it and correct the
+                                {': '}that is what it should hold now. Count it and correct the
                                 figure if it differs.
                             </span>
                         </div>
@@ -277,7 +277,7 @@ export default function DrawerPage() {
                         <div className={styles.carryNote}>
                             <Coins size={15} aria-hidden="true" />
                             <span>
-                                No previous close to carry forward from — proposing the standing
+                                No previous close to carry forward from. Proposing the standing
                                 float of <strong>{money(state.suggestedFloat)}</strong>.
                             </span>
                         </div>
@@ -363,7 +363,7 @@ export default function DrawerPage() {
                             <div>
                                 <h2 className={styles.cardTitle}>Cash movements</h2>
                                 <p className={styles.cardSub}>
-                                    Money in or out of the drawer that isn&apos;t a sale — a change
+                                    Money in or out of the drawer that isn&apos;t a sale. A change
                                     top-up in, a supplier paid out.
                                 </p>
                             </div>
@@ -455,7 +455,7 @@ export default function DrawerPage() {
                             Close drawer
                         </h3>
                         <p className={styles.modalBody}>
-                            Count everything in the till — float included. Enter it note by note,
+                            Count everything in the till. Float included. Enter it note by note,
                             or type the total straight in. The expected balance appears once you
                             have counted, so the count is yours and not the screen&apos;s.
                         </p>

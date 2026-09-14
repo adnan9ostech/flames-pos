@@ -25,7 +25,7 @@ const TYPES = [
     {
         key: 'select',
         label: 'Pick one',
-        blurb: 'One of the options is always chosen. The till pre-selects the SECOND one — '
+        blurb: 'One of the options is always chosen. The till pre-selects the SECOND one. '
             + 'put the sensible default there (Medium on a spice level). Needs at least two options.',
     },
     {
@@ -166,7 +166,7 @@ export default function ModifiersPage() {
                     <h1 className={styles.title}>Modifiers</h1>
                     <p className={styles.subtitle}>
                         The choices and add-ons the till puts in front of a cashier when a dish
-                        is tapped — a spice level, a side of raita. A dish links a modifier by
+                        is tapped: a spice level, a side of raita. A dish links a modifier by
                         its key, and what the customer picked is copied onto the bill as text.
                     </p>
                 </div>
@@ -215,7 +215,7 @@ export default function ModifiersPage() {
                         <div className={styles.statValue}>{formatNumber(linkedTotal)}</div>
                         <div className={styles.statHint}>
                             {linkedTotal === 0
-                                ? 'No dish offers a modifier yet — add them on the dish'
+                                ? 'No dish offers a modifier yet. Add them on the dish'
                                 : 'Each one freezes that modifier’s key'}
                         </div>
                     </div>
@@ -302,7 +302,7 @@ export default function ModifiersPage() {
                                                     disabled={m.dishes.length > 0}
                                                     aria-label={`Delete ${m.name}`}
                                                     title={m.dishes.length > 0
-                                                        ? `Used by ${m.dishes.length} dishes — take it off them first`
+                                                        ? `Used by ${m.dishes.length} dishes. Take it off them first`
                                                         : 'Delete this modifier'}
                                                 >
                                                     <Trash2 size={15} />
@@ -490,7 +490,7 @@ export default function ModifiersPage() {
                             real delete rather than an archive:
                         </div>
                         <ul className={local.impact}>
-                            <li>no order history points at a modifier row — what a customer picked was copied onto the bill as <strong>text</strong> when it was rung</li>
+                            <li>no order history points at a modifier row. What a customer picked was copied onto the bill as <strong>text</strong> when it was rung</li>
                             <li>past bills, reports and the KDS are unchanged</li>
                             <li>the whole row goes into the <strong>audit log</strong> before it goes</li>
                         </ul>

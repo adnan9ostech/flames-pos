@@ -45,13 +45,13 @@ export const cleanLines = (input) => {
         if (l.debit !== 0 && l.credit !== 0) throw new Error(`Line ${l.row}: a line carries a debit or a credit, never both`);
         if (l.debit === 0 && l.credit === 0) throw new Error(`Line ${l.row}: enter a debit or a credit`);
     }
-    if (lines.length < 2) throw new Error('A journal needs at least two lines — one to debit and one to credit');
+    if (lines.length < 2) throw new Error('A journal needs at least two lines. One to debit and one to credit');
 
     const debitTotal = money(lines.reduce((s, l) => s + l.debit, 0));
     const creditTotal = money(lines.reduce((s, l) => s + l.credit, 0));
     if (debitTotal !== creditTotal) {
         const diff = money(Math.abs(debitTotal - creditTotal));
-        throw new Error(`Out of balance by Rs ${diff.toLocaleString('en-PK', { maximumFractionDigits: 2 })} — debits must equal credits`);
+        throw new Error(`Out of balance by Rs ${diff.toLocaleString('en-PK', { maximumFractionDigits: 2 })}. Debits must equal credits`);
     }
     if (debitTotal === 0) throw new Error('A journal must move some money');
 

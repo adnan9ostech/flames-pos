@@ -23,19 +23,19 @@ const SURFACES = [
         // that defines it. The shortcut stays here because that is where the
         // hands go, and it needs the `menu` right rather than `inventory`.
         href: '/menu/recipes', Icon: ChefHat, title: 'Recipes', perm: 'menu',
-        blurb: 'In Menu — what one sold portion of each size consumes',
+        blurb: 'In Menu: what one sold portion of each size consumes',
     },
     {
         href: '/inventory/purchase-orders', Icon: ClipboardList, title: 'Purchase Orders',
-        blurb: 'What was ordered, at what price, for when — before it arrives',
+        blurb: 'What was ordered, at what price, for when. Before it arrives',
     },
     {
         href: '/inventory/receiving', Icon: Truck, title: 'Receiving',
-        blurb: 'Goods in — sets average cost and the supplier payable',
+        blurb: 'Goods in: sets average cost and the supplier payable',
     },
     {
         href: '/inventory/waste', Icon: Trash2, title: 'Waste',
-        blurb: 'Food cooked and then binned, with a reason — not a void',
+        blurb: 'Food cooked and then binned, with a reason, not a void',
     },
     {
         href: '/inventory/docs', Icon: ArrowRightLeft, title: 'Stock Documents',

@@ -280,7 +280,7 @@ export default function UsersPage() {
                         <tbody>
                             {users.length === 0 && (
                                 <tr><td colSpan={6} className={styles.empty}>
-                                    No accounts yet — add the first one.
+                                    No accounts yet: add the first one.
                                 </td></tr>
                             )}
                             {groups.map(({ key, title, hint, rows }) => (
@@ -582,7 +582,7 @@ function UserForm({ form, setForm, isNew, isSelf, onSave, onCancel, busy }) {
                 title={isSelf ? 'Ask another admin to change your own role' : undefined}
             >
                 {form.role === 'staff' && (
-                    <option value="staff" disabled>{ROLES.staff} — pick a role</option>
+                    <option value="staff" disabled>{ROLES.staff}: pick a role</option>
                 )}
                 {ASSIGNABLE_ROLES.map((role) => (
                     <option key={role} value={role}>{ROLES[role]}</option>
@@ -618,7 +618,7 @@ function PasswordField({ value, onChange, revealed, onGenerate }) {
             </button>
             {revealed && revealed === value && <CopyButton text={revealed} />}
             <p className={styles.passwordHint}>
-                Read this out or write it down now — it cannot be shown again. They are
+                Read this out or write it down now. It cannot be shown again. They are
                 asked to change it the first time they sign in.
             </p>
         </div>
@@ -688,7 +688,7 @@ function DeleteDialog({ row, typed, setTyped, busy, onCancel, onSuspend, onConfi
                 </h2>
 
                 <p className={styles.dialogBody}>
-                    Their past orders, shifts and audit entries keep their name — nothing
+                    Their past orders, shifts and audit entries keep their name. Nothing
                     in the books moves. What goes is the account itself and the way in:
                     this email and username stop signing anyone in, and any device still
                     signed in as them is cut off.

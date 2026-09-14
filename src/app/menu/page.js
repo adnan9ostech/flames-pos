@@ -130,7 +130,7 @@ export default function DishesPage() {
         const res = await setMenuItemAvailability(dish.id, next);
         if (res?.error) {
             setDishes((prev) => prev.map((d) => (d.id === dish.id ? { ...d, is_available: !next } : d)));
-            setMessage({ type: 'error', text: `${dish.name} is unchanged — ${res.error}` });
+            setMessage({ type: 'error', text: `${dish.name} is unchanged: ${res.error}` });
         } else {
             setMessage({ type: 'success', text: next ? `${dish.name} is back on the menu.` : `${dish.name} marked sold out.` });
         }
@@ -146,7 +146,7 @@ export default function DishesPage() {
         setMessage({
             type: 'success',
             text: archived
-                ? `${dish.name} archived — off the till, and on every bill it was ever sold on.`
+                ? `${dish.name} archived: off the till, and on every bill it was ever sold on.`
                 : `${dish.name} is back on the menu.`,
         });
     };
@@ -188,7 +188,7 @@ export default function DishesPage() {
                 <div>
                     <h1 className={styles.title}>Dishes</h1>
                     <p className={styles.subtitle}>
-                        Everything the till can sell. A dish is never deleted — archive it, and the bills
+                        Everything the till can sell. A dish is never deleted. Archive it, and the bills
                         it was sold on keep it.
                     </p>
                 </div>
@@ -421,7 +421,7 @@ export default function DishesPage() {
                         <p className={styles.modalBody}>
                             It comes off the till, off the customer menu and off the kitchen screen, so nobody
                             can order it again. Every bill it has already been sold on keeps it exactly as it
-                            was — nothing is deleted. You can restore it from the Archived tab whenever you like.
+                            was: nothing is deleted. You can restore it from the Archived tab whenever you like.
                         </p>
                         <div className={styles.modalActions}>
                             <button

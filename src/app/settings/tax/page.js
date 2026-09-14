@@ -116,7 +116,7 @@ export default function TaxSettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label htmlFor="tax_rate_cash_percent" className="block text-sm font-medium text-foreground mb-1.5">
-                            GST — cash
+                            GST: cash
                         </label>
                         <input
                             id="tax_rate_cash_percent"
@@ -131,13 +131,13 @@ export default function TaxSettingsPage() {
                             instead of reading an empty box as 0%. */}
                         <input type="hidden" name="tax_rate_cash" value={percentField(taxCash)} />
                         <p className="mt-1.5 text-xs text-muted">
-                            Percent charged on cash bills. Applies to new orders only — past bills keep the tax they were charged.
+                            Percent charged on cash bills. Applies to new orders only. Past bills keep the tax they were charged.
                         </p>
                     </div>
 
                     <div>
                         <label htmlFor="tax_rate_card_percent" className="block text-sm font-medium text-foreground mb-1.5">
-                            GST — card/digital
+                            GST: card/digital
                         </label>
                         <input
                             id="tax_rate_card_percent"
@@ -150,7 +150,7 @@ export default function TaxSettingsPage() {
                         />
                         <input type="hidden" name="tax_rate_card" value={percentField(taxCard)} />
                         <p className="mt-1.5 text-xs text-muted">
-                            The ICT differential rate for card and digital payments — resolved when the bill settles.
+                            The ICT differential rate for card and digital payments. Resolved when the bill settles.
                         </p>
                     </div>
 
@@ -230,7 +230,7 @@ export default function TaxSettingsPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div className="flex items-center gap-2">
                                 {ok(fbr.enabled)}
-                                <span>{fbr.enabled ? `Enabled — ${fbr.mode}` : 'Disabled'}</span>
+                                <span>{fbr.enabled ? `Enabled: ${fbr.mode}` : 'Disabled'}</span>
                             </div>
                             <div className="flex items-center gap-2">{ok(fbr.bposid_set)}<span>POS ID</span></div>
                             <div className="flex items-center gap-2">{ok(fbr.token_set)}<span>Token</span></div>
@@ -251,7 +251,7 @@ export default function TaxSettingsPage() {
                                 ? `Last accepted invoice: ${fbr.last_sent.number}`
                                 : 'No invoices accepted by FBR yet.'}
                             {' '}Credentials are configured in the server environment
-                            (FBR_ENABLED, FBR_MODE, FBR_BPOSID, FBR_TOKEN, FBR_SELLER_NTN) — see docs/deploy-cpanel.md.
+                            (FBR_ENABLED, FBR_MODE, FBR_BPOSID, FBR_TOKEN, FBR_SELLER_NTN). See docs/deploy-cpanel.md.
                         </p>
                     </>
                 ) : (

@@ -51,7 +51,7 @@ export default function ThemeSwitcher({ variant = 'full', collapsed = false }) {
                 type="button"
                 className={styles.cycle}
                 onClick={() => setPref(next)}
-                title={`Theme: ${THEME_LABELS[pref]}${pref === 'system' ? ` (${THEME_LABELS[resolved]})` : ''} — switch to ${THEME_LABELS[next]}`}
+                title={`Theme: ${THEME_LABELS[pref]}${pref === 'system' ? ` (${THEME_LABELS[resolved]})` : ''}: switch to ${THEME_LABELS[next]}`}
                 aria-label={`Theme: ${THEME_LABELS[pref]}. Switch to ${THEME_LABELS[next]}.`}
             >
                 <Icon size={20} aria-hidden="true" />

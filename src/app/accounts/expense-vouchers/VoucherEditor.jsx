@@ -212,7 +212,7 @@ export default function VoucherEditor({ voucher = null, formData, onDone }) {
                     className={`${styles.secondaryBtn} ${styles.addLineBtn}`}
                     onClick={() => setForm((f) => ({ ...f, payments: [...f.payments, newPayment(f.business_date || formData.today)] }))}
                     disabled={formData.payAccounts.length === 0}
-                    title={formData.payAccounts.length === 0 ? 'No account carries AP_PAID — set one on the chart first' : undefined}
+                    title={formData.payAccounts.length === 0 ? 'No account carries AP_PAID. Set one on the chart first' : undefined}
                 >
                     <Plus size={15} /> Add payment
                 </button>
@@ -302,7 +302,7 @@ export default function VoucherEditor({ voucher = null, formData, onDone }) {
                     className={styles.input}
                     value={form.remarks}
                     onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))}
-                    placeholder="Payee, invoice number, why — this becomes the payee on the Expenses screen"
+                    placeholder="Payee, invoice number, why. This becomes the payee on the Expenses screen"
                     maxLength={191}
                     rows={2}
                 />

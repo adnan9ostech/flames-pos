@@ -59,13 +59,13 @@ export default function PostingHealthPage() {
         if (res.error) {
             setMessage({ type: 'error', text: `${invoice}: ${res.error}` })
         } else if (res.data.status === 'skipped') {
-            setMessage({ type: 'warn', text: `${invoice}: nothing posted — ${res.data.reason}` })
+            setMessage({ type: 'warn', text: `${invoice}: nothing posted: ${res.data.reason}` })
         } else {
             const n = res.data.vouchers.length
             setMessage({
                 type: 'success',
                 text: n === 0
-                    ? `${invoice}: already in the ledger — nothing more to post`
+                    ? `${invoice}: already in the ledger. Nothing more to post`
                     : `${invoice}: posted ${n} voucher${n === 1 ? '' : 's'} (${res.data.vouchers.map((v) => v.voucher_no).join(', ')})`,
             })
         }
@@ -110,7 +110,7 @@ export default function PostingHealthPage() {
                     <p className={styles.subtitle}>
                         Sales post themselves after every settle and never hold up the till. Anything
                         that did not make it into the ledger shows here, and Repost runs the same
-                        posting again — safe to press twice.
+                        posting again: safe to press twice.
                     </p>
                 </div>
                 <div className={styles.headerActions}>
@@ -148,7 +148,7 @@ export default function PostingHealthPage() {
             {data && !data.postingEnabled && (
                 <div className={`${styles.note} ${styles.noteWarn}`} role="status">
                     <AlertTriangle size={16} aria-hidden="true" />
-                    Posting is switched off in the ledger settings — new settles are not being booked, and Repost will skip them.
+                    Posting is switched off in the ledger settings. New settles are not being booked, and Repost will skip them.
                 </div>
             )}
 
@@ -441,7 +441,7 @@ export default function PostingHealthPage() {
                                 <div className={`${styles.note} ${styles.noteWarn}`} style={{ margin: '1rem', marginBottom: 0 }} role="status">
                                     <AlertTriangle size={16} aria-hidden="true" />
                                     These were typed on the <Link href="/expenses">Expenses</Link> screen, which lowers the drawer&apos;s
-                                    expected cash but writes nothing to the ledger — GL cash sits {rupees(legacyTotal)} above the drawer
+                                    expected cash but writes nothing to the ledger. GL cash sits {rupees(legacyTotal)} above the drawer
                                     until each is re-entered as an <Link href="/accounts/expense-vouchers/new">expense voucher</Link> and
                                     deleted there.
                                 </div>

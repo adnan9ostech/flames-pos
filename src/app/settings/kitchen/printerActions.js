@@ -70,7 +70,7 @@ export async function savePrinter({
             [row.role, row.label, row.transport, row.target, row.width_mm,
                 row.cut_mode, row.feed_lines, row.codepage, row.drawer_pin],
         )
-        return { success: `${row.label} saved — the next print goes to it, with nothing restarted` }
+        return { success: `${row.label} saved: the next print goes to it, with nothing restarted` }
     } catch (e) {
         return { error: e.message }
     }
@@ -82,7 +82,7 @@ export async function forgetPrinter(role) {
         await requirePermission('settings')
         if (!ROLES.includes(role)) return { error: 'Unknown printer role' }
         await query('DELETE FROM printers WHERE role = ?', [role])
-        return { success: 'Forgotten — the agent will look for a printer on its own' }
+        return { success: 'Forgotten: the agent will look for a printer on its own' }
     } catch (e) {
         return { error: e.message }
     }

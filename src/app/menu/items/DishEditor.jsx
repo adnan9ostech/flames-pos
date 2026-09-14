@@ -153,7 +153,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
         if (!other) return null;
         const where = formData.categories.find((c) => c.id === other.category_id)?.name;
         return other.category_id === form.category_id
-            ? `There is already a "${other.name}" in this category — check you are not adding it twice.`
+            ? `There is already a "${other.name}" in this category: check you are not adding it twice.`
             : `There is already a "${other.name}"${where ? ` in ${where}` : ''}. Two categories may each carry one; the till shows the category under the tile.`;
     }, [form.name, form.category_id, formData.dishNames, formData.categories, dish]);
 
@@ -200,7 +200,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
             if (sizes.error) { setError(sizes.error); return; }
             if (sizes.unpriced) { setError('Every size needs a price.'); return; }
             if (sizes.descending) {
-                setError(`${sizes.descending} is priced below the size listed before it — sizes run smallest to largest.`);
+                setError(`${sizes.descending} is priced below the size listed before it. Sizes run smallest to largest.`);
                 return;
             }
         }
@@ -279,7 +279,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                                 placeholder="per plate"
                                 maxLength={32}
                             />
-                            <span className={styles.hint}>Optional — shown beside the price where the menu has room.</span>
+                            <span className={styles.hint}>Optional: shown beside the price where the menu has room.</span>
                         </label>
                     </div>
 
@@ -301,7 +301,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                             checked={form.is_available}
                             onChange={(e) => setForm((f) => ({ ...f, is_available: e.target.checked }))}
                         />
-                        <span>On the menu — the till can ring it up{form.is_available ? '' : '. Unticked it shows as sold out'}</span>
+                        <span>On the menu: the till can ring it up{form.is_available ? '' : '. Unticked it shows as sold out'}</span>
                     </label>
                 </div>
 
@@ -353,7 +353,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                                     {activeSets.map((s) => (
                                         <option key={s.id} value={s.id}>{s.name} ({s.options.join(', ')})</option>
                                     ))}
-                                    <option value={CUSTOM}>Custom sizes — just for this dish</option>
+                                    <option value={CUSTOM}>Custom sizes: just for this dish</option>
                                 </select>
                                 <span className={styles.hint}>
                                     A set owns the size names and their order; this dish owns the prices.
@@ -429,7 +429,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                                 <div role="alert" className={`${styles.note} ${styles.noteWarn}`} style={{ marginBottom: 0 }}>
                                     <AlertTriangle size={16} aria-hidden="true" />
                                     {sizes.descending} is priced below the size listed before it. Sizes run smallest to
-                                    largest — the till opens on the first and puts the last on the tile. Correct the
+                                    largest: the till opens on the first and puts the last on the tile. Correct the
                                     prices, or list the sizes in that order.
                                 </div>
                             )}
@@ -447,7 +447,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                     <div className={own.tilePrice}>
                         <span className={styles.cellMuted}>
                             {form.priceMode === 'sizes'
-                                ? 'Tile price — the largest size, which is what the till grid shows'
+                                ? 'Tile price: the largest size, which is what the till grid shows'
                                 : 'Tile price'}
                         </span>
                         <span className={own.tilePriceValue}>{formatRupees(tilePrice)}</span>
@@ -513,7 +513,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                     <h2 className={styles.cardTitle}><ChefHat size={16} /> Recipe</h2>
                     {!dish ? (
                         <p className={styles.hint}>
-                            Save the dish first — a recipe is attached to a dish that exists.
+                            Save the dish first. A recipe is attached to a dish that exists.
                         </p>
                     ) : hasBaseRecipe ? (
                         <>
@@ -534,7 +534,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                                 The base recipe ({recipe.base_lines} ingredient{recipe.base_lines === 1 ? '' : 's'}) at
                                 today&apos;s average ingredient cost, against {form.priceMode === 'sizes' ? 'the smallest size' : 'the price'}.
                                 {recipe.sized_variants.length > 0
-                                    ? ` ${recipe.sized_variants.join(' and ')} carr${recipe.sized_variants.length === 1 ? 'ies' : 'y'} a recipe of their own — costed on the Recipes screen.`
+                                    ? ` ${recipe.sized_variants.join(' and ')} carr${recipe.sized_variants.length === 1 ? 'ies' : 'y'} a recipe of their own. Costed on the Recipes screen.`
                                     : ''}
                             </span>
                             <Link href={`/menu/recipes?dish=${dish.id}`} className={`${styles.secondaryBtn} ${own.recipeLink}`}>
@@ -544,7 +544,7 @@ export default function DishEditor({ dish = null, formData, onSaved, onDirtyChan
                     ) : (
                         <>
                             <p className={styles.hint}>
-                                No recipe yet — this dish consumes no stock when sold.
+                                No recipe yet: this dish consumes no stock when sold.
                             </p>
                             <Link href={`/menu/recipes?dish=${dish.id}`} className={`${styles.secondaryBtn} ${own.recipeLink}`}>
                                 <Plus size={15} /> Add a recipe

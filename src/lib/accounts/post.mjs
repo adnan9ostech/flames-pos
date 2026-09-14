@@ -195,7 +195,7 @@ const saleLines = async (conn, order, settings, links) => {
     const itemsTotal = money(items.reduce((s, i) => s + Number(i.line_total), 0));
     if (itemsTotal !== money(order.subtotal)) {
         throw new Error(
-            `order_items total ${itemsTotal} does not match orders.subtotal ${money(order.subtotal)} — refusing to post`,
+            `order_items total ${itemsTotal} does not match orders.subtotal ${money(order.subtotal)}. Refusing to post`,
         );
     }
 
@@ -211,7 +211,7 @@ const saleLines = async (conn, order, settings, links) => {
     const chargesTotal = money(charges.reduce((s, c) => s + Number(c?.amount || 0), 0));
     if (chargesTotal !== money(order.charges_total)) {
         throw new Error(
-            `charges snapshot ${chargesTotal} does not match orders.charges_total ${money(order.charges_total)} — refusing to post`,
+            `charges snapshot ${chargesTotal} does not match orders.charges_total ${money(order.charges_total)}. Refusing to post`,
         );
     }
     const chargeLines = new Map();

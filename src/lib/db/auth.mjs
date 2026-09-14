@@ -36,7 +36,7 @@ export const requireUser = async () => {
     );
     const row = rows[0];
     if (!row || row.token_version !== session.pv) {
-        throw new AuthError('Session expired — sign in again');
+        throw new AuthError('Session expired: sign in again');
     }
     if (!row.is_active) throw new AuthError('This account has been suspended');
     return {

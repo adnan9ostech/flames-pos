@@ -269,7 +269,7 @@ export async function deleteCategory(id) {
                 if (archived) parts.push(`${archived} archived`);
                 throw new Error(
                     `"${cat.name}" still holds ${parts.join(' and ')}. `
-                    + 'Move them to another category first — deleting this one would unfile them: '
+                    + 'Move them to another category first. Deleting this one would unfile them: '
                     + 'they would drop off every tab on the till grid and their kitchen slips '
                     + 'would print on the catch-all "Kitchen" station.',
                 );

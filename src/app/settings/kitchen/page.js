@@ -31,7 +31,7 @@ const KOT_MODE_OPTIONS = [
     {
         value: 'item',
         label: 'Per item',
-        hint: 'One ticket per line, so a ticket travels with each dish. A 12-line order prints 12 tickets — much more paper.',
+        hint: 'One ticket per line, so a ticket travels with each dish. A 12-line order prints 12 tickets. Much more paper.',
     },
     {
         value: 'category',
@@ -50,12 +50,12 @@ const TRANSPORT_OPTIONS = [
     {
         value: 'agent',
         label: 'Thermal print agent',
-        hint: 'Raw ESC/POS to a thermal printer via the local agent — the correct setting for the counter printer. If the agent is not running, the till says so rather than printing rubbish.',
+        hint: 'Raw ESC/POS to a thermal printer via the local agent. The correct setting for the counter printer. If the agent is not running, the till says so rather than printing rubbish.',
     },
     {
         value: 'browser',
         label: 'Browser',
-        hint: 'window.print() through the operating system. Only for an ordinary page printer — on a thermal printer this prints pages of PostScript source.',
+        hint: 'window.print() through the operating system. Only for an ordinary page printer. On a thermal printer this prints pages of PostScript source.',
     },
 ]
 
@@ -68,7 +68,7 @@ const DRAWER_OPTIONS = [
     {
         value: 'cash',
         label: 'On cash sales',
-        hint: 'The drawer opens when the bill is paid in cash — the moment there is money to put in or change to take out. Card and city-ledger bills leave it shut.',
+        hint: 'The drawer opens when the bill is paid in cash, at the moment there is money to put in or change to take out. Card and city-ledger bills leave it shut.',
     },
     {
         value: 'always',
@@ -83,13 +83,13 @@ const DRAWER_OPTIONS = [
 ]
 
 const DRAWER_PIN_OPTIONS = [
-    { value: 2, label: 'Pin 2', hint: 'Standard wiring — try this first. Almost every drawer sold uses it.' },
+    { value: 2, label: 'Pin 2', hint: 'Standard wiring: try this first. Almost every drawer sold uses it.' },
     { value: 5, label: 'Pin 5', hint: 'Epson-style twin-drawer wiring. Use only if the printer clicks and the drawer stays shut on Pin 2.' },
 ]
 
 const COPY_OPTIONS = [
     { value: 2, label: 'Two copies', hint: 'Customer copy and restaurant copy, each cut off separately. The house practice.' },
-    { value: 1, label: 'One copy', hint: 'Just the customer copy — less paper, but nothing to keep at the counter.' },
+    { value: 1, label: 'One copy', hint: 'Just the customer copy. Less paper, but nothing to keep at the counter.' },
 ]
 
 const EMPTY = {
@@ -194,7 +194,7 @@ export default function KitchenSettingsPage() {
 
                 <SettingSwitch
                     label="Print receipt automatically on payment"
-                    hint="Paper comes out as the sale is saved, with no extra tap. Turn off if the printer is jammed or out of roll — you can still reprint any order from the Orders screen."
+                    hint="Paper comes out as the sale is saved, with no extra tap. Turn off if the printer is jammed or out of roll. You can still reprint any order from the Orders screen."
                     checked={settings.auto_print}
                     onToggle={() => setSettings(prev => ({ ...prev, auto_print: !prev.auto_print }))}
                 />
@@ -230,7 +230,7 @@ export default function KitchenSettingsPage() {
                     {settings.drawer_kick !== 'never' && (
                         <ChoiceGroup
                             label="Cash drawer cable pin"
-                            hint="The fallback, for a terminal whose printer has not been set up above — the pin belongs to the printer the drawer is plugged into, so each printer carries its own."
+                            hint="The fallback, for a terminal whose printer has not been set up above. The pin belongs to the printer the drawer is plugged into, so each printer carries its own."
                             options={DRAWER_PIN_OPTIONS}
                             value={Number(settings.drawer_pin)}
                             onSelect={pin => setSettings(prev => ({ ...prev, drawer_pin: pin }))}
@@ -247,7 +247,7 @@ export default function KitchenSettingsPage() {
 
                     <ChoiceGroup
                         label="Receipt paper width"
-                        hint="The fallback, for a terminal whose printer has not been set up above — each printer now carries its own width, because paper is a fact about the machine rather than about the shop."
+                        hint="The fallback, for a terminal whose printer has not been set up above. Each printer now carries its own width, because paper is a fact about the machine rather than about the shop."
                         options={PAPER_WIDTHS}
                         value={Number(settings.receipt_width_mm)}
                         onSelect={mm => setSettings(prev => ({ ...prev, receipt_width_mm: mm }))}
@@ -255,7 +255,7 @@ export default function KitchenSettingsPage() {
 
                     <ChoiceGroup
                         label="Where kitchen tickets print"
-                        hint="Two devices keep the receipt printer and the kitchen printer from ever fighting over one spool — the recommended setup."
+                        hint="Two devices keep the receipt printer and the kitchen printer from ever fighting over one spool. The recommended setup."
                         options={KOT_ROUTE_OPTIONS}
                         value={settings.kot_route}
                         onSelect={route => setSettings(prev => ({ ...prev, kot_route: route }))}
@@ -264,7 +264,7 @@ export default function KitchenSettingsPage() {
                     {settings.kot_route === 'kds' && (
                         <SettingSwitch
                             label="Kitchen display prints new tickets automatically"
-                            hint="Each order prints on the kitchen's printer the moment it lands there. Turn off during a jam or a roll change — the Kitchen Display's own reprint button still works either way."
+                            hint="Each order prints on the kitchen's printer the moment it lands there. Turn off during a jam or a roll change. The Kitchen Display's own reprint button still works either way."
                             checked={settings.kds_auto_print}
                             onToggle={() => setSettings(prev => ({ ...prev, kds_auto_print: !prev.kds_auto_print }))}
                         />

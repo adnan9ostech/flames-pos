@@ -497,7 +497,7 @@ export default function ItemWiseSalesPage() {
 
             {!loading && !error && report && (
                 <p className={styles.reconcile}>
-                    Reconciles to {report.orders.count} orders — subtotal Rs. {rs(report.orders.subtotal)},
+                    Reconciles to {report.orders.count} orders. Subtotal Rs. {rs(report.orders.subtotal)},
                     discounts Rs. {rs(report.orders.discount)}.
                     {grossDelta !== 0 && (
                         <span className={styles.reconcileWarn}>

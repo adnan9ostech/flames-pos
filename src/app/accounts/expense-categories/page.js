@@ -338,7 +338,7 @@ export default function ExpenseCategoriesPage() {
                                     checked={form.is_active}
                                     onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
                                 />
-                                <span>Active — offered when filing a code or an expense</span>
+                                <span>Active: offered when filing a code or an expense</span>
                             </label>
 
                             <div className={`${styles.formActions} ${editing ? styles.formActionsSplit : ''}`}>

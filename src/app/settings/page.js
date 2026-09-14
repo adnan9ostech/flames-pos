@@ -159,7 +159,7 @@ export default function SettingsPage() {
 
                 <SettingSwitch
                     label="Ask for cash received, and work out the change"
-                    hint="The checkout asks what the customer handed over and shows the change due — and both go on the receipt and into the sale, so a short drawer at close can be explained. Turn off for a counter that only takes exact or card payments."
+                    hint="The checkout asks what the customer handed over and shows the change due, and both go on the receipt and into the sale, so a short drawer at close can be explained. Turn off for a counter that only takes exact or card payments."
                     checked={settings.cash_change}
                     onToggle={() => setSettings(prev => ({ ...prev, cash_change: !prev.cash_change }))}
                 />
@@ -184,7 +184,7 @@ export default function SettingsPage() {
                         hint="Worked out from the stock room: a dish is out when something its recipe needs is at zero. An ingredient nobody has ever counted is never treated as finished, so this stays quiet until the shelves are actually being tracked."
                         options={[
                             { value: 'off', label: 'Say nothing', hint: 'The till never mentions stock. Right until the counts are trusted.' },
-                            { value: 'flag', label: 'Mark the dish', hint: 'A "No stock" tag on the tile, still tappable — the kitchen is often out on paper and fine in the pan.' },
+                            { value: 'flag', label: 'Mark the dish', hint: 'A "No stock" tag on the tile, still tappable. The kitchen is often out on paper and fine in the pan.' },
                             { value: 'hide', label: 'Hide the dish', hint: 'The tile disappears from the till. Only for a counter that trusts its counts.' },
                         ]}
                         value={settings.stock_gate}
@@ -194,21 +194,21 @@ export default function SettingsPage() {
 
                 <SettingSwitch
                     label="Give takeaway and delivery orders a token number"
-                    hint="A short number, restarted every trading day, printed big on the receipt and shown on the kitchen screen — the number the counter shouts when the food is up. Dine-in orders keep their table instead. Leave off if nobody calls tokens: a number nobody will ever shout is worse than none."
+                    hint="A short number, restarted every trading day, printed big on the receipt and shown on the kitchen screen. The number the counter shouts when the food is up. Dine-in orders keep their table instead. Leave off if nobody calls tokens: a number nobody will ever shout is worse than none."
                     checked={settings.token_mode === 'auto'}
                     onToggle={() => setSettings(prev => ({ ...prev, token_mode: prev.token_mode === 'auto' ? 'off' : 'auto' }))}
                 />
 
                 <SettingSwitch
                     label="Require the card slip's reference on card sales"
-                    hint="The approval code or last four digits off the terminal slip, stored against the sale and printed on the receipt — so a card batch that does not agree at close can be traced to the bill instead of matched by hand. The box is offered on every card sale either way; this makes it compulsory."
+                    hint="The approval code or last four digits off the terminal slip, stored against the sale and printed on the receipt, so a card batch that does not agree at close can be traced to the bill instead of matched by hand. The box is offered on every card sale either way; this makes it compulsory."
                     checked={settings.card_ref_required}
                     onToggle={() => setSettings(prev => ({ ...prev, card_ref_required: !prev.card_ref_required }))}
                 />
 
                 <SettingSwitch
                     label="Ask for a manager PIN to remove an item"
-                    hint="Taking a line off a bill then needs someone who can void (a manager or admin) to enter their PIN. Stops items being quietly dropped off a cart — the person removing the line needs the PIN even if they are signed in themselves."
+                    hint="Taking a line off a bill then needs someone who can void (a manager or admin) to enter their PIN. Stops items being quietly dropped off a cart. The person removing the line needs the PIN even if they are signed in themselves."
                     checked={settings.void_requires_pin}
                     onToggle={() => setSettings(prev => ({ ...prev, void_requires_pin: !prev.void_requires_pin }))}
                 />
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                     <div className="mb-6 flex items-start gap-3 p-4 rounded-lg bg-warning-soft border border-warning-border">
                         <AlertTriangle className="h-5 w-5 text-warning-text flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-warning-text">
-                            QR printing is on, but there&apos;s no Raast ID to encode — receipts will print without a
+                            QR printing is on, but there&apos;s no Raast ID to encode. Receipts will print without a
                             code until you add one below.
                         </p>
                     </div>
@@ -259,7 +259,7 @@ export default function SettingsPage() {
                             </div>
                             <p className="mt-1.5 text-xs text-muted">
                                 The change money that normally stays in the till overnight. A drawer
-                                close proposes this figure, and the next morning opens on it — so the
+                                close proposes this figure, and the next morning opens on it, so the
                                 opening balance is carried forward, not retyped from memory.
                             </p>
                         </div>
@@ -286,7 +286,7 @@ export default function SettingsPage() {
                             <p className="mt-1.5 text-xs text-muted">
                                 A count that misses by more than this cannot close without a written
                                 reason. Zero means every difference is explained. The difference is
-                                recorded and posted to Cash Over &amp; Short whatever this is set to —
+                                recorded and posted to Cash Over &amp; Short whatever this is set to.
                                 this only decides when someone has to type why.
                             </p>
                         </div>

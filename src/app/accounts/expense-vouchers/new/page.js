@@ -30,7 +30,7 @@ export default function NewExpenseVoucherPage() {
     const done = (kind, voucher) => {
         try {
             sessionStorage.setItem('ev-flash', kind === 'post'
-                ? `${voucher.voucher_no} posted — journal ${voucher.journals.map((j) => j.voucher_no).join(', ')}`
+                ? `${voucher.voucher_no} posted: journal ${voucher.journals.map((j) => j.voucher_no).join(', ')}`
                 : `${voucher.voucher_no} saved as a draft`)
         } catch { /* private mode: the page itself says what state it is in */ }
         router.push(`/accounts/expense-vouchers/${voucher.id}`)

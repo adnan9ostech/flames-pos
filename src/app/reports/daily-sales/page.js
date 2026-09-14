@@ -375,7 +375,7 @@ export default function DailySalesPage() {
                             <tfoot>
                                 <tr className={styles.tfootRow}>
                                     <td colSpan={7}>
-                                        Totals — {orders.length - voidedCount} orders
+                                        Totals: {orders.length - voidedCount} orders
                                         {voidedCount > 0 && `, ${voidedCount} voided excluded`}
                                     </td>
                                     <td className={styles.alignRight}>{rs(sums.subtotal)}</td>

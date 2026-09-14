@@ -178,7 +178,7 @@ const EMPTY_CHART = {
     mix: 'The range’s best sellers will be ranked here once something sells.',
     items: 'The range’s best sellers will be ranked here once something sells.',
     modifiers: 'Add-ons chosen in this range will be ranked here.',
-    voided: 'Voided items will be ranked here — an empty chart is the good outcome.',
+    voided: 'Voided items will be ranked here. An empty chart is the good outcome.',
 };
 
 // "Top 10 of 34", or "All 7 rows" when nothing was left out.
@@ -397,7 +397,7 @@ export default function MenuAnalyticsPage() {
                 <div>
                     <h1 className={styles.title}>Menu Analytics</h1>
                     <p className={styles.subtitle}>
-                        What sold, what rode along with it, and what got voided — settled orders only.
+                        What sold, what rode along with it, and what got voided. Settled orders only.
                     </p>
                 </div>
 

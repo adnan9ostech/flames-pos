@@ -69,7 +69,7 @@ const refuseProjected = async (conn, expense) => {
     )
     const v = rows[0]
     throw new Error(
-        `This expense comes from voucher ${v?.voucher_no ?? 'an expense voucher'} — pay or reverse it under `
+        `This expense comes from voucher ${v?.voucher_no ?? 'an expense voucher'}: pay or reverse it under `
         + `Accounts › Expense Vouchers${v ? ` (/accounts/expense-vouchers/${v.id})` : ''}`,
     )
 }

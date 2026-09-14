@@ -374,7 +374,7 @@ export default function ChartOfAccountsPage() {
                                     className={styles.input}
                                     value={form.name}
                                     onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                                    placeholder="Bank — Savings Account"
+                                    placeholder="Bank: Savings Account"
                                     maxLength={96}
                                     required
                                 />
@@ -427,7 +427,7 @@ export default function ChartOfAccountsPage() {
                                         checked={form.is_active}
                                         onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
                                     />
-                                    <span>Active — offered in pickers and posted to</span>
+                                    <span>Active: offered in pickers and posted to</span>
                                 </label>
                             )}
                             {form.is_system && (

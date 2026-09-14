@@ -64,7 +64,7 @@ export const cleanVariants = (input) => {
         seen.add(key);
         out.push({ name, price: cleanPrice(priceStr, `The price for ${name}`) });
     }
-    if (out.length === 1) throw new Error('A dish with one size is a dish with a price — remove the size or add a second');
+    if (out.length === 1) throw new Error('A dish with one size is a dish with a price. Remove the size or add a second');
     if (out.length > MAX_VARIANTS) throw new Error(`At most ${MAX_VARIANTS} sizes per dish`);
     out.sort((a, b) => a.price - b.price || a.name.localeCompare(b.name));
     return out;
@@ -165,7 +165,7 @@ export const cleanImagePath = (value) => {
     if (!v) return null;
     if (v.startsWith(MENU_IMAGE_URL_PREFIX) && IMAGE_FILE_RE.test(v.slice(MENU_IMAGE_URL_PREFIX.length))) return v;
     if (/^\/menu-images\/[\w./-]+\.(webp|jpg|jpeg|png)$/i.test(v) && !v.includes('..')) return v;
-    throw new Error('That photo is not one the menu can use — upload it from this screen');
+    throw new Error('That photo is not one the menu can use. Upload it from this screen');
 };
 
 /* ---- Recipe SQL shared by consumption, costing and the reports ---- */

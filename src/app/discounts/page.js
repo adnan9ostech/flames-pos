@@ -228,7 +228,7 @@ export default function DiscountsPage() {
                     ) : plans.length === 0 ? (
                         <div className={styles.stateBlock}>
                             <BadgePercent size={28} />
-                            <p>No discount plans yet — add the first one alongside.</p>
+                            <p>No discount plans yet. Add the first one alongside.</p>
                         </div>
                     ) : (
                         <table className={styles.table}>
@@ -405,7 +405,7 @@ export default function DiscountsPage() {
                         {overnight && (
                             <span className={styles.overnightNote}>
                                 <MoonStar size={12} aria-hidden="true" />
-                                Ends after midnight — runs into the next morning.
+                                Ends after midnight: runs into the next morning.
                             </span>
                         )}
                     </span>

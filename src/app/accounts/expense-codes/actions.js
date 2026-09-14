@@ -101,7 +101,7 @@ const checkAccount = async (conn, id, links, what) => {
     if (!a) throw new Error(`That ${what} account no longer exists`)
     const codes = Array.isArray(a.link_codes) ? a.link_codes : []
     if (!links.some((l) => codes.includes(l))) {
-        throw new Error(`${a.account_number} ${a.name} is not marked for use as ${what === 'expense' ? 'an expense' : 'a payable'} account — set that on the chart first`)
+        throw new Error(`${a.account_number} ${a.name} is not marked for use as ${what === 'expense' ? 'an expense' : 'a payable'} account: set that on the chart first`)
     }
     return a
 }
@@ -209,7 +209,7 @@ export async function saveExpenseCode(input) {
                 if (existing && Number(existing.has_lines)) {
                     throw new Error(
                         `${existing.code} has ${Number(existing.line_count) || 'voucher'} line(s) posted against `
-                        + `${existing.account_number} ${existing.account_name} — its account cannot change. `
+                        + `${existing.account_number} ${existing.account_name}: its account cannot change. `
                         + 'Deactivate this code and add a new one for the new account.',
                     )
                 }
@@ -223,7 +223,7 @@ export async function saveExpenseCode(input) {
             if (payableChanged && existing && Number(existing.has_lines) && existing.payable_account_id != null) {
                 throw new Error(
                     `${existing.code} has ${Number(existing.line_count) || 'voucher'} line(s) booked with `
-                    + `${existing.payable_number} ${existing.payable_name} as the payable — its payable account cannot change, `
+                    + `${existing.payable_number} ${existing.payable_name} as the payable, and its payable account cannot change, `
                     + 'or a later payment would clear a different account than the one the voucher credited. '
                     + 'Deactivate this code and add a new one.',
                 )

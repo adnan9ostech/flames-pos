@@ -186,7 +186,7 @@ export default function SuppliersPage() {
                 </div>
 
                 {payables.length === 0 ? (
-                    <div className={styles.emptyBlock}>Nothing owed — every supplier account is settled.</div>
+                    <div className={styles.emptyBlock}>Nothing owed: every supplier account is settled.</div>
                 ) : (
                     <div className={styles.tableWrap}>
                         <table className={styles.table}>
@@ -241,7 +241,7 @@ export default function SuppliersPage() {
                             <option value="" disabled>Pick a supplier…</option>
                             {book.map((s) => (
                                 <option key={s.id} value={s.id}>
-                                    {s.name}{s.balance !== 0 ? ` — ${rupees(s.balance)}` : ''}
+                                    {s.name}{s.balance !== 0 ? `: ${rupees(s.balance)}` : ''}
                                 </option>
                             ))}
                         </select>

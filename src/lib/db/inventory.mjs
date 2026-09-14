@@ -161,7 +161,7 @@ export const receiveStock = async ({
 
         const [supRows] = await conn.query('SELECT is_active FROM suppliers WHERE id = ?', [supplier]);
         if (supRows.length === 0) throw new Error('That supplier no longer exists');
-        if (!supRows[0].is_active) throw new Error('That supplier is retired — reactivate it first');
+        if (!supRows[0].is_active) throw new Error('That supplier is retired. Reactivate it first');
         await checkWarehouse(conn, warehouse);
 
         /*
