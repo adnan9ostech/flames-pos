@@ -121,3 +121,37 @@ test('a kitchen slip states the size once and never shows a price', () => {
     assert.ok(!/Rs\.|[0-9],[0-9]{3}/.test(text), 'a kitchen slip carries no money');
     assert.ok(escpos.endsWith(CMD.cut));
 });
+
+test('a printer profile changes the bytes, and its absence changes nothing', () => {
+    const base = {
+        order: { order_number: 7, subtotal: 100, tax: 16, total: 116, created_at: new Date() },
+        items: [{ name: 'Karahi', qty: 1, unit_price: 100, line_total: 100 }],
+        settings: {},
+        widthMm: 80,
+    };
+
+    // No profile: exactly what this renderer emitted before profiles existed —
+    // six lines of feed and a full cut.
+    const plain = renderReceipt(base);
+    assert.ok(plain.endsWith('\x1bd\x06\x1dV\x00'), 'default is feed 6 then GS V 0');
+
+    // A printer with no cutter gets paper to tear and no cut command at all —
+    // a blade command to a machine without one prints as a stray character.
+    const noCutter = renderReceipt({ ...base, profile: { cut: 'none' } });
+    assert.ok(!noCutter.includes('\x1dV'), 'no cut command reaches a printer with no cutter');
+    assert.ok(noCutter.endsWith('\x1bd\x06'), 'but the paper still comes out to tear');
+
+    // Partial cut, and a head-to-cutter gap of two lines rather than six.
+    const partial = renderReceipt({ ...base, profile: { cut: 'partial', feedLines: 2 } });
+    assert.ok(partial.endsWith('\x1bd\x02\x1dV\x01'));
+
+    // A code page has to land before any text, because ESC @ clears it.
+    const cp = renderReceipt({ ...base, profile: { codepage: 16 } });
+    assert.ok(cp.startsWith('\x1b@\x1bt\x10'), 'reset, then the code page, then the bill');
+    assert.ok(!plain.includes('\x1bt'), 'and nothing is sent when none is asked for');
+
+    // Nonsense is not obeyed: an unknown cut and a silly feed fall back rather
+    // than reaching a printer as garbage.
+    const junk = renderReceipt({ ...base, profile: { cut: 'chop', feedLines: 900 } });
+    assert.ok(junk.endsWith('\x1bd\x1e\x1dV\x00'), 'unknown cut -> full, feed clamped to 30');
+});

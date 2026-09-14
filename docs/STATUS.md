@@ -1162,6 +1162,45 @@ Inventory:
   posting *failed* (an unmapped account, usually) and a button would fail the
   same way until the chart is fixed.
 
+## Any thermal printer, set up on a screen — 14 Sep 2026
+
+Migration 038. Suite **150/150**, build green, proven end to end against a
+file-backed printer and the real agent.
+
+**What was wrong.** A printer was named in the launchd plist that starts the
+agent (`--queue PrinterCMD_ESCPO_POS80_Printer_USB`). So every machine was set
+up at a shell prompt, and the day a printer is replaced — or its cable moves to
+another USB port, which makes macOS rename the queue — the till silently stops
+printing until somebody edits a file. And "ESC/POS" is a family, not a
+standard: cheap units cut with `GS V 1` or have no cutter, take a different
+drawer pin, need a code page before Latin text renders, and differ by
+centimetres in the head-to-cutter gap.
+
+**How it works now.**
+
+- The agent is started with **what it is for** — `--role receipt` or
+  `--role kitchen` — and looks the printer up in the new `printers` table.
+  `install-agent-service.sh` takes no printer name at all, and installs one
+  launchd job per role so the KDS machine's agent cannot replace the till's.
+- **Settings → Kitchen & Printer** now opens with *Printers on this terminal*:
+  the list comes from the agent on the machine you are sitting at (only it can
+  know), and each role gets a printer, a width, a cutter mode, a feed-before-cut
+  and a drawer pin. Save it and **the next bill prints on it with nothing
+  restarted** — the agent resolves per print, not at boot.
+- **A fresh machine prints before anybody opens Settings**: with nothing
+  configured, the agent picks the single obvious thermal printer it can see.
+  One candidate is a guess worth making; two is not, and then the screen asks.
+- **Test print** puts a page out that names the printer, how it was reached,
+  the width in characters, the cut mode and the drawer pin — so a wrong setting
+  reads as a wrong setting rather than as a mystery.
+- `PRINTER_QUEUE` in `.env.local` is now **ignored** (noted once in the log).
+  Leaving it as an override would have been the same trap in a new coat: the
+  Settings screen would look broken while being right. `--queue` on the command
+  line still wins, for debugging.
+
+The store-wide paper width and drawer pin remain as fallbacks for a terminal
+whose printer has not been set up yet, and say so on the screen.
+
 ## Ingredients and recipes, made simpler — 14 Sep 2026
 
 Suite 149/149, build green, the whole flow driven in a real browser.

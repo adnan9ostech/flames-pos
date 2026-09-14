@@ -30,7 +30,22 @@ const withTimeout = async (url, options = {}, ms = 1500) => {
 };
 
 /* True when an agent is listening AND its printer is plugged in. */
-export const thermalAgentReady = async () => {
+export const thermalAgentReady = async ({ requirePrinter = true } = {}) => {
+    /*
+     * `requirePrinter: false` asks only whether the AGENT is up. The Settings
+     * screen needs that: a counter whose printer is unplugged — or which has
+     * never had one chosen — still has to be able to list what is available
+     * and pick one, and the stricter answer would lock it out of the screen
+     * that fixes it.
+     */
+    if (!requirePrinter) {
+        try {
+            const res = await withTimeout(`${AGENT}/health`, {}, 1200);
+            return res.ok && Boolean((await res.json())?.ok);
+        } catch {
+            return false;
+        }
+    }
     if (probe !== null) return probe;
     probe = (async () => {
         try {
@@ -123,6 +138,36 @@ export const openCashDrawerViaAgent = async (orderId = null, { force = false } =
     } catch (e) {
         console.warn('Cash drawer did not open.', e?.message ?? e);
         return false;
+    }
+};
+
+/*
+ * What this machine can print to, asked of the agent running on it.
+ *
+ * Only the agent knows: the queue list is a property of the MACHINE the
+ * browser is sitting at, not of the server or the database. That is why the
+ * Settings screen has to ask the local agent rather than the app.
+ */
+export const listAgentPrinters = async () => {
+    if (!(await thermalAgentReady({ requirePrinter: false }))) return null;
+    try {
+        const res = await withTimeout(`${AGENT}/printers`, {}, 4000);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+};
+
+/* A page of paper that proves the setup, without ringing a sale. */
+export const testPrintViaAgent = async () => {
+    try {
+        const res = await withTimeout(`${AGENT}/test`, { method: 'POST' }, 20000);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) return { ok: false, error: body?.error || 'The printer did not take the test page' };
+        return { ok: true, printer: body.printer };
+    } catch (e) {
+        return { ok: false, error: 'The print agent is not running on this machine' };
     }
 };
 

@@ -25,7 +25,7 @@
  * If it is not running, the till falls back to browser printing on its own.
  * Nothing here is required for a sale to complete.
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { open } from 'node:fs/promises';
 import http from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
@@ -51,10 +51,8 @@ const arg = (name, fallback) => {
         ? process.argv[i + 1] : fallback;
 };
 
-const DEVICE = arg('device', process.env.PRINTER_DEVICE || '/dev/cu.BlueToothPrinter');
 const PORT = Number(arg('port', process.env.PRINT_AGENT_PORT || 9110));
 const HOST = arg('host', process.env.PRINT_AGENT_HOST || '127.0.0.1');
-const WIDTH = Number(arg('width', process.env.PRINTER_WIDTH_MM || 0)) || null;
 
 /*
  * TWO TRANSPORTS, because two kinds of thermal printer attach two ways.
@@ -72,8 +70,41 @@ const WIDTH = Number(arg('width', process.env.PRINTER_WIDTH_MM || 0)) || null;
  * that macOS has bound to a generic laser driver will offer Letter and duplex,
  * and `-o raw` is what steps around that.
  */
-const QUEUE = arg('queue', process.env.PRINTER_QUEUE || '') || null;
-const TRANSPORT = QUEUE ? 'cups' : 'device';
+/*
+ * WHAT THIS AGENT IS FOR, not which printer it drives.
+ *
+ * It used to be started with the queue name in its launchd plist, so every
+ * machine was set up at a shell prompt and a replaced printer — or a cable
+ * moved to another USB port, which makes macOS rename the queue — silently
+ * stopped the till until somebody edited a file. Now it is started with a
+ * ROLE and looks the printer up in the `printers` table, which the Settings
+ * screen writes. Change the printer there and the next bill prints on it.
+ *
+ * --queue and --device still work and still win: an escape hatch for a
+ * machine being debugged, and how the tests drive this file.
+ */
+const ROLE = arg('role', process.env.PRINTER_ROLE || 'receipt');
+
+/*
+ * ONLY the command line overrides Settings — not the environment.
+ *
+ * PRINTER_QUEUE in .env.local was how this used to be configured, and leaving
+ * it as an override would have been the same trap in a new coat: every machine
+ * that still has the line would ignore the Settings screen forever, and the
+ * screen would look broken while being right. So a stale env var is noted in
+ * the log and otherwise disregarded; `--queue` typed by a person debugging
+ * this minute still wins, which is what an escape hatch is for.
+ */
+const QUEUE = arg('queue', null);
+const DEVICE_ARG = arg('device', null);
+const OVERRIDE = QUEUE
+    ? { transport: 'cups', target: QUEUE, source: 'command line' }
+    : DEVICE_ARG
+        ? { transport: 'device', target: DEVICE_ARG, source: 'command line' }
+        : null;
+if (!OVERRIDE && (process.env.PRINTER_QUEUE || process.env.PRINTER_DEVICE)) {
+    console.log('note: PRINTER_QUEUE/PRINTER_DEVICE in the environment are ignored — the printer comes from Settings now');
+}
 
 /*
  * Is there a printer on the end of this queue, or only the queue?
@@ -90,12 +121,106 @@ const TRANSPORT = QUEUE ? 'cups' : 'device';
  * `offline-report` on the Alerts line, and from then on we answer honestly and
  * the till goes straight to the browser.
  */
-const queueExists = () => {
-    if (!QUEUE) return false;
-    const r = spawnSync('lpstat', ['-l', '-p', QUEUE], { encoding: 'utf8' });
+const queueExists = (queue) => {
+    if (!queue) return false;
+    const r = spawnSync('lpstat', ['-l', '-p', queue], { encoding: 'utf8' });
     if (r.status !== 0) return false;
     const out = String(r.stdout || '');
     return !/offline/i.test(out) && !/\bdisabled\b/i.test(out);
+};
+
+/*
+ * Every printer this machine can see, and a guess at which one is thermal.
+ *
+ * The guess matters because the whole point is that nobody should have to type
+ * a queue name: a counter has one receipt printer and its queue is called
+ * something like PrinterCMD_ESCPO_POS80_Printer_USB or XP-58 or TM-T20. The
+ * score is deliberately crude and never decides alone — it orders the list the
+ * Settings screen shows, and it only auto-selects when there is exactly one
+ * candidate and nothing has been configured yet.
+ */
+const THERMAL_HINT = /(pos|thermal|receipt|esc.?pos|tm-?t|rp-?\d|xp-?\d|srp|zj-?\d|58|80mm|gprinter|bixolon|epson)/i;
+
+export const discoverPrinters = () => {
+    const found = [];
+
+    const lp = spawnSync('lpstat', ['-p'], { encoding: 'utf8' });
+    for (const line of String(lp.stdout || '').split('\n')) {
+        const m = line.match(/^printer\s+(\S+)/);
+        if (!m) continue;
+        found.push({
+            transport: 'cups',
+            target: m[1],
+            label: m[1].replace(/_/g, ' '),
+            likelyThermal: THERMAL_HINT.test(m[1]),
+            present: !/offline|disabled/i.test(line),
+        });
+    }
+
+    // Bluetooth and USB-serial printers never become queues; they are device
+    // files, and the name is the only clue there is.
+    try {
+        for (const name of readdirSync('/dev')) {
+            if (!/^cu\./.test(name)) continue;
+            if (!/print|thermal|pos|serial|bt/i.test(name)) continue;
+            found.push({
+                transport: 'device',
+                target: `/dev/${name}`,
+                label: name,
+                likelyThermal: true,
+                present: true,
+            });
+        }
+    } catch { /* no /dev worth reading */ }
+
+    return found.sort((a, b) => Number(b.likelyThermal) - Number(a.likelyThermal));
+};
+
+/*
+ * WHICH PRINTER, right now.
+ *
+ * In order: an explicit --queue/--device (debugging, and how the tests drive
+ * this); then the row the Settings screen wrote for this role; then, if
+ * nothing is configured at all, a single obvious thermal printer on this
+ * machine — which is the case on a counter with one printer plugged in, and
+ * the reason a fresh install prints without anybody configuring anything.
+ *
+ * Resolved per print rather than at boot, so changing the printer on Settings
+ * takes effect on the next bill with nothing restarted. The DB read is one
+ * indexed row against a pool the agent already holds open.
+ */
+const DEFAULT_PROFILE = { widthMm: 80, cut: 'full', feedLines: 6, codepage: 0, drawerPin: 2 };
+
+const resolveTarget = async () => {
+    if (OVERRIDE) return { ...DEFAULT_PROFILE, ...OVERRIDE, label: OVERRIDE.target };
+
+    const rows = await q(
+        `SELECT label, transport, target, width_mm, cut_mode, feed_lines, codepage, drawer_pin
+           FROM printers WHERE role = ? AND is_active = 1 LIMIT 1`,
+        [ROLE],
+    );
+    if (rows.length) {
+        const r = rows[0];
+        return {
+            transport: r.transport === 'device' ? 'device' : 'cups',
+            target: r.target,
+            label: r.label,
+            widthMm: Number(r.width_mm) || 80,
+            cut: r.cut_mode,
+            feedLines: Number(r.feed_lines),
+            codepage: Number(r.codepage),
+            drawerPin: Number(r.drawer_pin) || 2,
+            source: 'settings',
+        };
+    }
+
+    // Nothing configured. One obvious thermal printer is not a guess worth
+    // refusing to make; two is, and then the Settings screen has to ask.
+    const candidates = discoverPrinters().filter((p) => p.likelyThermal && p.present);
+    if (candidates.length === 1) {
+        return { ...DEFAULT_PROFILE, ...candidates[0], source: 'found on this machine' };
+    }
+    return null;
 };
 
 const { DB_NAME, DB_USER = 'root', DB_PASSWORD = '', DB_HOST = '127.0.0.1', DB_PORT = '3306', DB_SOCKET } = process.env;
@@ -138,8 +263,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const lpstat = (args) => spawnSync('lpstat', args, { encoding: 'utf8' });
 
 /* Is this job still waiting? Once it prints, CUPS drops it from the list. */
-const jobIsQueued = (jobId) => {
-    const r = lpstat(['-W', 'not-completed', '-o', QUEUE]);
+const jobIsQueued = (jobId, queue) => {
+    const r = lpstat(['-W', 'not-completed', '-o', queue]);
     return r.status === 0 && String(r.stdout || '').includes(jobId);
 };
 
@@ -150,16 +275,16 @@ const jobIsQueued = (jobId) => {
  * "is idle" on the state line; the only place CUPS admits the truth is the
  * Alerts line, as `offline-report` (checked against this printer, 9 Sep 2026).
  */
-const queueTrouble = () => {
-    const out = String(lpstat(['-l', '-p', QUEUE]).stdout || '');
+const queueTrouble = (queue) => {
+    const out = String(lpstat(['-l', '-p', queue]).stdout || '');
     if (/\bdisabled\b/i.test(out)) return 'the print queue is paused';
     if (/offline/i.test(out)) return 'the printer is offline — check its power and cable';
     return 'the printer did not take the job';
 };
 
 /* Hand the bytes to CUPS. Returns the job id it named, or null. */
-const runLp = async (payload) => await new Promise((resolve, reject) => {
-    const child = spawn('lp', ['-d', QUEUE, '-o', 'raw'], { stdio: ['pipe', 'pipe', 'pipe'] });
+const runLp = async (payload, queue) => await new Promise((resolve, reject) => {
+    const child = spawn('lp', ['-d', queue, '-o', 'raw'], { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
     const timer = setTimeout(() => {
@@ -206,24 +331,24 @@ const runLp = async (payload) => await new Promise((resolve, reject) => {
  * sitting in the queue prints hours later, out of nowhere, the moment the
  * printer is next plugged in — by which time it is somebody else's table.
  */
-const spoolToQueue = async (payload) => {
-    const jobId = await runLp(payload);
+const spoolToQueue = async (payload, queue) => {
+    const jobId = await runLp(payload, queue);
     // lp took it but named no job: nothing to wait on, and no evidence to give.
     if (!jobId) return;
 
     const deadline = Date.now() + WRITE_DEADLINE_MS;
     while (Date.now() < deadline) {
         await sleep(POLL_MS);
-        if (!jobIsQueued(jobId)) return;
+        if (!jobIsQueued(jobId, queue)) return;
     }
     spawnSync('cancel', [jobId], { encoding: 'utf8' });
-    const e = new Error(`The bill was not printed: ${queueTrouble()}.`);
+    const e = new Error(`The bill was not printed: ${queueTrouble(queue)}.`);
     e.status = 504;
     throw e;
 };
 
-const writeWithDeadline = async (payload) => {
-    const handle = await open(DEVICE, 'w');
+const writeWithDeadline = async (payload, device) => {
+    const handle = await open(device, 'w');
     let timer;
     try {
         await Promise.race([
@@ -251,6 +376,28 @@ const enqueue = (job) => {
     return run;
 };
 
+/*
+ * Hand the bytes to whatever this role's printer turns out to be. Every path
+ * that prints goes through here, so "which printer" is answered once.
+ */
+const sendBytes = async (payload, printer) => {
+    if (!printer) {
+        const e = new Error('No printer is set up for this terminal — pick one under Settings, Kitchen & Printer');
+        e.status = 503;
+        throw e;
+    }
+    if (printer.transport === 'cups') {
+        await spoolToQueue(payload, printer.target);
+        return;
+    }
+    if (!existsSync(printer.target)) {
+        const e = new Error(`No printer at ${printer.target}`);
+        e.status = 503;
+        throw e;
+    }
+    await writeWithDeadline(payload, printer.target);
+};
+
 const printBill = async (orderRef, { reprint = false } = {}) => {
     const orders = await q(
         'SELECT * FROM orders WHERE id = ? OR order_number = ? LIMIT 1',
@@ -271,21 +418,19 @@ const printBill = async (orderRef, { reprint = false } = {}) => {
         [order.id],
     );
     if (card?.reference) order.card_reference = card.reference;
-    const widthMm = WIDTH || Number(settings.receipt_width_mm) || 58;
+    const printer = await resolveTarget();
+    // The printer's own width wins over the store-wide one: paper is a fact
+    // about the machine, not about the shop.
+    const widthMm = printer?.widthMm || Number(settings.receipt_width_mm) || 58;
     // Customer copy then restaurant copy, each ending in its own cut. An older
     // settings row with no column prints the pair, which is the house practice.
     const copies = settings.receipt_copies == null ? 2 : Number(settings.receipt_copies);
-    const payload = renderReceiptJob({ order, items, settings, widthMm, reprint, copies });
+    const payload = renderReceiptJob({ order, items, settings, widthMm, reprint, copies, profile: printer ?? {} });
 
-    if (TRANSPORT === 'cups') {
-        await spoolToQueue(payload);
-    } else {
-        if (!existsSync(DEVICE)) { const e = new Error(`No printer at ${DEVICE}`); e.status = 503; throw e; }
-        await writeWithDeadline(payload);
-    }
+    await sendBytes(payload, printer);
     return {
         order: order.order_number, total: Number(order.total),
-        widthMm, bytes: payload.length, via: TRANSPORT,
+        widthMm, bytes: payload.length, via: printer.transport, printer: printer.label,
     };
 };
 
@@ -321,7 +466,8 @@ const printKot = async (orderRef, { round = null, reprint = false } = {}) => {
     const categories = await q('SELECT id, name, sort_order FROM categories');
 
     const settings = (await q('SELECT * FROM store_settings LIMIT 1'))[0] || {};
-    const widthMm = WIDTH || Number(settings.receipt_width_mm) || 58;
+    const printer = await resolveTarget();
+    const widthMm = printer?.widthMm || Number(settings.receipt_width_mm) || 58;
 
     // The line shape buildKotSlips expects: `id` is the menu item, and the
     // stored `modifiers`/`variant` spellings are the ones toSlipLine reads.
@@ -345,17 +491,14 @@ const printKot = async (orderRef, { round = null, reprint = false } = {}) => {
         at: new Date(),
         reprint,
     };
-    const payload = slips.map((slip) => renderKotSlip({ slip, meta, widthMm, settings })).join('');
+    const payload = slips
+        .map((slip) => renderKotSlip({ slip, meta, widthMm, settings, profile: printer ?? {} }))
+        .join('');
 
-    if (TRANSPORT === 'cups') {
-        await spoolToQueue(payload);
-    } else {
-        if (!existsSync(DEVICE)) { const e = new Error(`No printer at ${DEVICE}`); e.status = 503; throw e; }
-        await writeWithDeadline(payload);
-    }
+    await sendBytes(payload, printer);
     return {
         order: order.order_number, slips: slips.length, round: meta.roundNo,
-        widthMm, bytes: payload.length, via: TRANSPORT,
+        widthMm, bytes: payload.length, via: printer.transport, printer: printer.label,
     };
 };
 
@@ -402,14 +545,38 @@ const kickDrawer = async (orderRef = null, { force = false } = {}) => {
         }
     }
 
-    const payload = drawerKick(settings.drawer_pin);
-    if (TRANSPORT === 'cups') {
-        await spoolToQueue(payload);
-    } else {
-        if (!existsSync(DEVICE)) { const e = new Error(`No printer at ${DEVICE}`); e.status = 503; throw e; }
-        await writeWithDeadline(payload);
-    }
-    return { opened: true, pin: Number(settings.drawer_pin) || 2, via: TRANSPORT };
+    // The pin belongs to the printer the drawer is plugged into, not to the
+    // shop — a second till with a different printer can be wired differently.
+    const printer = await resolveTarget();
+    const pin = Number(printer?.drawerPin) || Number(settings.drawer_pin) || 2;
+    await sendBytes(drawerKick(pin), printer);
+    return { opened: true, pin, via: printer.transport };
+};
+
+/*
+ * The test page: enough to tell whether this printer is set up right without
+ * ringing a sale. The width line is the one that matters — if the rule runs
+ * off the paper the width is wrong, and if it stops short the paper is wider
+ * than the setting says.
+ */
+const renderTestPage = (printer) => {
+    const p = printer ?? DEFAULT_PROFILE;
+    const cols = p.widthMm >= 80 ? 48 : 32;
+    let out = `${'\x1b'}@`;
+    out += `${'\x1b'}a\x01${'\x1b'}!\x30Test print\n${'\x1b'}!\x00`;
+    out += `${'\x1b'}a\x00`;
+    out += `${'-'.repeat(cols)}\n`;
+    out += `Printer : ${p.label ?? p.target}\n`;
+    out += `Reached : ${p.transport === 'cups' ? 'print queue' : 'device'}\n`;
+    out += `Set by  : ${p.source ?? 'default'}\n`;
+    out += `Width   : ${p.widthMm}mm (${cols} characters)\n`;
+    out += `Cut     : ${p.cut}\n`;
+    out += `Drawer  : pin ${p.drawerPin}\n`;
+    out += `${'-'.repeat(cols)}\n`;
+    out += 'If this line reaches the edge of the paper\nand no further, the width is right.\n';
+    out += `${'\x1b'}d${String.fromCharCode(p.feedLines ?? 6)}`;
+    out += p.cut === 'none' ? '' : `${'\x1d'}V${p.cut === 'partial' ? '\x01' : '\x00'}`;
+    return out;
 };
 
 // Only the till's own pages may ask for a print. A page from anywhere else
@@ -429,10 +596,55 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     try {
         if (url.pathname === '/health') {
+            const printer = await resolveTarget();
+            const present = !printer ? false
+                : printer.transport === 'cups' ? queueExists(printer.target) : existsSync(printer.target);
             res.writeHead(200, headers);
-            return res.end(JSON.stringify(TRANSPORT === 'cups'
-                ? { ok: true, transport: 'cups', queue: QUEUE, present: queueExists() }
-                : { ok: true, transport: 'device', device: DEVICE, present: existsSync(DEVICE) }));
+            return res.end(JSON.stringify({
+                ok: true,
+                role: ROLE,
+                transport: printer?.transport ?? null,
+                // Both spellings, because the till has read `queue`/`device`
+                // since before printers were rows and a stale tab must not
+                // start reading `undefined`.
+                queue: printer?.transport === 'cups' ? printer.target : undefined,
+                device: printer?.transport === 'device' ? printer.target : undefined,
+                printer: printer?.label ?? null,
+                configuredBy: printer?.source ?? null,
+                present,
+            }));
+        }
+
+        /*
+         * Every printer this machine can see. The Settings screen calls this
+         * so the owner picks from a list instead of typing a queue name — the
+         * whole point of the exercise.
+         */
+        if (url.pathname === '/printers') {
+            const printer = await resolveTarget();
+            res.writeHead(200, headers);
+            return res.end(JSON.stringify({
+                role: ROLE,
+                current: printer,
+                available: discoverPrinters(),
+            }));
+        }
+
+        /*
+         * A page of paper that proves it. Prints the profile it printed with,
+         * so an odd result reads as "this is the width and cut it used" rather
+         * than as a mystery.
+         */
+        if (url.pathname === '/test' && req.method === 'POST') {
+            const printer = await resolveTarget();
+            const out = await enqueue(async () => {
+                const payload = renderTestPage(printer);
+                await sendBytes(payload, printer);
+                return { printed: true, printer: printer.label, via: printer.transport };
+            });
+            console.log(`test page on ${out.printer}`);
+            res.writeHead(200, headers);
+            return res.end(JSON.stringify(out));
         }
         if (url.pathname === '/receipt' && req.method === 'POST') {
             const body = await new Promise((resolve, reject) => {
@@ -499,16 +711,32 @@ const server = http.createServer(async (req, res) => {
     }
 });
 
-server.listen(PORT, HOST, () => {
-    const target = TRANSPORT === 'cups' ? `cups queue "${QUEUE}"` : DEVICE;
-    const present = TRANSPORT === 'cups' ? queueExists() : existsSync(DEVICE);
-    console.log(`print agent on http://${HOST}:${PORT}  ->  ${target}`);
-    console.log(present
-        ? 'printer is present'
-        : TRANSPORT === 'cups'
-            ? `WARNING: ${queueTrouble()} — \`lpstat -l -p ${QUEUE}\` says why`
-            : `WARNING: nothing at ${DEVICE} yet`);
+server.listen(PORT, HOST, async () => {
+    console.log(`print agent on http://${HOST}:${PORT}  —  role: ${ROLE}`);
+    try {
+        const printer = await resolveTarget();
+        if (!printer) {
+            const seen = discoverPrinters();
+            console.log('no printer set up for this role yet.');
+            console.log(seen.length
+                ? `this machine can see: ${seen.map((x) => x.target).join(', ')} — pick one under Settings, Kitchen & Printer`
+                : 'and this machine can see none at all — plug one in, or check `lpstat -p`');
+        } else {
+            const present = printer.transport === 'cups'
+                ? queueExists(printer.target) : existsSync(printer.target);
+            console.log(`printing to ${printer.label} (${printer.target}), ${printer.source}`);
+            console.log(present
+                ? `printer is present — ${printer.widthMm}mm, cut ${printer.cut}`
+                : printer.transport === 'cups'
+                    ? `WARNING: ${queueTrouble(printer.target)}`
+                    : `WARNING: nothing at ${printer.target} yet`);
+        }
+    } catch (e) {
+        console.error('could not work out which printer to use:', e?.message ?? e);
+    }
     console.log('  GET  /health');
+    console.log('  GET  /printers');
+    console.log('  POST /test');
     console.log('  POST /receipt   {"orderId": "<id or order number>", "reprint": false}');
     console.log('  POST /kot       {"orderId": "<id or order number>", "round": null, "reprint": false}');
     console.log('  POST /drawer    {"orderId": "<id or order number>", "force": false}');

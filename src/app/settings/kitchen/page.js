@@ -6,6 +6,7 @@ import { getSettings } from '../actions'
 import { updateKitchenSettings } from './actions'
 import { KOT_MODES, DEFAULT_KOT_MODE } from '@/lib/kotPrint'
 import SettingsTabs from '@/components/settings/SettingsTabs'
+import PrinterPanel from '@/components/settings/PrinterPanel'
 import { SettingSwitch, ChoiceGroup } from '@/components/settings/controls'
 
 const PAPER_WIDTHS = [
@@ -184,6 +185,13 @@ export default function KitchenSettingsPage() {
             <SettingsTabs active="kitchen" />
 
             <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
+                {/*
+                  * WHICH printer, before HOW it prints. Everything under this
+                  * is a preference; this is the thing that decides whether
+                  * paper comes out at all, and it used to live in a plist.
+                  */}
+                <PrinterPanel />
+
                 <SettingSwitch
                     label="Print receipt automatically on payment"
                     hint="Paper comes out as the sale is saved, with no extra tap. Turn off if the printer is jammed or out of roll — you can still reprint any order from the Orders screen."
@@ -222,7 +230,7 @@ export default function KitchenSettingsPage() {
                     {settings.drawer_kick !== 'never' && (
                         <ChoiceGroup
                             label="Cash drawer cable pin"
-                            hint="Which pin of the printer's drawer socket carries the pulse. If the printer clicks but nothing opens, it is the other one."
+                            hint="The fallback, for a terminal whose printer has not been set up above — the pin belongs to the printer the drawer is plugged into, so each printer carries its own."
                             options={DRAWER_PIN_OPTIONS}
                             value={Number(settings.drawer_pin)}
                             onSelect={pin => setSettings(prev => ({ ...prev, drawer_pin: pin }))}
@@ -239,7 +247,7 @@ export default function KitchenSettingsPage() {
 
                     <ChoiceGroup
                         label="Receipt paper width"
-                        hint="Measure the roll, not the printer. The bill is laid out at this width, so the preview on screen is exactly what comes out of the machine."
+                        hint="The fallback, for a terminal whose printer has not been set up above — each printer now carries its own width, because paper is a fact about the machine rather than about the shop."
                         options={PAPER_WIDTHS}
                         value={Number(settings.receipt_width_mm)}
                         onSelect={mm => setSettings(prev => ({ ...prev, receipt_width_mm: mm }))}

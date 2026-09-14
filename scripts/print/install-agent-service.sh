@@ -2,9 +2,17 @@
 # Installs the print agent as a launchd job, so the till's printer works after
 # a reboot without anyone remembering to start anything.
 #
-#   bash scripts/print/install-agent-service.sh                    # install + start
-#   bash scripts/print/install-agent-service.sh --uninstall        # remove
-#   QUEUE=Other_Printer WIDTH=58 bash scripts/print/install-agent-service.sh
+#   bash scripts/print/install-agent-service.sh                    # the till
+#   ROLE=kitchen bash scripts/print/install-agent-service.sh        # the KDS machine
+#   bash scripts/print/install-agent-service.sh --uninstall         # remove
+#
+# NO PRINTER NAME HERE, deliberately. The agent is installed with what it is
+# FOR — receipt or kitchen — and looks up which printer to use in the database,
+# where the Settings screen writes it. That is the whole difference between
+# "set this machine up at a shell prompt, again" and "pick it from a list".
+#
+# A machine with one obvious thermal printer and nothing configured yet finds
+# it by itself, so a fresh till prints before anybody opens Settings at all.
 #
 # A LaunchAgent (per-user, ~/Library/LaunchAgents), NOT a LaunchDaemon: the
 # agent talks to CUPS as the logged-in user and binds 127.0.0.1 only, so it
@@ -14,7 +22,8 @@
 # KeepAlive restarts it if it dies mid-service; RunAtLoad starts it at login.
 set -euo pipefail
 
-LABEL="com.flamesbytheindus.printagent"
+# One job per role: installing the kitchen agent must not replace the till's.
+LABEL="com.flamesbytheindus.printagent.${ROLE:-receipt}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -25,8 +34,7 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     exit 0
 fi
 
-QUEUE="${QUEUE:-PrinterCMD_ESCPO_POS80_Printer_USB}"
-WIDTH="${WIDTH:-80}"
+ROLE="${ROLE:-receipt}"
 PORT="${PORT:-9110}"
 DB="${DB_NAME:-flames_pos_dev}"
 NODE="$(command -v node)"
@@ -45,8 +53,7 @@ cat > "$PLIST" <<PLIST_END
     <array>
         <string>$NODE</string>
         <string>$ROOT/scripts/print-agent.mjs</string>
-        <string>--queue</string><string>$QUEUE</string>
-        <string>--width</string><string>$WIDTH</string>
+        <string>--role</string><string>$ROLE</string>
         <string>--port</string><string>$PORT</string>
     </array>
     <key>WorkingDirectory</key><string>$ROOT</string>
@@ -66,6 +73,7 @@ launchctl bootstrap "gui/$(id -u)" "$PLIST"
 launchctl enable "gui/$(id -u)/$LABEL"
 
 echo "installed $LABEL"
-echo "  queue : $QUEUE  (${WIDTH}mm, port $PORT, DB $DB)"
+echo "  role  : $ROLE  (port $PORT, DB $DB)"
+echo "  printer: chosen under Settings, Kitchen & Printer — or found automatically"
 echo "  logs  : $LOGDIR/$LABEL.log"
 echo "  stop  : bash scripts/print/install-agent-service.sh --uninstall"

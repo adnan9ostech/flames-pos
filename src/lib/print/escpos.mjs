@@ -41,6 +41,41 @@ export const CMD = {
 };
 
 /*
+ * WHAT A PROFILE IS FOR.
+ *
+ * "ESC/POS" is a family, not a standard. Cheap 58mm units cut with GS V 1 or
+ * have no cutter at all; the gap between the print head and the cutter differs
+ * by centimetres, which decides how much paper has to be fed before cutting or
+ * the last line stays inside the machine; and some printers render Latin text
+ * as boxes until a code page is set. Those are the differences that decide
+ * whether a given printer "works", so they are data — a row in `printers` —
+ * rather than a code change per machine.
+ *
+ * The defaults are exactly what this file did before profiles existed, so a
+ * caller that passes nothing prints byte for byte what it printed yesterday.
+ */
+export const DEFAULT_PROFILE = Object.freeze({ cut: 'full', feedLines: 6, codepage: 0 });
+
+/* GS V 0 cuts through; GS V 1 leaves a tab; 'none' is a printer with no blade,
+ * which gets paper to tear by hand instead. */
+export const cutFor = (mode) => {
+    if (mode === 'none') return '';
+    return `${GS}V${mode === 'partial' ? '\x01' : '\x00'}`;
+};
+
+/* ESC t n. Zero means "leave it on whatever it booted with", which is right
+ * for almost every printer — this exists for the one that is not. */
+export const codepageFor = (n) => (Number(n) > 0 ? `${ESC}t${String.fromCharCode(Number(n) & 0xff)}` : '');
+
+/* A profile, with every gap filled from the defaults. */
+export const profileOf = (p = {}) => ({
+    cut: ['full', 'partial', 'none'].includes(p.cut) ? p.cut : DEFAULT_PROFILE.cut,
+    feedLines: Number.isFinite(Number(p.feedLines)) && Number(p.feedLines) >= 0
+        ? Math.min(30, Math.round(Number(p.feedLines))) : DEFAULT_PROFILE.feedLines,
+    codepage: Number(p.codepage) || 0,
+});
+
+/*
  * Open the cash drawer (ESC p m t1 t2).
  *
  * The drawer has no cable to the till: it plugs into the PRINTER's RJ11 port,
@@ -236,7 +271,8 @@ export const stampOf = (value) => new Date(value).toLocaleString('en-GB', {
  * The bill. `order` and `items` are rows as stored; `settings` is the
  * store_settings row. Nothing here reads a database or a device.
  */
-export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, reprint = false, copyLabel = null }) => {
+export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, reprint = false, copyLabel = null, profile = {} }) => {
+    const prof = profileOf(profile);
     const cols = columnsFor(widthMm);
     const line = rule(cols);
     const r = (l, right) => `${row(l, right, cols)}\n`;
@@ -245,7 +281,9 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
         ? `${Number((Number(order.tax_rate) * 100).toFixed(2))}%`
         : '';
 
-    let out = CMD.init;
+    // Reset, then the code page if this printer needs one — it has to come
+    // before any text, because ESC @ clears it.
+    let out = CMD.init + codepageFor(prof.codepage);
     // The mark itself when we have it for this paper; the name in big text is
     // the fallback, which is what every bill used to print.
     const logo = renderLogo(widthMm);
@@ -329,7 +367,7 @@ export const renderReceipt = ({ order, items = [], settings = {}, widthMm = 58, 
     // one after the other, and the label sits right by the tear so it is what
     // the cashier sees as they separate them.
     if (copyLabel) out += CMD.bold + `*** ${copyLabel} ***\n` + CMD.unbold;
-    out += CMD.left + feed(TAIL_FEED) + CMD.cut;
+    out += CMD.left + feed(prof.feedLines) + cutFor(prof.cut);
     return out;
 };
 
@@ -356,9 +394,10 @@ export const renderReceiptJob = ({ copies = 2, ...args }) => {
 };
 
 /* One kitchen slip: a station's lines from one round. Never shows a price. */
-export const renderKotSlip = ({ slip, meta = {}, widthMm = 58, settings = {} }) => {
+export const renderKotSlip = ({ slip, meta = {}, widthMm = 58, settings = {}, profile = {} }) => {
+    const prof = profileOf(profile);
     const cols = columnsFor(widthMm);
-    let out = CMD.init + CMD.center + CMD.big + `${slip.categoryName}\n` + CMD.normal;
+    let out = CMD.init + codepageFor(prof.codepage) + CMD.center + CMD.big + `${slip.categoryName}\n` + CMD.normal;
     out += CMD.left + rule(cols) + '\n';
     out += `Order #${meta.orderNumber ?? ''}${meta.table ? `  Table ${meta.table}` : ''}${meta.tokenNo != null ? `  TOKEN ${meta.tokenNo}` : ''}\n`;
     if (meta.waiter) out += `${meta.waiter}\n`;
@@ -382,7 +421,7 @@ export const renderKotSlip = ({ slip, meta = {}, widthMm = 58, settings = {} }) 
         out += CMD.center + qrCode(String(meta.orderNumber)) + '\n' + CMD.left;
     }
 
-    out += feed(TAIL_FEED) + CMD.cut;
+    out += feed(prof.feedLines) + cutFor(prof.cut);
     return out;
 };
 
