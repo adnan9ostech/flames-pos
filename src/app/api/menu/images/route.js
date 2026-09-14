@@ -33,11 +33,21 @@ export async function POST(request) {
          * Either right opens it: what the route does is "store an image this
          * app will serve", and both screens are that.
          */
-        try {
-            await requirePermission('menu');
-        } catch (e) {
-            await requirePermission('settings');
+        /*
+         * Three screens store a photo through here: the Menu (a dish), Brand
+         * (a logo) and Expenses (the bill). Each is held by people with a
+         * different right, and what the route does — "store an image this app
+         * will serve" — is the same act in all three.
+         */
+        let allowed = false;
+        for (const right of ['menu', 'settings', 'expenses']) {
+            try {
+                await requirePermission(right);
+                allowed = true;
+                break;
+            } catch { /* try the next one */ }
         }
+        if (!allowed) await requirePermission('menu');
     } catch (e) {
         return Response.json({ error: e.message }, { status: e.status ?? 401, headers: NO_STORE });
     }

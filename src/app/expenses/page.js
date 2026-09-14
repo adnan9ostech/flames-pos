@@ -9,7 +9,7 @@ import {
 import { useRole } from '@/components/Layout/AppLayout';
 import { formatWeekdayDate } from '@/lib/timeFormat';
 import {
-    Receipt, Loader2, Plus, X, Check, Download, Trash2, Tag,
+    Receipt, Loader2, Plus, X, Check, Download, Trash2, Tag, Paperclip,
     Banknote, Landmark, HandCoins, AlertTriangle, CheckCircle2,
     ClipboardList, ShieldAlert,
 } from 'lucide-react';
@@ -51,6 +51,13 @@ export default function ExpensesPage() {
     const [payee, setPayee] = useState('');
     const [amount, setAmount] = useState('');
     const [paidFrom, setPaidFrom] = useState('drawer');
+    /*
+     * The photo of the bill. Uploaded the moment it is picked rather than on
+     * submit, so a slow phone upload does not hold the voucher hostage — and
+     * so a failed one is a message next to the button instead of a lost entry.
+     */
+    const [attachment, setAttachment] = useState('');
+    const [uploading, setUploading] = useState(false);
     const [payable, setPayable] = useState(false);
     const [saving, setSaving] = useState(false);
     const [note, setNote] = useState({ type: '', text: '' });
@@ -113,6 +120,28 @@ export default function ExpensesPage() {
 
     const activeCategories = categories.filter(c => c.is_active);
 
+    /*
+     * Straight to the same route the Menu and Brand screens use, which stores
+     * what it is given and hands back a path this app serves. No third-party
+     * host, and nothing left on the phone.
+     */
+    const pickBill = async (file) => {
+        if (!file) return;
+        setUploading(true);
+        setNote({ type: '', text: '' });
+        try {
+            const body = new FormData();
+            body.append('file', file, file.name);
+            const res = await fetch('/api/menu/images', { method: 'POST', body });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.url) throw new Error(json.error || 'The photo could not be saved');
+            setAttachment(json.url);
+        } catch (err) {
+            setNote({ type: 'error', text: err.message });
+        }
+        setUploading(false);
+    };
+
     const submit = async (e) => {
         e.preventDefault();
         setNote({ type: '', text: '' });
@@ -125,6 +154,7 @@ export default function ExpensesPage() {
             amount: Number(amount),
             paid_from: paidFrom,
             status: payable ? 'payable' : 'paid',
+            attachment,
         });
         if (res.error) {
             setNote({ type: 'error', text: res.error });
@@ -136,6 +166,7 @@ export default function ExpensesPage() {
             setPayee('');
             setAmount('');
             setPayable(false);
+            setAttachment('');
             await load();
         }
         setSaving(false);
@@ -444,6 +475,42 @@ export default function ExpensesPage() {
                                 </div>
                             )}
 
+                            {/*
+                              * The bill itself. Optional, and said to be: most
+                              * vouchers are a line in a book, and demanding a
+                              * photo for every one of them is how people stop
+                              * entering the small ones at all.
+                              */}
+                            <div className={styles.billRow}>
+                                <label className={styles.billPick}>
+                                    <Paperclip size={15} aria-hidden="true" />
+                                    {uploading ? 'Uploading…' : attachment ? 'Replace photo' : 'Photo of the bill (optional)'}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className={styles.billInput}
+                                        onChange={(e) => pickBill(e.target.files?.[0])}
+                                        disabled={uploading}
+                                    />
+                                </label>
+                                {attachment && (
+                                    <>
+                                        <a href={attachment} target="_blank" rel="noreferrer" className={styles.billThumb}>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={attachment} alt="The bill" />
+                                        </a>
+                                        <button
+                                            type="button"
+                                            className={styles.billDrop}
+                                            onClick={() => setAttachment('')}
+                                        >
+                                            Remove
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+
                             <div className={styles.submitRow}>
                                 <button
                                     type="submit"
@@ -526,7 +593,24 @@ export default function ExpensesPage() {
                                             <tr key={r.id}>
                                                 <td className={styles.cellMuted}>{dayLabel(r.business_date)}</td>
                                                 <td className={styles.cellMuted}>{r.category_name || '—'}</td>
-                                                <td>{r.description}</td>
+                                                <td>
+                                                    {r.description}
+                                                    {/* The bill, one tap away. A paperclip rather
+                                                        than a thumbnail: the column is for reading
+                                                        descriptions, and forty little pictures
+                                                        would bury them. */}
+                                                    {r.attachment && (
+                                                        <a
+                                                            href={r.attachment}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className={styles.billLink}
+                                                            title="The photo of this bill"
+                                                        >
+                                                            <Paperclip size={13} aria-hidden="true" />
+                                                        </a>
+                                                    )}
+                                                </td>
                                                 <td className={styles.cellMuted}>{r.payee || '—'}</td>
                                                 <td className={styles.cellMuted}>
                                                     {PAID_FROM_LABEL[r.paid_from] ?? r.paid_from}

@@ -114,7 +114,7 @@ export async function listExpenses({ from, to, status } = {}) {
 
 export async function addExpense({
     business_date, category_id, description, payee, amount,
-    paid_from = 'drawer', status = 'paid',
+    paid_from = 'drawer', status = 'paid', attachment = '',
 } = {}) {
     try {
         const user = await requirePermission('expenses')
@@ -146,9 +146,12 @@ export async function addExpense({
             const [result] = await conn.query(
                 `INSERT INTO expenses
                    (business_date, category_id, description, payee, amount,
-                    paid_from, status, created_by, paid_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${status === 'paid' ? 'UTC_TIMESTAMP(3)' : 'NULL'})`,
-                [date, categoryId, desc, who, value, paid_from, status, user.role],
+                    paid_from, status, created_by, attachment, paid_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${status === 'paid' ? 'UTC_TIMESTAMP(3)' : 'NULL'})`,
+                // The photo of the bill, if one was taken. A path this app
+                // serves, never a URL somebody typed.
+                [date, categoryId, desc, who, value, paid_from, status, user.role,
+                    String(attachment ?? '').trim().slice(0, 255)],
             )
             await audit(conn, date, 'expense_add', {
                 expense_id: result.insertId,

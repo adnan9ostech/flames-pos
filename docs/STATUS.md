@@ -1162,6 +1162,33 @@ Inventory:
   posting *failed* (an unmapped account, usually) and a button would fail the
   same way until the chart is fixed.
 
+## A photo of the bill, on the expense — 14 Sep 2026
+
+Migration 042. Suite 151/151, build green, driven through the real screen.
+
+An expense is a line that says money left the drawer. The paper that proves it
+— the mandi slip, the diesel receipt, the plumber's chit — lives in a shoebox,
+and by the time anybody asks, it is gone. The form now takes a photo, and on a
+phone `capture="environment"` opens the camera straight from the counter, which
+is the only moment that slip is ever in somebody's hand.
+
+- Uploaded the instant it is picked, not on submit, so a slow phone upload
+  cannot hold the voucher hostage and a failed one is a message beside the
+  button rather than a lost entry.
+- Optional, and said to be: most vouchers are a line in a book, and demanding a
+  photo for every one is how people stop entering the small ones at all.
+- Stored as a path this app serves through the route the Menu and Brand screens
+  already use, which now admits the `expenses` right alongside `menu` and
+  `settings` — it is the same act in all three.
+- The list shows a paperclip beside the description rather than a thumbnail:
+  that column is for reading descriptions, and forty little pictures would bury
+  them.
+
+Verified in a browser: picked a file, watched it preview, recorded the expense,
+and confirmed the row stored the path, that the image fetches, and that the
+paperclip appears. Several documents against one purchase still belong on the
+expense VOUCHER side of the accounts, which is built for that.
+
 ## Branches, part one — 14 Sep 2026
 
 Migration 041. Suite **151/151**, build green. The spine is in; the scoping is
