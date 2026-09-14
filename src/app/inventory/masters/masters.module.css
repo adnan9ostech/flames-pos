@@ -358,3 +358,12 @@
  */
 .table th.alignRight, .table th.num { text-align: right }
 .table th.alignCenter { text-align: center }
+
+/* A link that reads as one inside a table cell or a paragraph. */
+.inlineLink {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.inlineLink:hover { text-decoration: underline; }

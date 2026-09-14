@@ -1,11 +1,12 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import styles from '../menu.module.css'
 import local from './recipes.module.css'
 import { getRecipeBoard, getRecipe, saveRecipe, copyRecipe } from './actions'
+import { saveIngredient } from '../ingredients/actions'
 import { usePermissions } from '@/components/Layout/AppLayout'
 import { formatRupees } from '@/lib/money'
 import {
@@ -14,6 +15,8 @@ import {
 } from 'lucide-react'
 
 const BASE = ''
+// The picker's last option: not an id, so it can never be saved as one.
+const NEW_ING = '__new__'
 const BASE_LABEL = 'Base recipe'
 const labelOf = (variant) => variant || BASE_LABEL
 
@@ -74,6 +77,20 @@ function RecipesScreen() {
     const [loadingRecipe, setLoadingRecipe] = useState(false)
     const [saving, setSaving] = useState(false)
     const [copyOpen, setCopyOpen] = useState(false)
+    /*
+     * Adding an ingredient WITHOUT leaving the recipe.
+     *
+     * Building this menu's recipes means meeting an ingredient nobody has
+     * typed yet roughly once a dish. The old answer was: leave, go to
+     * Ingredients, add it, come back, find the dish again, find the line
+     * again. A hundred and twenty-five times.
+     *
+     * `newFor` holds the key of the line that asked, so the created
+     * ingredient drops straight into it.
+     */
+    const [newFor, setNewFor] = useState(null)
+    const [newIng, setNewIng] = useState({ name: '', unit_id: '', avg_cost: '' })
+    const [adding, setAdding] = useState(false)
     const [message, setMessage] = useState({ type: '', text: '' })
 
     const deepLinkDone = useRef(false)
@@ -246,6 +263,43 @@ function RecipesScreen() {
 
     const addLine = (variant) => setLines(variant, (rows) => [...rows, newLine()])
     const removeLine = (variant, key) => setLines(variant, (rows) => rows.filter((l) => l.key !== key))
+
+    /*
+     * Create the ingredient the recipe just asked for, and drop it into the
+     * line that asked. The cost is optional here on purpose: receiving sets
+     * the real one, and stopping to ask "what does a kilo of this cost" is
+     * exactly the interruption this is meant to remove.
+     */
+    const createIngredient = async (variant, lineKey) => {
+        setAdding(true)
+        const res = await saveIngredient({
+            name: newIng.name,
+            unit_id: newIng.unit_id,
+            avg_cost: newIng.avg_cost === '' ? 0 : newIng.avg_cost,
+            reorder_level: 0,
+            is_active: true,
+        })
+        setAdding(false)
+        if (res.error) { setMessage({ type: 'error', text: res.error }); return }
+
+        const row = res.data
+        const added = {
+            id: row.id,
+            name: row.name,
+            category: row.category ?? null,
+            avg_cost: Number(row.avg_cost) || 0,
+            unit_abbrev: row.unit_abbrev,
+        }
+        // Into the board's own list, sorted the way the board sorts, so the
+        // dropdown is not suddenly in a different order from the screen.
+        setBoard((prev) => (prev ? {
+            ...prev,
+            ingredients: [...prev.ingredients, added].sort((a, b) => a.name.localeCompare(b.name)),
+        } : prev))
+        setLineField(variant, lineKey, 'inventory_item_id', String(row.id))
+        setNewFor(null)
+        setNewIng({ name: '', unit_id: '', avg_cost: '' })
+    }
 
     const submit = async () => {
         if (!selected) return
@@ -678,15 +732,22 @@ function RecipesScreen() {
                                             const lineCost = ing && Number.isFinite(qty) && qty > 0
                                                 ? qty * ing.avg_cost : 0
                                             return (
-                                                <tr key={line.key}>
+                                              <Fragment key={line.key}>
+                                                <tr>
                                                     <td>
                                                         <select
                                                             className={`${styles.input} ${styles.inputSm}`}
                                                             value={line.inventory_item_id}
-                                                            onChange={(e) => setLineField(
-                                                                activeVariant, line.key,
-                                                                'inventory_item_id', e.target.value,
-                                                            )}
+                                                            onChange={(e) => {
+                                                                if (e.target.value === NEW_ING) {
+                                                                    setNewFor(line.key)
+                                                                    return
+                                                                }
+                                                                setLineField(
+                                                                    activeVariant, line.key,
+                                                                    'inventory_item_id', e.target.value,
+                                                                )
+                                                            }}
                                                             disabled={!canEdit}
                                                             aria-label="Ingredient"
                                                         >
@@ -696,6 +757,7 @@ function RecipesScreen() {
                                                                     {i.name} ({i.unit_abbrev})
                                                                 </option>
                                                             ))}
+                                                            <option value={NEW_ING}>＋ New ingredient…</option>
                                                         </select>
                                                     </td>
                                                     <td className={local.qtyCell}>
@@ -734,6 +796,65 @@ function RecipesScreen() {
                                                         </td>
                                                     )}
                                                 </tr>
+
+                                                {/*
+                                                  * The new ingredient, right where it was
+                                                  * missed. Name and unit only — the rate is
+                                                  * what receiving sets, and stopping to ask
+                                                  * for it is the interruption this row exists
+                                                  * to remove.
+                                                  */}
+                                                {newFor === line.key && (
+                                                    <tr className={local.newIngRow}>
+                                                        <td colSpan={canEdit ? 6 : 5}>
+                                                            <div className={local.newIngForm}>
+                                                                <input
+                                                                    className={`${styles.input} ${styles.inputSm}`}
+                                                                    placeholder="Ingredient name"
+                                                                    value={newIng.name}
+                                                                    onChange={(e) => setNewIng((f) => ({ ...f, name: e.target.value }))}
+                                                                    autoFocus
+                                                                />
+                                                                <select
+                                                                    className={`${styles.input} ${styles.inputSm}`}
+                                                                    value={newIng.unit_id}
+                                                                    onChange={(e) => setNewIng((f) => ({ ...f, unit_id: e.target.value }))}
+                                                                    aria-label="Unit"
+                                                                >
+                                                                    <option value="">Unit…</option>
+                                                                    {(board.units ?? []).map((u) => (
+                                                                        <option key={u.id} value={u.id}>{u.name} ({u.abbrev})</option>
+                                                                    ))}
+                                                                </select>
+                                                                <input
+                                                                    className={`${styles.input} ${styles.inputSm} ${styles.inputNum}`}
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="any"
+                                                                    placeholder="Rate (optional)"
+                                                                    value={newIng.avg_cost}
+                                                                    onChange={(e) => setNewIng((f) => ({ ...f, avg_cost: e.target.value }))}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.primaryBtn}
+                                                                    disabled={adding || !newIng.name.trim() || !newIng.unit_id}
+                                                                    onClick={() => createIngredient(activeVariant, line.key)}
+                                                                >
+                                                                    {adding ? 'Adding…' : 'Add & use'}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.secondaryBtn}
+                                                                    onClick={() => setNewFor(null)}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                              </Fragment>
                                             )
                                         })}
                                         {activeLines.length === 0 && (

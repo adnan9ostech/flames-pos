@@ -42,3 +42,37 @@
 }
 
 .linkBtn:disabled { opacity: var(--disabled-opacity); cursor: not-allowed }
+
+/*
+ * The fields that are real but rarely touched. Open by themselves when the
+ * ingredient in hand actually uses one of them — an edit must never hide a
+ * value that is already set.
+ */
+.moreFields {
+    margin: 0.25rem 0 0.9rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.65rem;
+}
+
+.moreFields > summary {
+    cursor: pointer;
+    color: var(--muted-foreground);
+    font-size: 0.82rem;
+    font-weight: 600;
+    list-style: none;
+    padding: 0.2rem 0;
+}
+
+.moreFields > summary::-webkit-details-marker { display: none; }
+.moreFields > summary::before { content: '▸ '; }
+.moreFields[open] > summary::before { content: '▾ '; }
+.moreFields > summary:hover { color: var(--foreground); }
+
+/* A link inside a row's subtitle: readable as a link without shouting. */
+.rowLink {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.rowLink:hover { text-decoration: underline; }

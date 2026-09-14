@@ -121,3 +121,24 @@
 
 /* A quantity field never needs the width a dish name does. */
 .qtyCell { width: 7rem }
+
+/*
+ * The inline "new ingredient" row. It sits inside the recipe table because
+ * that is where the gap was noticed — leaving the screen to fill it was the
+ * single most expensive thing about writing a hundred and twenty-five
+ * recipes.
+ */
+.newIngRow td { background: var(--primary-soft); }
+
+.newIngForm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0;
+}
+
+.newIngForm input,
+.newIngForm select { min-width: 8rem; }
+
+.newIngForm input:first-child { flex: 1 1 12rem; }

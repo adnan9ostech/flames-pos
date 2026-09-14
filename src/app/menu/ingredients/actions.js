@@ -73,6 +73,7 @@ const toRow = (r) => ({
     // that the next goods-in will overwrite.
     has_receipts: Boolean(r.has_receipts),
     recipe_count: Number(r.recipe_count ?? 0),
+    made_in_house: Boolean(r.made_in_house),
 })
 
 /*
@@ -90,7 +91,12 @@ export async function listIngredients() {
                         COALESCE(q.qty, 0) AS on_hand,
                         EXISTS (SELECT 1 FROM stock_receiving_lines rl
                                  WHERE rl.inventory_item_id = i.id) AS has_receipts,
-                        COALESCE(rc.n, 0) AS recipe_count
+                        COALESCE(rc.n, 0) AS recipe_count,
+                        -- Whether this ingredient is MADE rather than bought.
+                        -- A sub-recipe is not a separate kind of thing, it is
+                        -- a fact about an ingredient, so the list says so.
+                        EXISTS (SELECT 1 FROM sub_recipe_lines sr
+                                 WHERE sr.parent_item_id = i.id) AS made_in_house
                    FROM inventory_items i
                    JOIN units u ON u.id = i.unit_id
                    LEFT JOIN (SELECT inventory_item_id, SUM(delta) AS qty

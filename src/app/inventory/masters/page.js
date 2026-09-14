@@ -265,13 +265,17 @@ export default function MastersPage() {
                                 {item.is_active ? <Check size={15} className={styles.activeMark} /> : '—'}
                             </td>
                             <td className={styles.alignRight}>
+                                {/* Edited where it can be edited whole — name,
+                                    unit, rate, reorder level and category on
+                                    one form, rather than half of them here. */}
                                 {canEdit && (
-                                    <EditBtn onClick={() => openForm(item.id, {
-                                        name: item.name,
-                                        unit_id: String(item.unit_id),
-                                        reorder_level: item.reorder_level > 0 ? String(item.reorder_level) : '',
-                                        is_active: item.is_active,
-                                    })} />
+                                    <Link
+                                        href="/menu/ingredients"
+                                        className={styles.inlineLink}
+                                        title="Edit this ingredient in Menu → Ingredients"
+                                    >
+                                        Edit
+                                    </Link>
                                 )}
                             </td>
                         </tr>
@@ -546,7 +550,23 @@ export default function MastersPage() {
                     ))}
                 </div>
 
-                {canEdit && !editing && (
+                {/*
+                  * ONE DOOR for an ingredient, and this is not it.
+                  *
+                  * This tab and Menu → Ingredients both wrote inventory_items,
+                  * but only Ingredients can set a rate — so an ingredient born
+                  * here was silently uncosted, and every recipe using it
+                  * priced at zero. That is not a duplicate screen, it is a
+                  * trap. Items stays as the stock view it is good at (on hand,
+                  * reorder, what it costs) and sends the creating and the
+                  * editing to the one screen that does the whole job.
+                  */}
+                {tab === 'items' ? (
+                    <Link href="/menu/ingredients" className={styles.addBtn}>
+                        <Plus size={15} aria-hidden="true" />
+                        Add or edit in Ingredients
+                    </Link>
+                ) : canEdit && !editing && (
                     <button
                         type="button"
                         className={styles.addBtn}
@@ -585,8 +605,11 @@ function PageHeader() {
                 </Link>
                 <h1 className={styles.title}>Masters</h1>
                 <p className={styles.subtitle}>
-                    Stock items, units, suppliers and warehouses. Average cost is set by
-                    receivings, never by hand.
+                    Units, suppliers and warehouses — and a read-only look at what is on the
+                    shelf. Ingredients themselves are added and priced in{' '}
+                    <Link href="/menu/ingredients" className={styles.inlineLink}>Menu → Ingredients</Link>,
+                    which is the only screen that can set a rate. Average cost then follows
+                    receivings, never a hand edit.
                 </p>
             </div>
         </div>

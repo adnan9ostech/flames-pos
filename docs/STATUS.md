@@ -1162,6 +1162,41 @@ Inventory:
   posting *failed* (an unmapped account, usually) and a button would fail the
   same way until the chart is fixed.
 
+## Ingredients and recipes, made simpler — 14 Sep 2026
+
+Suite 149/149, build green, the whole flow driven in a real browser.
+
+The owner's words were that this side felt heavy. Four things were making it so,
+and none of them was the idea — it was the number of screens the idea was spread
+across:
+
+- **You could not add an ingredient while writing a recipe.** Meeting one the
+  menu had never named happens roughly once a dish, and the answer was: leave,
+  go to Ingredients, add it, come back, find the dish, find the line. A hundred
+  and twenty-five times. The picker now ends in **＋ New ingredient…**, which
+  opens a three-field row in place and drops the result straight into the line
+  that asked. The rate is optional there on purpose — receiving sets the real
+  one, and stopping to ask "what does a kilo cost" is the interruption this
+  removes.
+- **Two doors made an ingredient, and one of them was a trap.** Inventory →
+  Masters → Items wrote the same table but could not set a rate, so anything
+  born there was silently uncosted and every recipe using it priced at zero.
+  Items is now the stock view it was always good at — on hand, reorder, cost —
+  and both its Add and its per-row Edit point at Menu → Ingredients, the one
+  screen that does the whole job.
+- **The ingredient form asked six things.** An ingredient is a name, a unit and
+  a rate; category, reorder level and the active switch are real but rarely
+  touched, so they fold away behind **More** — and open by themselves when the
+  ingredient in hand actually uses one, because an edit must never hide a value
+  that is already set.
+- **Sub-recipes read as a third concept.** They are not: "this one is made here
+  rather than bought" is a fact about an ingredient. The Ingredients list now
+  says which ones are, and links straight into that ingredient's sub-recipe —
+  `/menu/sub-recipes?item=<id>` opens it whether one exists yet or not.
+
+Nothing was removed and no verb changed: the same screens, the same data, fewer
+trips between them.
+
 ## Channels, order management, PDF and a rail you can navigate — 11 Sep 2026
 
 Migration 037. Suite **149/149**, build green, every touched screen rendered

@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Layers, Plus, Trash2, Loader2, AlertTriangle, CheckCircle2, Save } from 'lucide-react'
 import { getSubRecipeBoard, saveSubRecipe } from './actions'
 import { formatRupees } from '@/lib/money'
@@ -15,16 +16,49 @@ import { formatRupees } from '@/lib/money'
 const money = (n) => `Rs. ${formatRupees(n, 2)}`
 const newLine = () => ({ key: Math.random().toString(36).slice(2), itemId: '', qty: '' })
 
+/*
+ * ?item=<id> opens straight into that ingredient's recipe. The Ingredients
+ * screen links here with it, because "this one is made here rather than
+ * bought" is a fact about an ingredient — not a third screen to remember.
+ */
 export default function SubRecipesPage() {
+    return (
+        <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+            <SubRecipesScreen />
+        </Suspense>
+    )
+}
+
+function SubRecipesScreen() {
     const [board, setBoard] = useState(null)
     const [editing, setEditing] = useState(null)
     const [message, setMessage] = useState({ type: '', text: '' })
     const [busy, setBusy] = useState(false)
+    const deepLink = useSearchParams().get('item')
+
+    /*
+     * Opened from an ingredient's row: straight into that ingredient's recipe,
+     * whether it has one yet or not. Applied on the FIRST load only — every
+     * later reload (after a save) must not reopen the editor over whatever the
+     * person is doing now.
+     */
+    const linked = useRef(false)
 
     const load = useCallback(() => getSubRecipeBoard().then((res) => {
-        if (res.error) setMessage({ type: 'error', text: res.error })
-        else setBoard(res.data)
-    }), [])
+        if (res.error) { setMessage({ type: 'error', text: res.error }); return }
+        setBoard(res.data)
+        if (!deepLink || linked.current) return
+        linked.current = true
+        const existing = res.data.subRecipes.find((sub) => String(sub.id) === String(deepLink))
+        setEditing(existing ? {
+            parentId: String(existing.id),
+            lines: existing.lines.map((l) => ({
+                key: String(l.component_item_id),
+                itemId: String(l.component_item_id),
+                qty: String(l.qty),
+            })),
+        } : { parentId: String(deepLink), lines: [newLine()] })
+    }), [deepLink])
 
     useEffect(() => { load() }, [load])
 

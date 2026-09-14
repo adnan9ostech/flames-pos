@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import styles from '../menu.module.css'
 import local from './ingredients.module.css'
 import { listIngredients, saveIngredient, toggleIngredient, deleteIngredient } from './actions'
@@ -353,6 +354,20 @@ export default function IngredientsPage() {
                                             {item.category || 'Ungrouped'}
                                             {item.recipe_count > 0
                                                 && ` · in ${item.recipe_count} recipe ${item.recipe_count === 1 ? 'line' : 'lines'}`}
+                                            {/*
+                                              * A sub-recipe is not a separate kind of thing —
+                                              * it is a fact about an ingredient: this one is
+                                              * made here rather than bought. So it is said and
+                                              * edited from the ingredient's own row, not found
+                                              * by remembering a third screen exists.
+                                              */}
+                                            {' · '}
+                                            <Link
+                                                href={`/menu/sub-recipes?item=${item.id}`}
+                                                className={local.rowLink}
+                                            >
+                                                {item.made_in_house ? 'made in-house' : 'make in-house'}
+                                            </Link>
                                         </span>
                                     </td>
                                     <td className={styles.cellMuted}>{item.unit_abbrev}</td>
@@ -438,23 +453,18 @@ export default function IngredientsPage() {
                                 />
                             </div>
 
+                            {/*
+                              * THREE FIELDS, then everything else folded away.
+                              *
+                              * An ingredient is a name, what it is measured in,
+                              * and what it costs. Category, reorder level and
+                              * the active switch are real and occasionally
+                              * wanted, but asking for all six every time made
+                              * adding chicken feel like filing a form — and
+                              * this menu needs a hundred and sixty-seven of
+                              * them.
+                              */}
                             <div className={styles.fieldRow}>
-                                <div className={styles.field}>
-                                    <label className={styles.fieldLabel} htmlFor="ing_category">Category</label>
-                                    <input
-                                        id="ing_category"
-                                        className={styles.input}
-                                        value={form.category}
-                                        onChange={(e) => setField('category', e.target.value)}
-                                        list="ing_categories"
-                                        maxLength={64}
-                                        autoComplete="off"
-                                        placeholder="Meat"
-                                    />
-                                    <datalist id="ing_categories">
-                                        {categories.map((c) => <option key={c} value={c} />)}
-                                    </datalist>
-                                </div>
                                 <div className={styles.field}>
                                     <label className={`${styles.fieldLabel} ${styles.required}`} htmlFor="ing_unit">
                                         Unit
@@ -471,9 +481,6 @@ export default function IngredientsPage() {
                                         ))}
                                     </select>
                                 </div>
-                            </div>
-
-                            <div className={styles.fieldRow}>
                                 <div className={styles.field}>
                                     {/* No asterisk: blank is a legal answer and
                                         means "not priced yet", which the list
@@ -493,32 +500,55 @@ export default function IngredientsPage() {
                                         placeholder="0"
                                     />
                                 </div>
-                                <div className={styles.field}>
-                                    <label className={styles.fieldLabel} htmlFor="ing_reorder">
-                                        Reorder at ({unitOf(form.unit_id)})
-                                    </label>
-                                    <input
-                                        id="ing_reorder"
-                                        className={`${styles.input} ${styles.inputNum}`}
-                                        type="number"
-                                        min="0"
-                                        step="any"
-                                        inputMode="decimal"
-                                        value={form.reorder_level}
-                                        onChange={(e) => setField('reorder_level', e.target.value)}
-                                        placeholder="0"
-                                    />
-                                </div>
                             </div>
 
-                            <label className={styles.checkLine}>
-                                <input
-                                    type="checkbox"
-                                    checked={form.is_active}
-                                    onChange={(e) => setField('is_active', e.target.checked)}
-                                />
-                                Active — offered when building a recipe
-                            </label>
+                            <details className={local.moreFields} open={Boolean(form.category || form.reorder_level || !form.is_active)}>
+                                <summary>More — category, reorder level, active</summary>
+
+                                <div className={styles.fieldRow}>
+                                    <div className={styles.field}>
+                                        <label className={styles.fieldLabel} htmlFor="ing_category">Category</label>
+                                        <input
+                                            id="ing_category"
+                                            className={styles.input}
+                                            value={form.category}
+                                            onChange={(e) => setField('category', e.target.value)}
+                                            list="ing_categories"
+                                            maxLength={64}
+                                            autoComplete="off"
+                                            placeholder="Meat"
+                                        />
+                                        <datalist id="ing_categories">
+                                            {categories.map((c) => <option key={c} value={c} />)}
+                                        </datalist>
+                                    </div>
+                                    <div className={styles.field}>
+                                        <label className={styles.fieldLabel} htmlFor="ing_reorder">
+                                            Reorder at ({unitOf(form.unit_id)})
+                                        </label>
+                                        <input
+                                            id="ing_reorder"
+                                            className={`${styles.input} ${styles.inputNum}`}
+                                            type="number"
+                                            min="0"
+                                            step="any"
+                                            inputMode="decimal"
+                                            value={form.reorder_level}
+                                            onChange={(e) => setField('reorder_level', e.target.value)}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+
+                                <label className={styles.checkLine}>
+                                    <input
+                                        type="checkbox"
+                                        checked={form.is_active}
+                                        onChange={(e) => setField('is_active', e.target.checked)}
+                                    />
+                                    Active — offered when building a recipe
+                                </label>
+                            </details>
 
                             {override && (
                                 <div className={`${styles.note} ${styles.noteWarn}`}>

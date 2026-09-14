@@ -86,7 +86,7 @@ const variantCost = async (conn, menuItemId, variantName) => {
 export async function getRecipeBoard() {
     try {
         await requireUser()
-        const [dishes, costs, ingredients] = await Promise.all([
+        const [dishes, costs, ingredients, units] = await Promise.all([
             query(
                 `SELECT m.id, m.name, m.price, m.variants,
                         c.name AS category_name, c.sort_order AS category_sort
@@ -103,6 +103,11 @@ export async function getRecipeBoard() {
                   WHERE i.is_active = 1
                   ORDER BY i.name`,
             ),
+            // The units too, so an ingredient nobody thought of yet can be
+            // added from the recipe being written — the trip out to the
+            // Ingredients screen and back was the most expensive part of
+            // building a menu's recipes, 125 times over.
+            query('SELECT id, name, abbrev FROM units ORDER BY id'),
         ])
 
         const byDish = new Map()
@@ -127,6 +132,7 @@ export async function getRecipeBoard() {
                     recipes: byDish.get(d.id) ?? [],
                 })),
                 ingredients: ingredients.map((i) => ({ ...i, avg_cost: Number(i.avg_cost) })),
+                units,
             },
         }
     } catch (e) {
