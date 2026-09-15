@@ -2,6 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 import { businessDate, requireDate, requireId } from '@/lib/accounts/helpers.mjs'
 import {
     trialBalance, incomeStatement, balanceSheet, cashAccounts, cashRegister,
@@ -36,9 +37,12 @@ const cleanRange = (input) => {
 
 export async function getTrialBalance(input) {
     try {
-        await requirePermission('accounts')
+        const user = await requirePermission('accounts')
+        // The outlet these books belong to. The ledger is written per branch;
+        // reading it consolidated showed neither outlet's books, only their sum.
+        const branchId = await currentBranchId(user)
         const range = cleanRange(input)
-        const [data, m] = await Promise.all([trialBalance(range), meta()])
+        const [data, m] = await Promise.all([trialBalance({ ...range, branchId }), meta()])
         return { data: { ...data, meta: m } }
     } catch (e) {
         return { error: e.message }
@@ -47,9 +51,12 @@ export async function getTrialBalance(input) {
 
 export async function getIncomeStatement(input) {
     try {
-        await requirePermission('accounts')
+        const user = await requirePermission('accounts')
+        // The outlet these books belong to. The ledger is written per branch;
+        // reading it consolidated showed neither outlet's books, only their sum.
+        const branchId = await currentBranchId(user)
         const range = cleanRange(input)
-        const [data, m] = await Promise.all([incomeStatement(range), meta()])
+        const [data, m] = await Promise.all([incomeStatement({ ...range, branchId }), meta()])
         return { data: { ...data, meta: m } }
     } catch (e) {
         return { error: e.message }
@@ -58,11 +65,14 @@ export async function getIncomeStatement(input) {
 
 export async function getBalanceSheet(input) {
     try {
-        await requirePermission('accounts')
+        const user = await requirePermission('accounts')
+        // The outlet these books belong to. The ledger is written per branch;
+        // reading it consolidated showed neither outlet's books, only their sum.
+        const branchId = await currentBranchId(user)
         const m = await meta()
         // No date means the open business day — the position as of now.
         const asAt = input?.asAt ? requireDate(input.asAt, 'as-at date') : m.businessDate
-        const data = await balanceSheet({ asAt })
+        const data = await balanceSheet({ asAt, branchId })
         return { data: { ...data, meta: m } }
     } catch (e) {
         return { error: e.message }
@@ -71,7 +81,10 @@ export async function getBalanceSheet(input) {
 
 export async function getCashRegister(input) {
     try {
-        await requirePermission('accounts')
+        const user = await requirePermission('accounts')
+        // The outlet these books belong to. The ledger is written per branch;
+        // reading it consolidated showed neither outlet's books, only their sum.
+        const branchId = await currentBranchId(user)
         const range = cleanRange(input)
         let accountId = input?.accountId ? requireId(input.accountId, 'account') : null
         const offered = await cashAccounts()
@@ -82,7 +95,7 @@ export async function getCashRegister(input) {
         if (!offered.accounts.some((a) => a.id === accountId)) {
             throw new Error('That account is not a cash or bank account')
         }
-        const [data, m] = await Promise.all([cashRegister({ accountId, ...range }), meta()])
+        const [data, m] = await Promise.all([cashRegister({ accountId, ...range, branchId }), meta()])
         return { data: { ...data, accounts: offered.accounts, meta: m } }
     } catch (e) {
         return { error: e.message }

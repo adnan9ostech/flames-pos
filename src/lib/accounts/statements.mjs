@@ -49,7 +49,23 @@ const accountShape = (r) => ({
  * so the Trial Balance can list the whole chart and the page can decide
  * whether to hide the quiet rows.
  */
-const accountBalances = async ({ from, to }) => {
+/*
+ * THE BRANCH IS A PARAMETER, not a default.
+ *
+ * gl_journals carries branch_id and numbers vouchers per branch — the counter
+ * is keyed (branch, day, type) and a UNIQUE KEY covers (branch_id,
+ * voucher_no) — so the ledger is WRITTEN per outlet. It was READ consolidated:
+ * the trial balance, the income statement, the balance sheet and the cash
+ * register each summed every outlet's journals with no filter and no selector,
+ * so a two-outlet company could see neither outlet's books, only their sum,
+ * while the screen named one of them.
+ *
+ * Passed in rather than resolved here because this module is plain Node —
+ * reached by the suite and by the export route — and working the branch out
+ * needs a request. The placeholder sits in the JOIN, so its parameter goes at
+ * the position the join occupies, not on the end.
+ */
+const accountBalances = async ({ from, to, branchId }) => {
     const rows = await query(
         `SELECT a.id, a.account_number, a.name, a.account_group, a.category, a.is_active,
                 COALESCE(SUM(CASE WHEN j.business_date < ? THEN l.debit - l.credit END), 0) AS opening,
@@ -57,11 +73,12 @@ const accountBalances = async ({ from, to }) => {
                 COALESCE(SUM(CASE WHEN j.business_date >= ? AND j.business_date <= ? THEN l.credit END), 0) AS credit
            FROM accounts a
            LEFT JOIN (gl_journal_lines l
-                      JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted')
+                      JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted'
+                                        AND j.branch_id = ?)
              ON l.account_id = a.id
           GROUP BY a.id, a.account_number, a.name, a.account_group, a.category, a.is_active
           ORDER BY a.account_number`,
-        [from, from, to, from, to],
+        [from, from, to, from, to, branchId],
     );
     return rows.map((r) => {
         const opening = money(r.opening);
@@ -81,17 +98,18 @@ const accountBalances = async ({ from, to }) => {
  * Closing balances as at a day, debit-positive. The Balance Sheet's query,
  * and the same shape accountBalances gives for `closing`.
  */
-const balancesAsAt = async (asAt) => {
+const balancesAsAt = async (asAt, branchId) => {
     const rows = await query(
         `SELECT a.id, a.account_number, a.name, a.account_group, a.category, a.is_active,
                 COALESCE(SUM(CASE WHEN j.business_date <= ? THEN l.debit - l.credit END), 0) AS balance
            FROM accounts a
            LEFT JOIN (gl_journal_lines l
-                      JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted')
+                      JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted'
+                                        AND j.branch_id = ?)
              ON l.account_id = a.id
           GROUP BY a.id, a.account_number, a.name, a.account_group, a.category, a.is_active
           ORDER BY a.account_number`,
-        [asAt],
+        [asAt, branchId],
     );
     return rows.map((r) => ({ ...accountShape(r), balance: money(r.balance) }));
 };
@@ -102,8 +120,8 @@ const balancesAsAt = async (asAt) => {
  * movement totals must be equal — every journal is balanced by CHECK
  * constraint — and so must the two closing sides. The page states which.
  */
-export const trialBalance = async ({ from, to }) => {
-    const accounts = await accountBalances({ from, to });
+export const trialBalance = async ({ from, to, branchId }) => {
+    const accounts = await accountBalances({ from, to, branchId });
     const totals = accounts.reduce((t, a) => ({
         opening: money(t.opening + a.opening),
         debit: money(t.debit + a.debit),
@@ -133,8 +151,8 @@ export const trialBalance = async ({ from, to }) => {
  * so the revenue sub-total is net sales. Accounts with no movement are
  * left out; a statement full of zero lines says nothing.
  */
-export const incomeStatement = async ({ from, to }) => {
-    const accounts = await accountBalances({ from, to });
+export const incomeStatement = async ({ from, to, branchId }) => {
+    const accounts = await accountBalances({ from, to, branchId });
     const active = accounts.filter((a) => a.debit !== 0 || a.credit !== 0);
     const isCat = (a, cat) => String(a.category).trim().toUpperCase() === cat;
 
@@ -210,9 +228,9 @@ const byCategory = (lines) => {
  * P&L account, its net is shown as a second line rather than silently
  * folded in, so the label on the first stays true.
  */
-export const balanceSheet = async ({ asAt }) => {
+export const balanceSheet = async ({ asAt, branchId }) => {
     const [balances, settingsRows] = await Promise.all([
-        balancesAsAt(asAt),
+        balancesAsAt(asAt, branchId),
         query('SELECT start_date FROM gl_settings WHERE id = 1'),
     ]);
     const startDate = settingsRows[0] ? ymd(settingsRows[0].start_date) : null;
@@ -238,10 +256,11 @@ export const balanceSheet = async ({ asAt }) => {
             `SELECT COALESCE(SUM(l.credit - l.debit), 0) AS net
                FROM gl_journal_lines l
                JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted'
+                                 AND j.branch_id = ?
                JOIN accounts a ON a.id = l.account_id
               WHERE a.account_group IN ('income', 'expense')
                 AND j.business_date < ? AND j.business_date <= ?`,
-            [startDate, asAt],
+            [branchId, startDate, asAt],
         );
         priorEarnings = money(before[0]?.net);
         earningsSinceStart = money(plTotal - priorEarnings);
@@ -317,34 +336,37 @@ export const cashAccounts = async () => {
  * shift is arithmetic — + INTERVAL 5 HOUR, never CONVERT_TZ, which needs
  * the tz tables the shared host may not have.
  */
-export const cashRegister = async ({ accountId, from, to }) => {
+export const cashRegister = async ({ accountId, from, to, branchId }) => {
     const [accountRows, openingRows, lines, hours] = await Promise.all([
         query('SELECT id, account_number, name, account_group, category, is_active FROM accounts WHERE id = ?', [accountId]),
         query(
             `SELECT COALESCE(SUM(l.debit - l.credit), 0) AS opening
                FROM gl_journal_lines l
                JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted'
+                                 AND j.branch_id = ?
               WHERE l.account_id = ? AND j.business_date < ?`,
-            [accountId, from],
+            [branchId, accountId, from],
         ),
         query(
             `SELECT j.id AS journal_id, j.business_date, j.voucher_type, j.voucher_no, j.description,
                     j.reference, j.created_at, l.id AS line_id, l.debit, l.credit, l.memo
                FROM gl_journal_lines l
                JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted'
+                                 AND j.branch_id = ?
               WHERE l.account_id = ? AND j.business_date >= ? AND j.business_date <= ?
               ORDER BY j.business_date, j.created_at, j.id, l.id`,
-            [accountId, from, to],
+            [branchId, accountId, from, to],
         ),
         query(
             `SELECT HOUR(j.created_at + INTERVAL 5 HOUR) AS hour,
                     COALESCE(SUM(l.debit), 0) AS money_in, COALESCE(SUM(l.credit), 0) AS money_out, COUNT(*) AS n
                FROM gl_journal_lines l
                JOIN gl_journals j ON j.id = l.journal_id AND j.status = 'posted'
+                                 AND j.branch_id = ?
               WHERE l.account_id = ? AND j.business_date >= ? AND j.business_date <= ?
               GROUP BY HOUR(j.created_at + INTERVAL 5 HOUR)
               ORDER BY hour`,
-            [accountId, from, to],
+            [branchId, accountId, from, to],
         ),
     ]);
     const account = accountRows[0] ? accountShape(accountRows[0]) : null;

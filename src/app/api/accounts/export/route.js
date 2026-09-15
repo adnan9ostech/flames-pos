@@ -1,5 +1,6 @@
 import { query } from '@/lib/db/pool.mjs';
 import { requirePermission } from '@/lib/db/auth.mjs';
+import { currentBranchId } from '@/lib/db/branch.mjs';
 import { requireDate, requireId, businessDate, money, ymd } from '@/lib/accounts/helpers.mjs';
 import {
     trialBalance, incomeStatement, balanceSheet, cashAccounts, cashRegister,
@@ -93,8 +94,16 @@ const payableRows = async () => {
 };
 
 export async function GET(request) {
+    // Declared out here because the block below needs it. A const scoped to
+    // this try is a ReferenceError the build cannot see — and `no-undef`,
+    // enabled in the same pass as this change, caught four of them right here
+    // before they shipped, which is the whole reason it is on.
+    let branchId;
     try {
-        await requirePermission('accounts');
+        const user = await requirePermission('accounts');
+        // The same outlet the screens report on — an export that consolidated
+        // while the screen did not would be two different documents.
+        branchId = await currentBranchId(user);
     } catch (e) {
         return Response.json({ error: e.message }, { status: e.status ?? 401 });
     }
@@ -112,15 +121,15 @@ export async function GET(request) {
         let stamp;
         if (report === 'trial-balance') {
             const r = range(sp);
-            rows = [...heading(merchantName, title, `${r.from} to ${r.to}`), ...trialBalanceRows(await trialBalance(r), { includeQuiet: sp.get('all') === '1' })];
+            rows = [...heading(merchantName, title, `${r.from} to ${r.to}`), ...trialBalanceRows(await trialBalance({ ...r, branchId }), { includeQuiet: sp.get('all') === '1' })];
             stamp = `${r.from}_to_${r.to}`;
         } else if (report === 'income-statement') {
             const r = range(sp);
-            rows = [...heading(merchantName, title, `${r.from} to ${r.to}`), ...incomeStatementRows(await incomeStatement(r))];
+            rows = [...heading(merchantName, title, `${r.from} to ${r.to}`), ...incomeStatementRows(await incomeStatement({ ...r, branchId }))];
             stamp = `${r.from}_to_${r.to}`;
         } else if (report === 'balance-sheet') {
             const asAt = sp.get('asAt') ? requireDate(sp.get('asAt'), 'as-at date') : await businessDate();
-            rows = [...heading(merchantName, title, `As at ${asAt}`), ...balanceSheetRows(await balanceSheet({ asAt }))];
+            rows = [...heading(merchantName, title, `As at ${asAt}`), ...balanceSheetRows(await balanceSheet({ asAt, branchId }))];
             stamp = `as-at_${asAt}`;
         } else if (report === 'cash-register') {
             const r = range(sp);
@@ -129,7 +138,7 @@ export async function GET(request) {
             if (!accountId || !offered.accounts.some((a) => a.id === accountId)) {
                 return Response.json({ error: 'That account is not a cash or bank account' }, { status: 400 });
             }
-            const cr = await cashRegister({ accountId, ...r });
+            const cr = await cashRegister({ accountId, ...r , branchId });
             rows = [
                 ...heading(merchantName, `${title} · ${cr.account.account_number} ${cr.account.name}`, `${r.from} to ${r.to}`),
                 ...cashRegisterRows(cr),
