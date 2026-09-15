@@ -2,6 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 import { RECIPE_COST_TABLE, RECIPE_VARIANT_FOR_LINE } from '@/lib/menu/rules.mjs'
 
 // The calendar day in Asia/Karachi (fixed UTC+5, no DST) — the last-resort
@@ -20,13 +21,14 @@ const num = (v) => Number(v) || 0
  * The day the picker should open on: the open business day if day-close is in
  * use, else the most recent day that actually traded, else today in Karachi.
  */
-const defaultBusinessDate = async () => {
+const defaultBusinessDate = async (branchId) => {
     const open = await query(
         `SELECT business_date FROM business_days
-         WHERE closed_at IS NULL ORDER BY business_date DESC LIMIT 1`,
+         WHERE branch_id = ? AND closed_at IS NULL ORDER BY business_date DESC LIMIT 1`,
+        [branchId],
     )
     if (open.length > 0) return ymd(open[0].business_date)
-    const last = await query('SELECT MAX(business_date) AS d FROM orders')
+    const last = await query('SELECT MAX(business_date) AS d FROM orders WHERE branch_id = ?', [branchId])
     return last[0]?.d ? ymd(last[0].d) : karachiDay()
 }
 
@@ -37,12 +39,23 @@ const defaultBusinessDate = async () => {
  */
 export async function getHandoverReport(businessDate = null) {
     try {
-        await requirePermission('reports')
+        /*
+         * SCOPED TO ONE OUTLET, which it was not.
+         *
+         * Every query below filtered on business_date alone, so the nightly
+         * cash sheet — the document the closing manager counts the drawer
+         * against and hands the owner — summed every outlet's sales, payments,
+         * drawers, expenses and cost of sales under whichever branch the
+         * reader happened to be standing in. Cash to count, tax to file and
+         * gross profit were all another restaurant's, stated as this one's.
+         */
+        const user = await requirePermission('reports')
+        const branchId = await currentBranchId(user)
 
         if (businessDate != null && !YMD_RE.test(String(businessDate))) {
             return { error: 'Pick a valid date' }
         }
-        const date = businessDate ?? await defaultBusinessDate()
+        const date = businessDate ?? await defaultBusinessDate(branchId)
 
         // Sales spine: every non-cancelled order of the day, paid or not.
         // Gross is food money asked for; net is after discounts; revenue is
@@ -55,25 +68,25 @@ export async function getHandoverReport(businessDate = null) {
                     COALESCE(SUM(tax), 0) AS tax,
                     COALESCE(SUM(total), 0) AS revenue
              FROM orders
-             WHERE business_date = ? AND status <> 'cancelled'`,
-            [date],
+             WHERE branch_id = ? AND business_date = ? AND status <> 'cancelled'`,
+            [branchId, date],
         )
 
         const [items] = await query(
             `SELECT COALESCE(SUM(oi.qty), 0) AS itemsSold
              FROM order_items oi
              JOIN orders o ON o.id = oi.order_id
-             WHERE o.business_date = ? AND o.status <> 'cancelled'`,
-            [date],
+             WHERE o.branch_id = ? AND o.business_date = ? AND o.status <> 'cancelled'`,
+            [branchId, date],
         )
 
         const orderTypes = await query(
             `SELECT order_type AS type, COUNT(*) AS \`count\`, COALESCE(SUM(total), 0) AS revenue
              FROM orders
-             WHERE business_date = ? AND status <> 'cancelled'
+             WHERE branch_id = ? AND business_date = ? AND status <> 'cancelled'
              GROUP BY order_type
              ORDER BY revenue DESC`,
-            [date],
+            [branchId, date],
         )
 
         // Money actually taken, from the payments ledger rather than order
@@ -87,10 +100,10 @@ export async function getHandoverReport(businessDate = null) {
                     COALESCE(SUM(p.amount < 0), 0) AS refundCount
              FROM payments p
              JOIN orders o ON o.id = p.order_id
-             WHERE o.business_date = ?
+             WHERE o.branch_id = ? AND o.business_date = ?
              GROUP BY p.method
              ORDER BY amount DESC`,
-            [date],
+            [branchId, date],
         )
 
         // Tax split by how the bill settled — the ICT differential means cash
@@ -99,41 +112,41 @@ export async function getHandoverReport(businessDate = null) {
         const taxByMode = await query(
             `SELECT payment_mode AS mode, COALESCE(SUM(tax), 0) AS tax
              FROM orders
-             WHERE business_date = ? AND payment_status = 'paid' AND status <> 'cancelled'
+             WHERE branch_id = ? AND business_date = ? AND payment_status = 'paid' AND status <> 'cancelled'
              GROUP BY payment_mode
              ORDER BY tax DESC`,
-            [date],
+            [branchId, date],
         )
 
         const voidedOrders = await query(
             `SELECT order_number, cancel_reason, cancelled_by, total
              FROM orders
-             WHERE business_date = ? AND status = 'cancelled'
+             WHERE branch_id = ? AND business_date = ? AND status = 'cancelled'
              ORDER BY cancelled_at`,
-            [date],
+            [branchId, date],
         )
 
         const [expenseTotal] = await query(
-            'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE business_date = ?',
-            [date],
+            'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE branch_id = ? AND business_date = ?',
+            [branchId, date],
         )
         const expenseCats = await query(
             `SELECT COALESCE(ec.name, 'Uncategorised') AS category, SUM(e.amount) AS amount
              FROM expenses e
              LEFT JOIN expense_categories ec ON ec.id = e.category_id
-             WHERE e.business_date = ?
+             WHERE e.branch_id = ? AND e.business_date = ?
              GROUP BY COALESCE(ec.name, 'Uncategorised')
              ORDER BY amount DESC`,
-            [date],
+            [branchId, date],
         )
 
         const drawerSessions = (await query(
             `SELECT cashier_role, opening_float, expected_amount, counted_amount,
                     variance, carry_forward, handover_amount, opened_at, closed_at
              FROM drawer_sessions
-             WHERE business_date = ?
+             WHERE branch_id = ? AND business_date = ?
              ORDER BY opened_at`,
-            [date],
+            [branchId, date],
         )).map((s) => ({
             cashier_role: s.cashier_role,
             opening_float: num(s.opening_float),
@@ -165,8 +178,8 @@ export async function getHandoverReport(businessDate = null) {
              LEFT JOIN (${RECIPE_COST_TABLE}) rc
                     ON rc.menu_item_id = oi.menu_item_id
                    AND rc.variant_name = (${RECIPE_VARIANT_FOR_LINE})
-             WHERE o.business_date = ? AND o.payment_status = 'paid' AND o.status <> 'cancelled'`,
-            [date],
+             WHERE o.branch_id = ? AND o.business_date = ? AND o.payment_status = 'paid' AND o.status <> 'cancelled'`,
+            [branchId, date],
         )
 
         const gross = num(sales.gross)

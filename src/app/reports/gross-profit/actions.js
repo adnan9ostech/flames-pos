@@ -2,6 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs';
 import { requirePermission } from '@/lib/db/auth.mjs';
+import { currentBranchId } from '@/lib/db/branch.mjs';
 import { RECIPE_COST_TABLE, RECIPE_VARIANT_FOR_LINE } from '@/lib/menu/rules.mjs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -28,8 +29,18 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  * reports, so the two can be laid side by side without reconciliation.
  */
 export async function grossProfit(from, to) {
+    /*
+     * Declared out here, not inside the try: the queries below need it, and a
+     * const scoped to the authenticating try is a ReferenceError the build
+     * cannot see. This repo has now shipped that exact shape three times.
+     */
+    let branchId;
     try {
-        await requirePermission('reports');
+        const user = await requirePermission('reports');
+        // One outlet's margin. Without this the report merged both outlets'
+        // sales under one dish name, so revenue and per-dish quantities were
+        // the sum of two kitchens that can charge different prices.
+        branchId = await currentBranchId(user);
     } catch (e) {
         return { error: e.message };
     }
@@ -58,17 +69,32 @@ export async function grossProfit(from, to) {
              LEFT JOIN (${RECIPE_COST_TABLE}) rc
                     ON rc.menu_item_id = oi.menu_item_id
                    AND rc.variant_name = (${RECIPE_VARIANT_FOR_LINE})
-             WHERE o.business_date BETWEEN ? AND ?
+             WHERE o.branch_id = ?
+               AND o.business_date BETWEEN ? AND ?
                AND o.status <> 'cancelled'
                AND o.payment_status <> 'unpaid'
              GROUP BY oi.menu_item_id, name, variant, rc.unit_cost`,
-            [from, to],
+            [branchId, from, to],
         );
 
         const items = rows.map((r) => {
             const qtySold = Number(r.qty_sold);
             const revenue = Number(r.revenue);
-            const hasRecipe = r.unit_cost !== null;
+            /*
+             * COSTED means the cost is a number greater than zero.
+             *
+             * This read `!== null`, and the roll-up returns 0.00 — not NULL —
+             * for a recipe whose ingredients have no price yet. Nobody has
+             * received stock at a price for 126 of this menu's 129 recipes, so
+             * 126 dishes were counted as costed at nothing and reported at a
+             * 100% margin. The one number this report exists to produce was
+             * wrong for almost every line on it.
+             *
+             * A recipe with no priced ingredients is not costed. It belongs in
+             * the uncosted list below, beside the dishes with no recipe at
+             * all, where the answer is the same: price the ingredients.
+             */
+            const hasRecipe = r.unit_cost !== null && Number(r.unit_cost) > 0;
             const unitCost = hasRecipe ? Number(r.unit_cost) : null;
             const totalCost = hasRecipe ? unitCost * qtySold : null;
             const margin = hasRecipe ? revenue - totalCost : null;

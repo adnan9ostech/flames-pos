@@ -205,9 +205,14 @@ export async function getDashboardStats(range = 'today', endDateStr = null) {
     // sees the same ISO-string shapes PostgREST used to send.
     const fetchOrders = async (fromYmd, toYmd) =>
         serializeRows('orders', await query(
+            // Scoped to the outlet being looked at. Without the branch these
+            // tiles stated the whole company's takings as this restaurant's —
+            // and contradicted the report cards directly beneath them on the
+            // same screen, which were scoped.
             `SELECT * FROM orders
-             WHERE business_date >= ? AND business_date <= ? AND status <> 'cancelled'`,
-            [fromYmd, toYmd],
+             WHERE branch_id = ? AND business_date >= ? AND business_date <= ?
+               AND status <> 'cancelled'`,
+            [branchId, fromYmd, toYmd],
         ))
 
     let orders, prevOrders

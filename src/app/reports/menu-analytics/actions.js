@@ -2,6 +2,7 @@
 
 import { query } from '@/lib/db/pool.mjs';
 import { requirePermission } from '@/lib/db/auth.mjs';
+import { currentBranchId } from '@/lib/db/branch.mjs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -11,7 +12,15 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  * payments count — money has changed hands. Cancelled orders are excluded
  * here and get their own tab, where the reasons live.
  */
-const SOLD = `o.business_date BETWEEN ? AND ?
+/*
+ * The branch leads, deliberately: put it in the shared fragment and every
+ * query built from it is scoped by construction rather than by remembering.
+ * Without it the product mix and the modifier counts were both outlets' food
+ * added together, so "which categories carry the menu" was largely a
+ * different restaurant's answer.
+ */
+const SOLD = `o.branch_id = ?
+       AND o.business_date BETWEEN ? AND ?
        AND o.status <> 'cancelled'
        AND o.payment_status <> 'unpaid'`;
 
@@ -45,8 +54,13 @@ const modifierEntries = (raw) => {
  * calendar day it happened to be stored under.
  */
 export async function productMix(from, to) {
+    // Out here for the same reason the other report actions declare it out
+     // here: a const scoped to the authenticating try is invisible to the
+     // queries after it, and the build cannot see the difference.
+    let branchId;
     try {
-        await requirePermission('reports');
+        const user = await requirePermission('reports');
+        branchId = await currentBranchId(user);
     } catch (e) {
         return { error: e.message };
     }
@@ -73,7 +87,7 @@ export async function productMix(from, to) {
                  WHERE ${SOLD}
                  GROUP BY oi.name, oi.variant, category
                  ORDER BY qty DESC, revenue DESC`,
-                [from, to],
+                [branchId, from, to],
             ),
             // The JSON shapes vary (see modifierEntries), so the unnesting
             // happens in JS on the fetched lines rather than in SQL.
@@ -82,7 +96,7 @@ export async function productMix(from, to) {
                  FROM order_items oi
                  JOIN orders o ON o.id = oi.order_id
                  WHERE ${SOLD} AND oi.modifiers IS NOT NULL`,
-                [from, to],
+                [branchId, from, to],
             ),
             // Voids carry their reasons: the point of this tab is not the
             // quantity, it is the "wrong table" vs "walk-out" pattern.
@@ -94,11 +108,11 @@ export async function productMix(from, to) {
                                      SEPARATOR ' | ') AS reasons
                  FROM order_items oi
                  JOIN orders o ON o.id = oi.order_id
-                 WHERE o.business_date BETWEEN ? AND ? AND o.status = 'cancelled'
+                 WHERE o.branch_id = ? AND o.business_date BETWEEN ? AND ? AND o.status = 'cancelled'
                  GROUP BY oi.name, oi.variant
                  ORDER BY qty DESC, voided_value DESC
                  LIMIT 20`,
-                [from, to],
+                [branchId, from, to],
             ),
         ]);
 
