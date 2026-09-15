@@ -38,6 +38,24 @@ export const pool = mysql.createPool({
     keepAliveInitialDelay: 10_000,
     decimalNumbers: true,
     timezone: 'Z',
+    /*
+     * The connection must speak the SCHEMA's collation.
+     *
+     * mysql2 picks its own default when none is given, and it chose
+     * utf8mb4_unicode_ci while every table here is utf8mb4_0900_ai_ci. That is
+     * invisible until a query CASTs — `CAST(d.id AS CHAR)` takes the
+     * connection's collation — and then comparing it to a column is an
+     * "Illegal mix of collations" and the whole statement fails.
+     *
+     * Two screens were dead of exactly that: /accounts/health, which is the
+     * ONLY thing that reports a sale whose ledger posting silently failed, and
+     * /inventory/reports, which is all of on-hand value, movement history,
+     * count variance and the reorder list. Both showed the raw MySQL sentence.
+     *
+     * Fixed here rather than by adding COLLATE to the queries that happen to
+     * cast today, because the next one to cast would be dead on arrival.
+     */
+    charset: 'UTF8MB4_0900_AI_CI',
 });
 
 pool.on('connection', (conn) => {
