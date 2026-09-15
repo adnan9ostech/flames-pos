@@ -19,6 +19,10 @@ if (!String(process.env.DB_NAME ?? '').endsWith('_test')) {
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { pool } from '../../src/lib/db/pool.mjs';
+import {
+    createOrder as kernelCreateOrder,
+    appendRound as kernelAppendRound,
+} from '../../src/lib/db/orders.mjs';
 
 /* The rates every suite is seeded with — cash and card deliberately differ so
  * a test that settles at the wrong rate cannot pass by coincidence. */
@@ -138,6 +142,26 @@ export const resetDb = async () => {
         [MENU_ITEM_ID],
     );
 
+    // The dishes seedLines minted for earlier runs. Safe here and only here:
+    // the order lines that referenced them were deleted above, and outside a
+    // test database deleting a menu_items row is never cleanup.
+    await pool.query('DELETE FROM menu_items WHERE name LIKE ?', [`${SUITE_DISH_PREFIX}%`]);
+    suiteDishes.clear();
+
+    /*
+     * The one modifier the suite rings: verbs.test.mjs sends
+     * `selectedModifiers: { m1: [{ name: 'Extra' }] }`. Option prices now come
+     * from this table rather than from the object the caller echoes back, so
+     * the option has to exist — and at 0, which is what that test's arithmetic
+     * has always assumed.
+     */
+    await pool.query(
+        `INSERT INTO modifiers (id, \`key\`, name, type, options)
+         VALUES ('m1', 'suite_m1', 'Suite Modifier', 'multiselect',
+                 '[{"name": "Extra", "price": 0}]') AS new_row
+         ON DUPLICATE KEY UPDATE options = new_row.options`,
+    );
+
     // Password 'testpass1' at a cheap cost factor: these hashes gate nothing in
     // this suite, they just satisfy the schema honestly. Keyed on username —
     // role lost its unique index when one row per role stopped being the model.
@@ -168,3 +192,58 @@ export const resetDb = async () => {
         },
     };
 };
+
+/*
+ * Ring a line the way the till does — through the menu.
+ *
+ * The kernel now prices every line from menu_items rather than from whatever
+ * `price` the caller claimed, because the old behaviour let a crafted call
+ * sell a Rs 8,995 dish for Rs 1 (see pricedLines in src/lib/db/orders.mjs).
+ * These tests were written against that behaviour and name their lines freely
+ * — `{ name: 'Test Gulab Jamun', price: 835, qty: 2 }` — which is exactly the
+ * shape a cart has.
+ *
+ * So this seeds a dish AT THAT PRICE and hands the line its id. Every existing
+ * assertion is unchanged and now runs through the real pricing path: the test
+ * still says "a line worth Rs 835", and the menu now agrees that it is.
+ *
+ * Deduped per price-and-size within a run, and the rows are named so resetDb
+ * can clear them; a test that already picked a dish (fx.menuItem) passes
+ * straight through.
+ */
+const suiteDishes = new Map();
+export const SUITE_DISH_PREFIX = 'Suite priced dish';
+
+export const seedLines = async (items) => {
+    const out = [];
+    for (const i of items) {
+        if (i?.id) { out.push(i); continue; }
+        const size = i?.selectedVariant?.name ?? null;
+        const price = Number(i?.price) || 0;
+        const key = `${size ?? '-'}|${price}`;
+        let id = suiteDishes.get(key);
+        if (!id) {
+            id = randomUUID();
+            await pool.query(
+                `INSERT INTO menu_items (id, name, price, variants, modifiers, is_available)
+                 VALUES (?, ?, ?, ?, '[]', 1)`,
+                [id, `${SUITE_DISH_PREFIX} ${key} ${id.slice(0, 8)}`, price,
+                    size ? JSON.stringify([{ name: size, price }]) : '[]'],
+            );
+            suiteDishes.set(key, id);
+        }
+        out.push({ ...i, id });
+    }
+    return out;
+};
+
+/*
+ * The kernel verbs, as the suite calls them: identical signatures, with the
+ * menu seeded first. Tests import these from here instead of reaching into
+ * src/lib/db/orders.mjs, so no call site had to change.
+ */
+export const createOrder = async (items, opts = {}, clientRequestId = null, expectedTotal = null) =>
+    kernelCreateOrder(await seedLines(items), opts, clientRequestId, expectedTotal);
+
+export const appendRound = async (orderId, items, clientRequestId = null, expectedTotal = null, opts = {}) =>
+    kernelAppendRound(orderId, await seedLines(items), clientRequestId, expectedTotal, opts);

@@ -12,8 +12,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { acquireSuiteLock, resetDb, closeDb, q } from './helpers.mjs';
-import { createOrder } from '../../src/lib/db/orders.mjs';
+import { acquireSuiteLock, resetDb, closeDb, q, createOrder } from './helpers.mjs';
 import { calcTotals } from '../../src/lib/orderTotals.mjs';
 
 before(async () => {

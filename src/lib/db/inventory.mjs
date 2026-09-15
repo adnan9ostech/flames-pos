@@ -125,11 +125,11 @@ const onHandByItem = async (conn, itemIds, warehouseId = null) => {
 };
 
 /* Header + lines for transfer/adjustment/misc/count, which share one shape. */
-const insertDoc = async (conn, { docType, warehouseId, toWarehouseId = null, businessDate, reason = null, lines }) => {
+const insertDoc = async (conn, { branchId, docType, warehouseId, toWarehouseId = null, businessDate, reason = null, lines }) => {
     const [res] = await conn.query(
         `INSERT INTO stock_docs (branch_id, doc_type, warehouse_id, to_warehouse_id, business_date, reason)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [await branchOfRequest(), docType, warehouseId, toWarehouseId, businessDate, reason],
+        [branchId, docType, warehouseId, toWarehouseId, businessDate, reason],
     );
     await conn.query(
         'INSERT INTO stock_doc_lines (doc_id, inventory_item_id, qty) VALUES ?',
@@ -153,8 +153,17 @@ const insertDoc = async (conn, { docType, warehouseId, toWarehouseId = null, bus
 export const receiveStock = async ({
     supplierId, warehouseId, draftId = null, supplierInvoice = null, lines = [], notes = null,
     purchaseOrderId = null,
-} = {}) =>
-    withTransaction(async (conn) => {
+} = {}) => {
+    /*
+     * Resolved BEFORE the transaction opens. Working the branch out reads from
+     * the pool, and a pool read taken while this transaction holds one of the
+     * pool's five connections is how the whole app wedges: five of these at
+     * once and each waits for a sixth connection the five of them hold.
+     * Proven: five concurrent transactions each asking the pool for one more
+     * connection never return, with no timeout and no error.
+     */
+    const branchId = await branchOfRequest();
+    return withTransaction(async (conn) => {
         const supplier = toId(supplierId, 'Pick a supplier');
         const warehouse = toId(warehouseId, 'Pick a warehouse');
         if (!Array.isArray(lines) || lines.length === 0) {
@@ -218,7 +227,7 @@ export const receiveStock = async ({
                (branch_id, supplier_id, warehouse_id, draft_id, purchase_order_id,
                 supplier_invoice, business_date, total, notes)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [await branchOfRequest(), supplier, warehouse, draft, po,
+            [branchId, supplier, warehouse, draft, po,
                 String(supplierInvoice ?? '').trim().slice(0, 64) || null,
                 businessDate, total,
                 String(notes ?? '').trim().slice(0, 191) || null],
@@ -292,9 +301,19 @@ export const receiveStock = async ({
 
         return { id: receivingId, total, business_date: businessDate };
     });
+};
 
-export const transferStock = async ({ fromWarehouseId, toWarehouseId, lines = [], reason = null } = {}) =>
-    withTransaction(async (conn) => {
+export const transferStock = async ({ fromWarehouseId, toWarehouseId, lines = [], reason = null } = {}) => {
+    /*
+     * Resolved BEFORE the transaction opens. Working the branch out reads from
+     * the pool, and a pool read taken while this transaction holds one of the
+     * pool's five connections is how the whole app wedges: five of these at
+     * once and each waits for a sixth connection the five of them hold.
+     * Proven: five concurrent transactions each asking the pool for one more
+     * connection never return, with no timeout and no error.
+     */
+    const branchId = await branchOfRequest();
+    return withTransaction(async (conn) => {
         const from = toId(fromWarehouseId, 'Pick the warehouse the stock leaves');
         const to = toId(toWarehouseId, 'Pick the warehouse the stock enters');
         if (from === to) throw new Error('A transfer needs two different warehouses');
@@ -313,6 +332,7 @@ export const transferStock = async ({ fromWarehouseId, toWarehouseId, lines = []
 
         const businessDate = await resolveBusinessDate(conn);
         const docId = await insertDoc(conn, {
+            branchId,
             docType: 'transfer', warehouseId: from, toWarehouseId: to, businessDate,
             reason: String(reason ?? '').trim().slice(0, 191) || null,
             lines: clean,
@@ -330,14 +350,24 @@ export const transferStock = async ({ fromWarehouseId, toWarehouseId, lines = []
         });
         return { id: docId, business_date: businessDate };
     });
+};
 
 /*
  * Signed corrections — a found sack of flour (+), a spoiled crate (−).
  * The reason is mandatory: an unexplained adjustment is exactly the hole
  * stock audits exist to catch.
  */
-export const adjustStock = async ({ warehouseId, lines = [], reason } = {}) =>
-    withTransaction(async (conn) => {
+export const adjustStock = async ({ warehouseId, lines = [], reason } = {}) => {
+    /*
+     * Resolved BEFORE the transaction opens. Working the branch out reads from
+     * the pool, and a pool read taken while this transaction holds one of the
+     * pool's five connections is how the whole app wedges: five of these at
+     * once and each waits for a sixth connection the five of them hold.
+     * Proven: five concurrent transactions each asking the pool for one more
+     * connection never return, with no timeout and no error.
+     */
+    const branchId = await branchOfRequest();
+    return withTransaction(async (conn) => {
         const warehouse = toId(warehouseId, 'Pick a warehouse');
         const why = String(reason ?? '').trim().slice(0, 191);
         if (!why) throw new Error('An adjustment needs a reason');
@@ -357,6 +387,7 @@ export const adjustStock = async ({ warehouseId, lines = [], reason } = {}) =>
 
         const businessDate = await resolveBusinessDate(conn);
         const docId = await insertDoc(conn, {
+            branchId,
             docType: 'adjustment', warehouseId: warehouse, businessDate, reason: why, lines: clean,
         });
         await postLedger(conn, clean.map((l) => ({
@@ -369,10 +400,20 @@ export const adjustStock = async ({ warehouseId, lines = [], reason } = {}) =>
         });
         return { id: docId, business_date: businessDate };
     });
+};
 
 /* Stock leaving outside a sale: staff meals, a marketing tasting, breakage. */
-export const miscConsumption = async ({ warehouseId, lines = [], reason = null } = {}) =>
-    withTransaction(async (conn) => {
+export const miscConsumption = async ({ warehouseId, lines = [], reason = null } = {}) => {
+    /*
+     * Resolved BEFORE the transaction opens. Working the branch out reads from
+     * the pool, and a pool read taken while this transaction holds one of the
+     * pool's five connections is how the whole app wedges: five of these at
+     * once and each waits for a sixth connection the five of them hold.
+     * Proven: five concurrent transactions each asking the pool for one more
+     * connection never return, with no timeout and no error.
+     */
+    const branchId = await branchOfRequest();
+    return withTransaction(async (conn) => {
         const warehouse = toId(warehouseId, 'Pick a warehouse');
         if (!Array.isArray(lines) || lines.length === 0) {
             throw new Error('A consumption needs at least one line');
@@ -388,6 +429,7 @@ export const miscConsumption = async ({ warehouseId, lines = [], reason = null }
 
         const businessDate = await resolveBusinessDate(conn);
         const docId = await insertDoc(conn, {
+            branchId,
             docType: 'misc', warehouseId: warehouse, businessDate,
             reason: String(reason ?? '').trim().slice(0, 191) || null,
             lines: clean,
@@ -402,6 +444,7 @@ export const miscConsumption = async ({ warehouseId, lines = [], reason = null }
         });
         return { id: docId, business_date: businessDate };
     });
+};
 
 /*
  * Physical count. The document keeps what was counted; the ledger gets only
@@ -411,8 +454,17 @@ export const miscConsumption = async ({ warehouseId, lines = [], reason = null }
  * correction landing; a sale firing mid-count is inherent to counting a
  * live kitchen and books after the count like any later movement.
  */
-export const postCount = async ({ warehouseId, lines = [] } = {}) =>
-    withTransaction(async (conn) => {
+export const postCount = async ({ warehouseId, lines = [] } = {}) => {
+    /*
+     * Resolved BEFORE the transaction opens. Working the branch out reads from
+     * the pool, and a pool read taken while this transaction holds one of the
+     * pool's five connections is how the whole app wedges: five of these at
+     * once and each waits for a sixth connection the five of them hold.
+     * Proven: five concurrent transactions each asking the pool for one more
+     * connection never return, with no timeout and no error.
+     */
+    const branchId = await branchOfRequest();
+    return withTransaction(async (conn) => {
         const warehouse = toId(warehouseId, 'Pick a warehouse');
         if (!Array.isArray(lines) || lines.length === 0) {
             throw new Error('A count needs at least one counted line');
@@ -432,6 +484,7 @@ export const postCount = async ({ warehouseId, lines = [] } = {}) =>
 
         const businessDate = await resolveBusinessDate(conn);
         const docId = await insertDoc(conn, {
+            branchId,
             docType: 'count', warehouseId: warehouse, businessDate, lines: clean,
         });
 
@@ -454,3 +507,4 @@ export const postCount = async ({ warehouseId, lines = [] } = {}) =>
         });
         return { id: docId, business_date: businessDate, variances };
     });
+};

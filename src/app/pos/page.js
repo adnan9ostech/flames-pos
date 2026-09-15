@@ -784,6 +784,24 @@ export default function POSPage() {
     const clearOrderFields = () => {
         setActiveTabId(null);
         setCart([]);
+        /*
+         * The tax switch and the channel are part of ONE BILL, not of the
+         * shift — and they were the two pieces of bill state this function
+         * forgot.
+         *
+         * Turning GST off for a staff meal left it off for every bill after
+         * it, silently, until somebody noticed or reloaded the page: an
+         * afternoon of sales issued with fiscal invoice numbers and no tax on
+         * them. And after one aggregator order every following walk-in was
+         * stamped with that aggregator, which is the reporting the owner uses
+         * to judge what a channel's commission is costing.
+         *
+         * Both go back to their defaults with the rest of the bill. The
+         * channel falls back to the default channel, which is what a fresh
+         * load picks.
+         */
+        setIncludeTax(true);
+        setChannelId(channels.find((c) => c.is_default)?.id ?? channels[0]?.id ?? null);
         setTableNumber('');
         setWaiterId('');
         setOrderType('dine-in');

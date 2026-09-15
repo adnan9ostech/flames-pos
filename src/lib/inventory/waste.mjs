@@ -34,8 +34,15 @@ const MAIN_WAREHOUSE_ID = 1;
 const round4 = (n) => Math.round(Number(n) * 10000) / 10000;
 const round2 = (n) => Math.round(Number(n) * 100) / 100;
 
-export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) =>
-    withTransaction(async (conn) => {
+export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) => {
+    /*
+     * Resolved BEFORE the transaction opens. Working the branch out reads from
+     * the pool, and a pool read taken while this transaction holds one of the
+     * pool's five connections is how the whole app wedges: five of these at
+     * once and each waits for a sixth connection the five of them hold.
+     */
+    const branchId = await branchOfRequest();
+    return withTransaction(async (conn) => {
         const why = String(reason ?? '').trim().slice(0, 191);
         if (!why) throw new Error('Waste needs a reason');
 
@@ -57,7 +64,7 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
         // movements below are already dated by that outlet's open day.
         const [doc] = await conn.query(
             'INSERT INTO waste_docs (branch_id, business_date, reason, posted_by) VALUES (?, ?, ?, ?)',
-            [await branchOfRequest(), businessDate, why, userId],
+            [branchId, businessDate, why, userId],
         );
         const docId = doc.insertId;
 
@@ -136,6 +143,7 @@ export const postDishWaste = async ({ reason, lines = [], userId = null } = {}) 
 
         return { id: docId, businessDate, cost: round2(lineCosts.reduce((a, b) => a + b, 0)) };
     });
+};
 
 /*
  * Post it, then book it: Dr Wastage, Cr Inventory. Separate from the verb and

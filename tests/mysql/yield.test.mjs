@@ -15,8 +15,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { acquireSuiteLock, resetDb, closeDb, q, one } from './helpers.mjs';
-import { createOrder } from '../../src/lib/db/orders.mjs';
+import { acquireSuiteLock, resetDb, closeDb, q, one, createOrder } from './helpers.mjs';
 import { expandToRaw, effectiveCost, indexSubRecipes } from '../../src/lib/inventory/subrecipe.mjs';
 
 before(async () => {

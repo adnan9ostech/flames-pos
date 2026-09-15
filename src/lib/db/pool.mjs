@@ -44,10 +44,70 @@ pool.on('connection', (conn) => {
     conn.query("SET time_zone = '+00:00'");
 });
 
-/* Single query against the pool. Returns rows only. */
+/*
+ * How long to wait for a connection before giving up.
+ *
+ * mysql2's pool has `waitForConnections: true` and no acquire timeout, so a
+ * starved pool waits FOREVER — silently, with no error and no recovery short
+ * of restarting the process. That is not a theoretical shape: five concurrent
+ * transactions that each ask the pool for one more connection while holding
+ * one of the five wedge the entire application permanently, which on a busy
+ * service means the restaurant simply stops being able to ring anything.
+ *
+ * Eight seconds is far longer than any query here takes and far shorter than
+ * a service. Past it, ONE sale fails with something a cashier can act on,
+ * instead of every sale hanging with nothing on screen at all.
+ *
+ * This is a backstop, not the fix. The fix is not to ask the pool for a second
+ * connection while holding one — resolve what you need before the transaction
+ * opens. Five such paths existed and were repaired; this is what catches the
+ * sixth.
+ */
+const ACQUIRE_TIMEOUT_MS = 8_000;
+
+const BUSY = 'The database is busy and did not free a connection. Nothing was saved — try again.';
+
+/*
+ * A connection, or a refusal. The pending getConnection is NOT abandoned: if
+ * it arrives after we have given up it is released straight back, because a
+ * leaked connection would shrink the pool by one every time this fires and
+ * turn a transient squeeze into a permanent one.
+ */
+const acquire = async () => {
+    let timer;
+    const wanted = pool.getConnection();
+    try {
+        return await Promise.race([
+            wanted,
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(BUSY)), ACQUIRE_TIMEOUT_MS);
+            }),
+        ]);
+    } catch (e) {
+        wanted.then((c) => c.release()).catch(() => {});
+        throw e;
+    } finally {
+        clearTimeout(timer);
+    }
+};
+
+/*
+ * Single query against the pool. Returns rows only.
+ *
+ * Bounded by the same timeout as a transaction's acquire, and for the same
+ * reason: this is the call that actually wedges. `pool.query` takes a
+ * connection internally and waits forever for one, so a transaction that asks
+ * for a second connection through here hangs with no error — which is how five
+ * concurrent writes stopped the whole application dead.
+ */
 export const query = async (sql, params = []) => {
-    const [rows] = await pool.query(sql, params);
-    return rows;
+    const conn = await acquire();
+    try {
+        const [rows] = await conn.query(sql, params);
+        return rows;
+    } finally {
+        conn.release();
+    }
 };
 
 /*
@@ -56,7 +116,7 @@ export const query = async (sql, params = []) => {
  * rollback — the caller's error message is the till's alert text.
  */
 export const withTransaction = async (fn) => {
-    const conn = await pool.getConnection();
+    const conn = await acquire();
     try {
         await conn.beginTransaction();
         const result = await fn(conn);

@@ -25,6 +25,21 @@ import { taxRatesFor } from './branchSettings.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+/*
+ * The outlet this request is acting on, asked for lazily — the same pattern
+ * openDay.mjs and db/audit.mjs use, and for the same reason: resolving it
+ * reads a cookie, which needs next/headers, which does not exist in the plain
+ * Node the suite and the FBR worker run this module under.
+ */
+const requestBranchId = async () => {
+    try {
+        const { currentBranchId } = await import('./branch.mjs');
+        return await currentBranchId();
+    } catch {
+        return 1;
+    }
+};
+
 /* The calendar day in Asia/Karachi (fixed UTC+5, no DST). */
 const karachiDay = (d = new Date()) =>
     d.toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
@@ -96,11 +111,28 @@ const fetchOrder = async (conn, orderId, { forUpdate = false } = {}) => {
     return rows[0] ?? null;
 };
 
-const auditLog = async (conn, { branchId, businessDate, action, orderId = null, details = null }) => {
+/*
+ * The trail, with the hands on it.
+ *
+ * `staff_id` was never written from here, so every ring, every settle and
+ * every void in the system was anonymous: 199 create_order rows and 159
+ * settle_order rows with no actor, while remove_item — which threads its
+ * approver through — had one on all five of its. The column existed and the
+ * money paths were the ones not using it, which is the wrong way round. A
+ * restaurant's audit trail earns its keep on exactly these rows: the drawer
+ * is short and somebody has to be able to ask who was on the till.
+ *
+ * NULL is still legal and still means "no person" — a background posting, a
+ * worker, the FBR retry — rather than "we did not bother to look".
+ */
+const auditLog = async (conn, {
+    branchId, businessDate, action, orderId = null, details = null, staffId = null,
+}) => {
     await conn.query(
-        `INSERT INTO audit_log (branch_id, business_date, action, order_id, details)
-         VALUES (?, ?, ?, ?, ?)`,
-        [branchId, businessDate, action, orderId, details ? JSON.stringify(details) : null],
+        `INSERT INTO audit_log (branch_id, business_date, action, order_id, staff_id, details)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [branchId, businessDate, action, orderId, staffId,
+            details ? JSON.stringify(details) : null],
     );
 };
 
@@ -108,6 +140,94 @@ const auditLog = async (conn, { branchId, businessDate, action, orderId = null, 
  * Validates and inserts one round's lines. Create and append share this so
  * the two paths cannot drift. Errors are worded for the till's alert box.
  */
+/*
+ * WHAT A LINE COSTS. Decided here, from the menu, and nowhere else.
+ *
+ * This did not exist. `unit_price` was `Number(item.price)` — whatever the
+ * browser sent — and the server never looked at the dish it claimed to be.
+ * A crafted call rang Mutton White Qorma, menu price Rs 8,995, at Rs 1: the
+ * line kept the real menu_item_id, the bill settled at Rs 2, a fiscal invoice
+ * was minted and the sale journal posted Rs 2 to the books. Everything
+ * downstream agreed with the tampered figure because nothing upstream ever
+ * disagreed.
+ *
+ * So the price is now COMPUTED, using exactly the formula the till displays
+ * (see ModifierModal.calculateTotal): the chosen size's price, or the dish's
+ * price when no size is chosen, plus the price of every chosen modifier
+ * option. The client's `price` is ignored entirely — not compared, ignored.
+ * The till's number is still checked, but by `expectedTotal`, which is what
+ * that mechanism is for: it catches a STALE SCREEN and says "reload", which
+ * is a true and useful thing to tell a cashier. It was never an authority.
+ *
+ * A line must name a dish that is on the menu. Refusing an unknown one is
+ * safe: the cart spreads a real menu item, so every genuine line carries its
+ * uuid — of 164 order lines rung before this change, exactly one lacked an
+ * id, and that one predates the MySQL migration.
+ *
+ * The branch price applies to the DISH's price, the same COALESCE the till
+ * was served by getMenuItems, so the two agree. It does NOT reach a size's
+ * own price: branch_menu_items has one price column and no size dimension,
+ * which is a real gap in that feature and is fixed separately — what matters
+ * here is that the server charges what the till showed.
+ */
+const pricedLines = async (conn, items, branchId) => {
+    const ids = [...new Set(
+        items.map((i) => String(i.id ?? '')).filter((id) => UUID_RE.test(id)),
+    )];
+
+    const [dishes] = ids.length === 0 ? [[]] : await conn.query(
+        `SELECT m.id, m.name, m.variants, COALESCE(b.price, m.price) AS price
+           FROM menu_items m
+           LEFT JOIN branch_menu_items b
+             ON b.menu_item_id = m.id AND b.branch_id = ?
+          WHERE m.id IN (?) AND m.is_archived = 0`,
+        [branchId, ids],
+    );
+    const byId = new Map(dishes.map((d) => [d.id, d]));
+
+    // Option prices come from the modifier definitions, never from the
+    // option objects the browser echoes back. One small table, read once.
+    const [mods] = await conn.query('SELECT id, options FROM modifiers');
+    const optionPrice = new Map();
+    for (const m of mods) {
+        const options = Array.isArray(m.options) ? m.options : [];
+        for (const o of options) optionPrice.set(`${m.id}|${o?.name}`, Number(o?.price) || 0);
+    }
+
+    return items.map((i) => {
+        const dish = byId.get(String(i.id ?? ''));
+        if (!dish) {
+            throw new Error(`"${i.name}" is not on the menu — reload the till and ring it again`);
+        }
+
+        const wantedSize = i.selectedVariant?.name ?? null;
+        let price = Number(dish.price);
+        if (wantedSize != null) {
+            const variants = Array.isArray(dish.variants) ? dish.variants : [];
+            const size = variants.find((v) => v?.name === wantedSize);
+            if (!size) {
+                throw new Error(`"${wantedSize}" is no longer a size of ${dish.name} — reload the till`);
+            }
+            price = Number(size.price);
+        }
+
+        for (const [modifierId, chosen] of Object.entries(i.selectedModifiers || {})) {
+            for (const option of (Array.isArray(chosen) ? chosen : [chosen])) {
+                if (!option?.name) continue;
+                const add = optionPrice.get(`${modifierId}|${option.name}`);
+                if (add === undefined) {
+                    throw new Error(`"${option.name}" is no longer an option on ${dish.name} — reload the till`);
+                }
+                price += add;
+            }
+        }
+
+        // Paise-exact: the column is DECIMAL(10,2) and a float that does not
+        // round-trip it makes the till's total disagree with the server's.
+        return { ...i, menuItemId: dish.id, price: Math.round(price * 100) / 100 };
+    });
+};
+
 const insertRoundItems = async (conn, { orderId, roundId, roundNo, branchId, items }) => {
     if (!Array.isArray(items) || items.length === 0) {
         throw new Error('A round needs at least one item');
@@ -119,30 +239,23 @@ const insertRoundItems = async (conn, { orderId, roundId, roundNo, branchId, ite
         if (!(Number(item.qty) >= 1)) {
             throw new Error(`Quantity must be at least 1 on "${item.name}"`);
         }
+        /*
+         * The claimed price no longer decides anything — pricedLines reads the
+         * menu. This check stays because a negative or missing one is still the
+         * mark of a malformed or tampered request, and refusing it early costs
+         * nothing. The string is one the till matches on, so it is unchanged.
+         */
         if (!(Number(item.price) >= 0)) {
             throw new Error(`Price missing or negative on "${item.name}"`);
         }
     }
 
-    // The cart spreads the menu item, so its uuid rides in as 'id'. A line
-    // whose dish was deleted (or whose id doesn't parse) keeps the name and
-    // loses the link — the bill is the record, the FK is a convenience.
-    const candidateIds = [...new Set(
-        items.map((i) => String(i.id ?? '')).filter((id) => UUID_RE.test(id)),
-    )];
-    let known = new Set();
-    if (candidateIds.length > 0) {
-        const [rows] = await conn.query(
-            'SELECT id FROM menu_items WHERE id IN (?)', [candidateIds],
-        );
-        known = new Set(rows.map((r) => r.id));
-    }
+    const lines = await pricedLines(conn, items, branchId);
 
-    const values = items.map((i) => {
-        const id = String(i.id ?? '');
+    const values = lines.map((i) => {
         return [
             randomUUID(), orderId, roundId, branchId, roundNo,
-            known.has(id) ? id : null,
+            i.menuItemId,
             i.name,
             i.selectedVariant?.name ?? null,
             i.selectedModifiers != null ? JSON.stringify(i.selectedModifiers) : null,
@@ -236,6 +349,7 @@ class TwinExists extends Error {
  * this on its own uncommitted row (the FOR UPDATE is then a self-lock).
  */
 const settleOrderTx = async (conn, orderId, {
+    userId = null,
     method = 'cash', discount = null, discountReason = null,
     includeTax = null, expectedTotal = null, clientRequestId = null,
     companyId = null, cashReceived = null, cardReference = null,
@@ -339,12 +453,27 @@ const settleOrderTx = async (conn, orderId, {
         }
     }
 
-    await conn.query(
-        `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id, company_id, reference)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [randomUUID(), orderId, order.branch_id, method, order.total, clientRequestId,
-         method === 'city_ledger' ? companyId : null, reference],
-    );
+    /*
+     * A payment row records money that MOVED — which is why the column carries
+     * CHECK (amount <> 0), and why a void writes a negative row rather than
+     * deleting the original. A bill that comes to nothing (a fully comped
+     * table, a 100% discount) moved no money, so there is nothing to record.
+     *
+     * Writing one anyway is what the settle path used to do, and the constraint
+     * refused it — so a comped bill could not be closed at all and the cashier
+     * was shown `Check constraint 'payments_amount_chk' is violated`, raw, at
+     * the counter. The bill is still marked paid below: the order row, the
+     * audit trail and the ledger carry the fact, and the drawer's expected cash
+     * is a sum of payments, to which a zero row would have contributed nothing.
+     */
+    if (Number(order.total) !== 0) {
+        await conn.query(
+            `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id, company_id, reference)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [randomUUID(), orderId, order.branch_id, method, order.total, clientRequestId,
+             method === 'city_ledger' ? companyId : null, reference],
+        );
+    }
 
     /*
      * The cash tender, when the till took one. Both halves or neither: a card
@@ -387,6 +516,7 @@ const settleOrderTx = async (conn, orderId, {
         businessDate,
         action: 'settle_order',
         orderId,
+        staffId: userId,
         details: { method, total: Number(order.total), invoice: order.invoice_number },
     });
 
@@ -544,7 +674,7 @@ const createOrderTx = (orderId, items, opts, clientRequestId, expectedTotal, pay
         });
 
         await auditLog(conn, {
-            branchId, businessDate, action: 'create_order', orderId,
+            branchId, businessDate, action: 'create_order', orderId, staffId: opts.userId ?? null,
             details: { total: Number(order.total), type: order.order_type },
         });
 
@@ -655,6 +785,7 @@ export const appendRound = async (orderId, items, clientRequestId = null, expect
             businessDate: await resolveBusinessDate(conn, updated.branch_id),
             action: 'append_round',
             orderId,
+            staffId: opts.userId ?? null,
             details: { round: roundNo, total: Number(updated.total) },
         });
         return updated;
@@ -668,7 +799,7 @@ export const appendRound = async (orderId, items, clientRequestId = null, expect
  * this function trusts it, matching how the RPC trusted its caller, but the
  * gate now lives on the server instead of in the browser.
  */
-export const voidOrder = async (orderId, reason, by = null) => {
+export const voidOrder = async (orderId, reason, by = null, userId = null) => {
     if (!reason || String(reason).trim() === '') throw new Error('A void needs a reason');
 
     const row = await withTransaction(async (conn) => {
@@ -713,6 +844,7 @@ export const voidOrder = async (orderId, reason, by = null) => {
             businessDate: await resolveBusinessDate(conn, updated.branch_id),
             action: 'void_order',
             orderId,
+            staffId: userId,
             details: {
                 reason: updated.cancel_reason,
                 by: updated.cancelled_by,
@@ -767,7 +899,16 @@ export const bumpOrder = async (orderId, from, to) => {
  * audited, because "who took the biryani off at 8pm" is a real question the
  * morning after. Inherits the old menu_item_audit trigger's job too.
  */
-export const setItemAvailability = async (itemId, available) => {
+export const setItemAvailability = async (itemId, available, userId = null) => {
+    /*
+     * Resolved BEFORE the transaction opens, deliberately. Working the branch
+     * out reads from the pool, and a pool read taken while this transaction is
+     * holding one of the pool's five connections is how the whole app wedges:
+     * five of these at once and every one waits for a sixth connection that
+     * the five of them are holding. withTransaction now refuses rather than
+     * waiting forever, but the fix is not to ask in the first place.
+     */
+    const branchId = await requestBranchId();
     const row = await withTransaction(async (conn) => {
         const [result] = await conn.query(
             'UPDATE menu_items SET is_available = ?, updated_at = UTC_TIMESTAMP(3) WHERE id = ?',
@@ -777,9 +918,10 @@ export const setItemAvailability = async (itemId, available) => {
         const [rows] = await conn.query('SELECT * FROM menu_items WHERE id = ?', [itemId]);
         const item = rows[0];
         await auditLog(conn, {
-            branchId: 1,
-            businessDate: await resolveBusinessDate(conn, 1),
+            branchId,
+            businessDate: await resolveBusinessDate(conn, branchId),
             action: 'set_availability',
+            staffId: userId,
             details: { menu_item_id: item.id, name: item.name, available: Boolean(available) },
         });
         return item;

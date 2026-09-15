@@ -62,3 +62,20 @@ export const requirePermission = async (key) => {
     return user;
 };
 
+/*
+ * Throws unless the account holds AT LEAST ONE of these rights.
+ *
+ * For the handful of verbs two different screens legitimately reach. Moving a
+ * ticket along is the example: the kitchen does it from the Kitchen Display
+ * (`kds`) and the counter does it from Order History (`orders`), and neither
+ * screen's right implies the other's — a kitchen account has only the first,
+ * an accountant only the second, and both are meant to work.
+ */
+export const requireAnyPermission = async (...keys) => {
+    const user = await requireUser();
+    if (!keys.some((k) => user.permissions[k])) {
+        throw new AuthError('Your account does not have access to this');
+    }
+    return user;
+};
+

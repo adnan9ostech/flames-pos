@@ -14,8 +14,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { acquireSuiteLock, resetDb, closeDb, q, one, count } from './helpers.mjs';
-import { createOrder, voidOrder } from '../../src/lib/db/orders.mjs';
+import { acquireSuiteLock, resetDb, closeDb, q, one, count, createOrder } from './helpers.mjs';
+import { voidOrder } from '../../src/lib/db/orders.mjs';
 import { syncOrderJournals } from '../../src/lib/accounts/post.mjs';
 import {
     postManualJournal, cleanLines, MANUAL_SOURCE_TYPE, MANUAL_VOUCHER_TYPE,

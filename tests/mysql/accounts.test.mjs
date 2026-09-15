@@ -16,8 +16,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { acquireSuiteLock, resetDb, closeDb, q, one, count, TAX } from './helpers.mjs';
-import { createOrder, settleOrder, voidOrder } from '../../src/lib/db/orders.mjs';
+import { acquireSuiteLock, resetDb, closeDb, q, one, count, TAX, createOrder } from './helpers.mjs';
+import { settleOrder, voidOrder } from '../../src/lib/db/orders.mjs';
 import {
     syncOrderJournals, afterSettleGl, afterVoidGl, ORDER_SOURCE_TYPES,
 } from '../../src/lib/accounts/post.mjs';
@@ -409,11 +409,21 @@ test('g. 150 random carts: every journal balances exactly and the sale credits e
                 name: `Cart${i} line${j}`,
                 price: randInt(1, 5000),
                 qty: randInt(1, 5),
-                ...(Math.random() < 0.5 ? { id: fx.menuItem.id } : {}),
+                /*
+                 * Half the lines are mapped to a real dish, which is what this
+                 * test is about: revenue resolves menu item → category →
+                 * default. They carry THAT DISH'S price, because the server
+                 * prices every line from the menu now and a claimed price is
+                 * ignored — so a mapped line claiming Rs 2,962 would ring at
+                 * the dish's Rs 1,200 and the arithmetic below would be a test
+                 * of nothing.
+                 */
+                ...(Math.random() < 0.5 ? { id: fx.menuItem.id, price: Number(fx.menuItem.price) } : {}),
             }));
             const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
-            // Below the subtotal on purpose: a fully comped bill has a zero
-            // total and cannot be settled (payments CHECK amount <> 0).
+            // Kept below the subtotal so these carts exercise a partial
+            // discount. A fully comped bill settles fine now — it writes no
+            // payment row, because no money moved — and test 23 covers it.
             const discount = Math.random() < 0.5 ? 0 : randInt(0, subtotal - 1);
             const label = `cart ${i}: method=${method} type=${orderType} includeTax=${includeTax} discount=${discount} ` +
                 `items=${JSON.stringify(items.map(({ price, qty, id }) => [price, qty, id ? 'mapped' : '-']))}`;

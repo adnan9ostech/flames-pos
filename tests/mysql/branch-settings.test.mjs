@@ -17,8 +17,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { acquireSuiteLock, resetDb, closeDb, q, TAX } from './helpers.mjs';
-import { createOrder } from '../../src/lib/db/orders.mjs';
+import { acquireSuiteLock, resetDb, closeDb, q, TAX, createOrder } from './helpers.mjs';
 import { settingsFor, taxRatesFor } from '../../src/lib/db/branchSettings.mjs';
 
 const LAHORE = 2;

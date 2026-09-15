@@ -172,6 +172,14 @@ export async function recordSupplierPayment({ supplierId, amount, method = 'cash
         if (!PAYMENT_METHODS.includes(method)) return { error: `Unknown payment method: ${method}` }
         const ref = String(reference ?? '').trim().slice(0, 64) || null
 
+        /*
+         * Resolved BEFORE the transaction opens. Working the branch out reads from
+         * the pool, and a pool read taken while this transaction holds one of the
+         * pool's five connections is how the whole app wedges: five of these at
+         * once and each waits for a sixth connection the five of them hold.
+             */
+        const branchId = await currentBranchId()
+
         const payment = await withTransaction(async (conn) => {
             const [suppliers] = await conn.query(
                 'SELECT id, name FROM suppliers WHERE id = ?', [id],
@@ -182,7 +190,7 @@ export async function recordSupplierPayment({ supplierId, amount, method = 'cash
                 // The till the money left is a branch's till.
                 `INSERT INTO supplier_payments (branch_id, supplier_id, amount, method, reference)
                  VALUES (?, ?, ?, ?, ?)`,
-                [await currentBranchId(), id, money(amt), method, ref],
+                [branchId, id, money(amt), method, ref],
             )
 
             await auditTx(conn, 'supplier_payment', {

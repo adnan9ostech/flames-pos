@@ -10,10 +10,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { acquireSuiteLock, resetDb, closeDb, q, one, count, TAX } from './helpers.mjs';
-import {
-    createOrder, appendRound, settleOrder, voidOrder, bumpOrder,
-} from '../../src/lib/db/orders.mjs';
+import { acquireSuiteLock, resetDb, closeDb, q, one, count, TAX, createOrder, appendRound } from './helpers.mjs';
+import { settleOrder, voidOrder, bumpOrder } from '../../src/lib/db/orders.mjs';
 
 before(async () => {
     await acquireSuiteLock();

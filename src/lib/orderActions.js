@@ -10,12 +10,27 @@
  * the client: every action returns {data} on success or {error: message} on
  * failure, message verbatim, and the dataClient wrapper rethrows it intact.
  *
- * Authorization lives here, not in the verbs: requireUser on everything,
- * the `void` right on void — the gate that used to be a browser-side role
- * check.
+ * Authorization lives here, not in the verbs.
+ *
+ * It used to be `requireUser` on everything and the `void` right on void, and
+ * that was not what the rest of the system claimed. The permission map defines
+ * `pos` ("Take orders"), src/proxy.js enforces it on /pos, /api/orders/open
+ * requires it, and ROLE_DEFAULTS deliberately withholds it from `kitchen` and
+ * from `accountant` — whose own comment reads "Reads the money, never rings
+ * it: no POS, no voids". None of that reached the three verbs that create
+ * money, so a kitchen login rang and settled a Rs 1,420 cash sale from the
+ * Kitchen Display — the page it is supposed to be on, since these actions are
+ * bundled there — complete with a payment row, a fiscal invoice number and a
+ * posted sale journal.
+ *
+ * So each verb now asks for the right its own screen asks for:
+ *   pos              ring, add a round, settle
+ *   void             void
+ *   kds OR orders    move a ticket along (the kitchen and the counter both do)
+ *   menu             take a dish off sale (only Menu > Dishes offers it)
  */
 import { currentBranchId } from '@/lib/db/branch.mjs';
-import { requireUser, requirePermission } from '@/lib/db/auth.mjs';
+import { requireUser, requirePermission, requireAnyPermission } from '@/lib/db/auth.mjs';
 import {
     createOrder,
     appendRound,
@@ -73,12 +88,15 @@ const fireGlAfterVoid = (order) => {
  */
 export const addOrder = async (order) => {
     try {
-        const user = await requireUser();
+        const user = await requirePermission('pos');
         const data = await createOrder(
             order.items,
             {
                 // The outlet this sale belongs to, decided once, here.
                 branch_id: await currentBranchId(user),
+                // And who rang it. The audit trail carried no person on any
+                // sale before this: 199 rings and 159 settles with no actor.
+                userId: user.id,
                 payment_status: order.payment_status,
                 payment_mode: order.payment_mode,
                 cash_received: order.cash_received,
@@ -129,7 +147,7 @@ export const addOrder = async (order) => {
 
 export const appendRoundToOrder = async (orderId, newItems, details = {}, { clientRequestId } = {}) => {
     try {
-        await requireUser();
+        const user = await requirePermission('pos');
         // Only the keys the floor may correct mid-sitting, and only when the
         // till actually sent them — absent must stay absent, not become null.
         const opts = {
@@ -137,6 +155,7 @@ export const appendRoundToOrder = async (orderId, newItems, details = {}, { clie
             ...(details.table_number !== undefined && { table_number: details.table_number }),
             ...(details.waiter_id !== undefined && { waiter_id: details.waiter_id }),
             ...(details.waiter_name !== undefined && { waiter_name: details.waiter_name }),
+            userId: user.id,
         };
         // expectedTotal stays null: settle carries the money check.
         const data = await appendRound(orderId, newItems, clientRequestId || null, null, opts);
@@ -151,8 +170,9 @@ export const settleOrder = async (orderId, {
     expectedTotal, clientRequestId, companyId, cashReceived, cardReference,
 } = {}) => {
     try {
-        await requireUser();
+        const user = await requirePermission('pos');
         const data = await settleOrderVerb(orderId, {
+            userId: user.id,
             method: paymentMode,
             companyId: companyId || null,
             cashReceived: cashReceived ?? null,
@@ -205,7 +225,7 @@ export const cancelOrder = async (orderId, { reason } = {}) => {
             throw new Error('A reason is required to void an order.');
         }
 
-        const data = await voidOrder(orderId, reason.trim(), actor.name || actor.role);
+        const data = await voidOrder(orderId, reason.trim(), actor.name || actor.role, actor.id);
         if (data) { fireInventoryAfterVoid(data); fireGlAfterVoid(data); }
         return { data };
     } catch (e) {
@@ -215,7 +235,8 @@ export const cancelOrder = async (orderId, { reason } = {}) => {
 
 export const bumpOrder = async (orderId, fromStatus, toStatus) => {
     try {
-        await requireUser();
+        // The kitchen bumps from /kds, the counter from /orders.
+        await requireAnyPermission('kds', 'orders');
         const data = await bumpOrderVerb(orderId, fromStatus, toStatus);
         return { data };
     } catch (e) {
@@ -226,17 +247,25 @@ export const bumpOrder = async (orderId, fromStatus, toStatus) => {
 // 86'ing is a floor act, not an admin one — any signed-in role may flip it.
 export const setMenuItemAvailability = async (id, isAvailable) => {
     try {
-        await requireUser();
-        const data = await setItemAvailability(id, isAvailable);
+        // 86ing a dish is a menu act: only Menu > Dishes offers the switch,
+        // and the till deliberately stopped offering it.
+        const user = await requirePermission('menu');
+        const data = await setItemAvailability(id, isAvailable, user.id);
         return { data };
     } catch (e) {
         return { error: e.message };
     }
 };
 
+/*
+ * The delivery prefill. Wants `pos` rather than a bare session: the row it
+ * returns is a customer's name, their home address and what they have spent
+ * with the restaurant, and a kitchen login that holds only `kds` was able to
+ * read any of them by phone number.
+ */
 export const findCustomerByPhone = async (phone) => {
     try {
-        await requireUser();
+        await requirePermission('pos');
         if (!phone) return { data: null };
         const data = await readCustomerByPhone(String(phone).trim());
         return { data };

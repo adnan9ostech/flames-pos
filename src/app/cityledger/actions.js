@@ -143,6 +143,14 @@ export async function recordReceipt({
         if (!Number.isFinite(amt) || amt <= 0) return { error: 'The amount must be more than zero' }
         if (!RECEIPT_METHODS.includes(method)) return { error: `Unknown receipt method: ${method}` }
 
+        /*
+         * Resolved BEFORE the transaction opens. Working the branch out reads from
+         * the pool, and a pool read taken while this transaction holds one of the
+         * pool's five connections is how the whole app wedges: five of these at
+         * once and each waits for a sixth connection the five of them hold.
+             */
+        const branchId = await currentBranchId()
+
         const receipt = await withTransaction(async (conn) => {
             const [companies] = await conn.query(
                 'SELECT id, name FROM companies WHERE id = ?', [companyId],
@@ -166,7 +174,7 @@ export async function recordReceipt({
                 // journal it produces is filed at that outlet.
                 `INSERT INTO company_receipts (branch_id, company_id, invoice_id, amount, method, reference, memo)
                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [await currentBranchId(), companyId, invoice ? invoice.id : null, money(amt), method,
+                [branchId, companyId, invoice ? invoice.id : null, money(amt), method,
                     String(reference).trim() || null, String(memo).trim() || null],
             )
 

@@ -36,6 +36,15 @@ export { cleanLines, money, MANUAL_SOURCE_TYPE, MANUAL_VOUCHER_TYPE, OPENING_REF
  *   userId        the person posting — written to created_by and the audit
  */
 export const postManualJournal = async ({ businessDate, description, reference, notes, lines, userId }) => {
+    /*
+     * Unlike the posting engines, a manual journal has no source document to
+     * take a branch from — somebody is typing it, here, now. So it is filed at
+     * the branch they are working at, resolved before the transaction opens.
+     *
+ Resolved BEFORE the transaction opens. Working the branch out reads from the
+     */
+    const branchId = await requestBranchId();
+
     const bd = ymd(businessDate);
     const desc = clip(description, 191);
     if (!desc) throw new Error('A description is needed');
@@ -61,12 +70,6 @@ export const postManualJournal = async ({ businessDate, description, reference, 
         }
 
         await conn.query('SAVEPOINT manual_jv');
-        /*
-         * Unlike the posting engines, a manual journal has no source document
-         * to take a branch from — somebody is typing it, here, now. So it is
-         * filed at the branch they are working at.
-         */
-        const branchId = await requestBranchId();
         const voucherNo = await nextVoucherNo(conn, MANUAL_VOUCHER_TYPE, bd, branchId);
         const [result] = await conn.query(
             `INSERT INTO gl_journals
