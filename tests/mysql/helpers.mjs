@@ -97,9 +97,30 @@ export const resetDb = async () => {
         await pool.query(`DELETE FROM ${table}`);
     }
 
-    // Branch overrides are per-test facts, never fixtures: a rate left behind
-    // by one test would silently re-price every order in the next one.
-    await pool.query('DELETE FROM branch_settings');
+    /*
+     * Branch fixtures, children first.
+     *
+     * Every one of these tables gained a foreign key to `branches` when the
+     * books learned to file by outlet, so a test that created branch 2 and
+     * left a document behind makes the DELETE below fail — and a throw in a
+     * `before()` hook does not fail the file cleanly, it HANGS it with the
+     * suite lock still held, which stalls every other file behind it for the
+     * lock's full 300 seconds. That is a very expensive way to find out about
+     * a stray row, so the children go first.
+     *
+     * Overrides are per-test facts rather than fixtures: a branch price or a
+     * tax rate left behind by one test would silently re-price the next one.
+     */
+    for (const table of [
+        'branch_menu_items', 'branch_settings',
+        'waste_lines', 'waste_docs',
+        'stock_ledger', 'stock_doc_lines', 'stock_docs',
+        'stock_receiving_lines', 'stock_receivings',
+        'supplier_payments', 'company_receipts',
+        'notifications',
+    ]) {
+        await pool.query(`DELETE FROM ${table}`);
+    }
     await pool.query('DELETE FROM branches WHERE id <> 1');
 
     await pool.query('DELETE FROM store_settings');

@@ -13,6 +13,21 @@
 import { withTransaction } from './pool.mjs';
 import { writeAudit } from './audit.mjs';
 
+/*
+ * The outlet a goods-in or an adjustment happened at. Resolved lazily for the
+ * same reason openDay.mjs does it: this module is loaded by the suite and by a
+ * worker in plain Node, where `next/headers` does not exist. No request means
+ * the single outlet, which is what every existing row carries.
+ */
+const branchOfRequest = async () => {
+    try {
+        const { currentBranchId } = await import('./branch.mjs');
+        return await currentBranchId();
+    } catch {
+        return 1;
+    }
+};
+
 // DECIMAL(12,2) money, (12,3) receiving qty, (12,4) ledger qty and cost —
 // rounded before INSERT so "0.1+0.2" float dust never reaches a CHECK.
 const round2 = (n) => Math.round(n * 100) / 100;
@@ -112,9 +127,9 @@ const onHandByItem = async (conn, itemIds, warehouseId = null) => {
 /* Header + lines for transfer/adjustment/misc/count, which share one shape. */
 const insertDoc = async (conn, { docType, warehouseId, toWarehouseId = null, businessDate, reason = null, lines }) => {
     const [res] = await conn.query(
-        `INSERT INTO stock_docs (doc_type, warehouse_id, to_warehouse_id, business_date, reason)
-         VALUES (?, ?, ?, ?, ?)`,
-        [docType, warehouseId, toWarehouseId, businessDate, reason],
+        `INSERT INTO stock_docs (branch_id, doc_type, warehouse_id, to_warehouse_id, business_date, reason)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [await branchOfRequest(), docType, warehouseId, toWarehouseId, businessDate, reason],
     );
     await conn.query(
         'INSERT INTO stock_doc_lines (doc_id, inventory_item_id, qty) VALUES ?',
@@ -200,10 +215,10 @@ export const receiveStock = async ({
 
         const [res] = await conn.query(
             `INSERT INTO stock_receivings
-               (supplier_id, warehouse_id, draft_id, purchase_order_id, supplier_invoice,
-                business_date, total, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [supplier, warehouse, draft, po,
+               (branch_id, supplier_id, warehouse_id, draft_id, purchase_order_id,
+                supplier_invoice, business_date, total, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [await branchOfRequest(), supplier, warehouse, draft, po,
                 String(supplierInvoice ?? '').trim().slice(0, 64) || null,
                 businessDate, total,
                 String(notes ?? '').trim().slice(0, 191) || null],

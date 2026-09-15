@@ -37,7 +37,6 @@ export const STOCK_SOURCE_TYPES = Object.freeze({
     stockDoc: 'stock_doc',                // source_id = stock_docs.id
 });
 
-const BRANCH_ID = 1;
 
 const posted = (vouchers) => ({ status: 'posted', reason: null, vouchers });
 const skipped = (reason) => ({ status: 'skipped', reason, vouchers: [] });
@@ -76,16 +75,24 @@ const gate = async (conn, bd) => {
 
 /* Two lines, always: something against Inventory. */
 const postPair = async (conn, {
-    businessDate, sourceType, sourceId, description, debitAccount, creditAccount, amount, memo, userId,
+    branchId, businessDate, sourceType, sourceId, description,
+    debitAccount, creditAccount, amount, memo, userId,
 }) => {
-    const voucherNo = await nextVoucherNo(conn, 'JV', businessDate);
+    /*
+     * The branch comes from the DOCUMENT, never from whoever is looking. A
+     * cost-of-sales journal belongs to the outlet that sold the food, and it
+     * may well be posted by a background call with no request at all. This
+     * used to be the constant `BRANCH_ID = 1` — the shape the sweep for
+     * `branch_id = 1` could not see.
+     */
+    const voucherNo = await nextVoucherNo(conn, 'JV', businessDate, branchId);
     const [res] = await conn.query(
         `INSERT INTO gl_journals
            (branch_id, business_date, voucher_type, voucher_no, source_type, source_id,
             description, debit_total, credit_total, created_by)
          VALUES (?, ?, 'JV', ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE id = id`,
-        [BRANCH_ID, businessDate, voucherNo, sourceType, String(sourceId),
+        [branchId, businessDate, voucherNo, sourceType, String(sourceId),
             clip(description), amount, amount, userId],
     );
     // insertId is the honest signal under CLIENT_FOUND_ROWS: 0 means the
@@ -138,6 +145,7 @@ export const afterConsumeGl = (order, { userId = null } = {}) => run('cogs', asy
     if (skip) return skip;
 
     const voucher = await postPair(conn, {
+        branchId: Number(order.branch_id) || 1,
         businessDate: bd,
         sourceType: STOCK_SOURCE_TYPES.cogs,
         sourceId: order.id,
@@ -165,6 +173,7 @@ export const afterConsumeReversalGl = (order, { userId = null } = {}) => run('co
     if (skip) return skip;
 
     const voucher = await postPair(conn, {
+        branchId: Number(order.branch_id) || 1,
         businessDate: bd,
         sourceType: STOCK_SOURCE_TYPES.cogsReversal,
         sourceId: order.id,
@@ -188,9 +197,9 @@ export const afterWasteGl = (wasteDocId, { userId = null } = {}) => run('waste',
     if (await findJournal(conn, STOCK_SOURCE_TYPES.waste, id)) return posted([]);
 
     const [rows] = await conn.query(
-        `SELECT d.business_date, d.reason, COALESCE(SUM(l.cost), 0) AS cost
+        `SELECT d.branch_id, d.business_date, d.reason, COALESCE(SUM(l.cost), 0) AS cost
            FROM waste_docs d LEFT JOIN waste_lines l ON l.waste_doc_id = d.id
-          WHERE d.id = ? GROUP BY d.id, d.business_date, d.reason`,
+          WHERE d.id = ? GROUP BY d.id, d.branch_id, d.business_date, d.reason`,
         [id],
     );
     const w = rows[0];
@@ -205,6 +214,7 @@ export const afterWasteGl = (wasteDocId, { userId = null } = {}) => run('waste',
     if (skip) return skip;
 
     const voucher = await postPair(conn, {
+        branchId: Number(w.branch_id) || 1,
         businessDate: bd,
         sourceType: STOCK_SOURCE_TYPES.waste,
         sourceId: id,
@@ -238,7 +248,7 @@ export const afterStockDocGl = (docId, { userId = null } = {}) => run('stock doc
     if (await findJournal(conn, STOCK_SOURCE_TYPES.stockDoc, id)) return posted([]);
 
     const [rows] = await conn.query(
-        'SELECT id, doc_type, business_date, reason FROM stock_docs WHERE id = ?', [id],
+        'SELECT id, branch_id, doc_type, business_date, reason FROM stock_docs WHERE id = ?', [id],
     );
     const d = rows[0];
     if (!d) return skipped('stock document not found');
@@ -265,6 +275,7 @@ export const afterStockDocGl = (docId, { userId = null } = {}) => run('stock doc
     // net < 0 is stock leaving: a loss. net > 0 is stock found: a gain.
     const lost = net < 0;
     const voucher = await postPair(conn, {
+        branchId: Number(d.branch_id) || 1,
         businessDate: bd,
         sourceType: STOCK_SOURCE_TYPES.stockDoc,
         sourceId: id,

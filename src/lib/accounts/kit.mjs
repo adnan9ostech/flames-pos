@@ -10,9 +10,38 @@
  * re-exports from here, so the Next-side actions and the engines share one
  * definition of each.
  */
-import { query } from '../db/pool.mjs';
+import { openBusinessDate } from '../day/openDay.mjs';
+import { writeAudit } from '../db/audit.mjs';
 
-export const BRANCH_ID = 1;
+/*
+ * Which outlet, asked for LAZILY.
+ *
+ * `export const BRANCH_ID = 1` used to sit here and it was the default on four
+ * of the functions below, so the books were filed under branch 1 whoever was
+ * looking. A grep for `branch_id = 1` never found it: a named constant is the
+ * one shape that sweep could not see.
+ *
+ * Resolved the same way openDay.mjs and db/audit.mjs resolve it — a dynamic
+ * import inside the call, because working the branch out means reading a
+ * cookie, which means `next/headers`, which does not exist in the plain Node
+ * the suite and the FBR worker run this module under. Failing means "there is
+ * no request here", which answers 1: the single outlet, and exactly what every
+ * existing row carries.
+ *
+ * The posting engines do NOT rely on this. A journal belongs to the branch of
+ * the DOCUMENT it explains — the order's branch, the waste doc's branch — not
+ * to whoever happens to be looking at a screen, and each of them passes that
+ * in. This is the fallback for the handful of callers that genuinely mean
+ * "here, now".
+ */
+export const requestBranchId = async () => {
+    try {
+        const { currentBranchId } = await import('../db/branch.mjs');
+        return await currentBranchId();
+    } catch {
+        return 1;
+    }
+};
 
 /* Paise-exact. DECIMAL comes back as a JS number (pool sets decimalNumbers),
  * and a sum of those can carry float dust; every figure that reaches a
@@ -46,26 +75,11 @@ export const clip = (s, n = 191) => {
  * correction lands, so a closed day never gains a journal after its close.
  * Falls back to the Karachi calendar day if no day has been started.
  */
-export const currentBusinessDate = async (conn, branchId = BRANCH_ID) => {
-    const [rows] = await conn.query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = ? AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-        [branchId],
-    );
-    return rows.length ? ymd(rows[0].business_date) : todayKarachi();
-};
+export const currentBusinessDate = (conn, branchId = null) =>
+    openBusinessDate(branchId, conn);
 
 /* The same, off the pool, for an action that has no transaction open yet. */
-export const businessDate = async (branchId = BRANCH_ID) => {
-    const rows = await query(
-        `SELECT business_date FROM business_days
-         WHERE branch_id = ? AND closed_at IS NULL
-         ORDER BY business_date DESC LIMIT 1`,
-        [branchId],
-    );
-    return rows.length ? ymd(rows[0].business_date) : todayKarachi();
-};
+export const businessDate = (branchId = null) => openBusinessDate(branchId);
 
 /*
  * The next voucher number for a type on a day, minted under the counter
@@ -73,16 +87,26 @@ export const businessDate = async (branchId = BRANCH_ID) => {
  * posted in the same instant cannot share a number. Call inside a
  * transaction. SV-260902-0007.
  */
-export const nextVoucherNo = async (conn, voucherType, bd, branchId = BRANCH_ID) => {
+export const nextVoucherNo = async (conn, voucherType, bd, branchId) => {
+    /*
+     * REQUIRED, with no default on purpose. The counter is keyed
+     * (branch, day, type), so a default would not merely mislabel a voucher —
+     * it would mint two outlets' vouchers from one sequence and hand them the
+     * same number on the same day. Better to refuse than to collide.
+     */
+    const branch = Number(branchId);
+    if (!Number.isInteger(branch) || branch <= 0) {
+        throw new Error('nextVoucherNo needs the branch the voucher belongs to');
+    }
     await conn.query(
         `INSERT INTO gl_voucher_counters (branch_id, day, voucher_type, last_no)
          VALUES (?, ?, ?, 1)
          ON DUPLICATE KEY UPDATE last_no = last_no + 1`,
-        [branchId, bd, voucherType],
+        [branch, bd, voucherType],
     );
     const [rows] = await conn.query(
         'SELECT last_no FROM gl_voucher_counters WHERE branch_id = ? AND day = ? AND voucher_type = ?',
-        [branchId, bd, voucherType],
+        [branch, bd, voucherType],
     );
     const yymmdd = bd.slice(2).replace(/-/g, '');
     return `${voucherType}-${yymmdd}-${String(rows[0].last_no).padStart(4, '0')}`;
@@ -93,12 +117,10 @@ export const nextVoucherNo = async (conn, voucherType, bd, branchId = BRANCH_ID)
  * audit_log has staff_id for the actor (NULL for a machine posting) and
  * order_id for the bill a posting belongs to, when there is one.
  */
-export const audit = (conn, { branchId = BRANCH_ID, bd, action, orderId = null, details, userId = null }) =>
-    conn.query(
-        `INSERT INTO audit_log (branch_id, business_date, action, order_id, staff_id, details)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [branchId, bd, action, orderId, userId ?? null, JSON.stringify(details)],
-    );
+export const audit = (conn, { branchId = null, bd, action, orderId = null, details, userId = null }) =>
+    writeAudit(conn, {
+        branchId, businessDate: bd, action, orderId, staffId: userId ?? null, details,
+    });
 
 /* A strictly-positive integer id, or the error the caller wants to show. */
 export const requireId = (id, what = 'record') => {

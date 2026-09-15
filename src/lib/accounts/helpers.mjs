@@ -8,7 +8,7 @@ import { audit as auditKit } from './kit.mjs';
  * and be certain it is running on the server.
  */
 export {
-    BRANCH_ID, money, ymd, todayKarachi, karachiDayOf, clip,
+    requestBranchId, money, ymd, todayKarachi, karachiDayOf, clip,
     currentBusinessDate, businessDate, nextVoucherNo, requireId, requireDate,
 } from './kit.mjs';
 

@@ -17,7 +17,7 @@
  */
 import { withTransaction } from '../../../../lib/db/pool.mjs';
 import { VOUCHER_TYPES } from '../../../../lib/accounts/constants.mjs';
-import { BRANCH_ID, ymd, nextVoucherNo } from '../../../../lib/accounts/kit.mjs';
+import { requestBranchId, ymd, nextVoucherNo } from '../../../../lib/accounts/kit.mjs';
 import { cleanLines, clip, MANUAL_SOURCE_TYPE, MANUAL_VOUCHER_TYPE } from './jvRules.mjs';
 
 export { cleanLines, money, MANUAL_SOURCE_TYPE, MANUAL_VOUCHER_TYPE, OPENING_REFERENCE, OPENING_DESCRIPTION } from './jvRules.mjs';
@@ -61,7 +61,13 @@ export const postManualJournal = async ({ businessDate, description, reference, 
         }
 
         await conn.query('SAVEPOINT manual_jv');
-        const voucherNo = await nextVoucherNo(conn, MANUAL_VOUCHER_TYPE, bd);
+        /*
+         * Unlike the posting engines, a manual journal has no source document
+         * to take a branch from — somebody is typing it, here, now. So it is
+         * filed at the branch they are working at.
+         */
+        const branchId = await requestBranchId();
+        const voucherNo = await nextVoucherNo(conn, MANUAL_VOUCHER_TYPE, bd, branchId);
         const [result] = await conn.query(
             `INSERT INTO gl_journals
                (branch_id, business_date, voucher_type, voucher_no, source_type, source_id,
@@ -69,7 +75,7 @@ export const postManualJournal = async ({ businessDate, description, reference, 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'posted', ?, ?, ?)
              ON DUPLICATE KEY UPDATE id = id`,
             [
-                BRANCH_ID, bd, MANUAL_VOUCHER_TYPE, voucherNo, MANUAL_SOURCE_TYPE, voucherNo,
+                branchId, bd, MANUAL_VOUCHER_TYPE, voucherNo, MANUAL_SOURCE_TYPE, voucherNo,
                 desc, ref, clean.debitTotal, clean.creditTotal, userId,
             ],
         );
@@ -88,7 +94,7 @@ export const postManualJournal = async ({ businessDate, description, reference, 
         await conn.query(
             `INSERT INTO audit_log (branch_id, business_date, action, staff_id, details)
              VALUES (?, ?, 'gl_post_manual', ?, ?)`,
-            [BRANCH_ID, bd, userId, JSON.stringify({
+            [branchId, bd, userId, JSON.stringify({
                 journal_id: result.insertId,
                 voucher_type: MANUAL_VOUCHER_TYPE,
                 voucher_no: voucherNo,

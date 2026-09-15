@@ -11,6 +11,7 @@ import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
 import { writeAudit } from '@/lib/db/audit.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const RECEIPT_METHODS = ['cash', 'card', 'bank', 'cheque']
@@ -161,9 +162,11 @@ export async function recordReceipt({
             }
 
             const [result] = await conn.query(
-                `INSERT INTO company_receipts (company_id, invoice_id, amount, method, reference, memo)
-                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [companyId, invoice ? invoice.id : null, money(amt), method,
+                // The counter that took the money owns the receipt, and the
+                // journal it produces is filed at that outlet.
+                `INSERT INTO company_receipts (branch_id, company_id, invoice_id, amount, method, reference, memo)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [await currentBranchId(), companyId, invoice ? invoice.id : null, money(amt), method,
                     String(reference).trim() || null, String(memo).trim() || null],
             )
 

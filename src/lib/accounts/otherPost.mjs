@@ -69,7 +69,7 @@
  */
 import { withTransaction } from '../db/pool.mjs';
 import { VOUCHER_TYPES } from './constants.mjs';
-import { BRANCH_ID, money, ymd, karachiDayOf, clip, nextVoucherNo, audit } from './kit.mjs';
+import { money, ymd, karachiDayOf, clip, nextVoucherNo, audit } from './kit.mjs';
 
 /* The business events this module books, as gl_journals.source_type. */
 export const OTHER_SOURCE_TYPES = Object.freeze({
@@ -81,12 +81,12 @@ export const OTHER_SOURCE_TYPES = Object.freeze({
 
 /* The business day that was open at a moment: the day the recording action
  * itself stamped. Falls back to the calendar day of the moment. */
-const businessDayAt = async (conn, at) => {
+const businessDayAt = async (conn, at, branchId) => {
     const [rows] = await conn.query(
         `SELECT business_date FROM business_days
           WHERE branch_id = ? AND opened_at <= ? AND (closed_at IS NULL OR closed_at >= ?)
           ORDER BY business_date DESC LIMIT 1`,
-        [BRANCH_ID, at, at],
+        [branchId, at, at],
     );
     return rows.length ? ymd(rows[0].business_date) : karachiDayOf(at);
 };
@@ -191,7 +191,7 @@ const postJournal = async (conn, j) => {
     }
 
     await conn.query('SAVEPOINT journal');
-    const voucherNo = await nextVoucherNo(conn, j.voucherType, j.businessDate);
+    const voucherNo = await nextVoucherNo(conn, j.voucherType, j.businessDate, j.branchId);
     const [result] = await conn.query(
         `INSERT INTO gl_journals
            (branch_id, business_date, voucher_type, voucher_no, source_type, source_id,
@@ -199,7 +199,7 @@ const postJournal = async (conn, j) => {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'posted', ?, ?, ?)
          ON DUPLICATE KEY UPDATE id = id`,
         [
-            BRANCH_ID, j.businessDate, j.voucherType, voucherNo, j.sourceType, String(j.sourceId),
+            j.branchId, j.businessDate, j.voucherType, voucherNo, j.sourceType, String(j.sourceId),
             clip(j.description), j.reference == null ? null : clip(j.reference, 64),
             debitTotal, creditTotal, j.userId ?? null,
         ],
@@ -260,7 +260,7 @@ const posted = (vouchers) => ({ status: 'posted', reason: null, vouchers });
 
 const receiptTx = async (conn, receiptId, userId) => {
     const [rows] = await conn.query(
-        `SELECT r.id, r.company_id, r.invoice_id, r.amount, r.method, r.reference, r.received_at,
+        `SELECT r.id, r.branch_id, r.company_id, r.invoice_id, r.amount, r.method, r.reference, r.received_at,
                 c.name AS company_name, i.invoice_no
            FROM company_receipts r
            JOIN companies c ON c.id = r.company_id
@@ -272,7 +272,8 @@ const receiptTx = async (conn, receiptId, userId) => {
     if (!r) return skipped('receipt not found');
     if (await findJournal(conn, OTHER_SOURCE_TYPES.receipt, r.id)) return posted([]);
 
-    const bd = await businessDayAt(conn, r.received_at);
+    const branchId = Number(r.branch_id) || 1;
+    const bd = await businessDayAt(conn, r.received_at, branchId);
     const { skip } = await gate(conn, bd);
     if (skip) return skip;
 
@@ -284,6 +285,7 @@ const receiptTx = async (conn, receiptId, userId) => {
 
     const memo = r.reference ? `${r.method} · ${r.reference}` : r.method;
     const voucher = await postJournal(conn, {
+        branchId,
         businessDate: bd,
         voucherType: 'RV',
         sourceType: OTHER_SOURCE_TYPES.receipt,
@@ -321,7 +323,7 @@ export const afterReceiptGl = (receiptLike, { userId = null } = {}) =>
 
 const supplierPaymentTx = async (conn, paymentId, userId) => {
     const [rows] = await conn.query(
-        `SELECT p.id, p.supplier_id, p.amount, p.method, p.reference, p.paid_at, s.name AS supplier_name
+        `SELECT p.id, p.branch_id, p.supplier_id, p.amount, p.method, p.reference, p.paid_at, s.name AS supplier_name
            FROM supplier_payments p
            JOIN suppliers s ON s.id = p.supplier_id
           WHERE p.id = ?`,
@@ -331,7 +333,8 @@ const supplierPaymentTx = async (conn, paymentId, userId) => {
     if (!p) return skipped('supplier payment not found');
     if (await findJournal(conn, OTHER_SOURCE_TYPES.supplierPayment, p.id)) return posted([]);
 
-    const bd = await businessDayAt(conn, p.paid_at);
+    const branchId = Number(p.branch_id) || 1;
+    const bd = await businessDayAt(conn, p.paid_at, branchId);
     const { skip } = await gate(conn, bd);
     if (skip) return skip;
 
@@ -343,6 +346,7 @@ const supplierPaymentTx = async (conn, paymentId, userId) => {
 
     const memo = p.reference ? `${p.method} · ${p.reference}` : p.method;
     const voucher = await postJournal(conn, {
+        branchId,
         businessDate: bd,
         voucherType: 'PV',
         sourceType: OTHER_SOURCE_TYPES.supplierPayment,
@@ -379,7 +383,7 @@ export const afterSupplierPaymentGl = (paymentLike, { userId = null } = {}) =>
 
 const receivingTx = async (conn, receivingId, userId) => {
     const [rows] = await conn.query(
-        `SELECT r.id, r.supplier_id, r.warehouse_id, r.supplier_invoice, r.business_date, r.total,
+        `SELECT r.id, r.branch_id, r.supplier_id, r.warehouse_id, r.supplier_invoice, r.business_date, r.total,
                 s.name AS supplier_name, w.name AS warehouse_name,
                 (SELECT COUNT(*) FROM stock_receiving_lines l WHERE l.receiving_id = r.id) AS line_count
            FROM stock_receivings r
@@ -392,6 +396,7 @@ const receivingTx = async (conn, receivingId, userId) => {
     if (!r) return skipped('receiving not found');
     if (await findJournal(conn, OTHER_SOURCE_TYPES.receiving, r.id)) return posted([]);
 
+    const branchId = Number(r.branch_id) || 1;
     const bd = ymd(r.business_date);
     const { skip } = await gate(conn, bd);
     if (skip) return skip;
@@ -406,6 +411,7 @@ const receivingTx = async (conn, receivingId, userId) => {
 
     const n = Number(r.line_count);
     const voucher = await postJournal(conn, {
+        branchId,
         businessDate: bd,
         voucherType: 'JV',
         sourceType: OTHER_SOURCE_TYPES.receiving,
@@ -443,7 +449,7 @@ export const afterReceivingGl = (receivingLike, { userId = null } = {}) =>
 
 const drawerCloseTx = async (conn, sessionId, userId) => {
     const [rows] = await conn.query(
-        `SELECT id, business_date, cashier_role, closed_at, expected_amount, counted_amount, variance
+        `SELECT id, branch_id, business_date, cashier_role, closed_at, expected_amount, counted_amount, variance
            FROM drawer_sessions WHERE id = ?`,
         [sessionId],
     );
@@ -459,6 +465,7 @@ const drawerCloseTx = async (conn, sessionId, userId) => {
         : money(s.variance);
     if (variance === 0) return skipped('drawer counted to the rupee, so there is no variance to book');
 
+    const branchId = Number(s.branch_id) || 1;
     const bd = ymd(s.business_date);
     const { settings, skip } = await gate(conn, bd);
     if (skip) return skip;
@@ -470,6 +477,7 @@ const drawerCloseTx = async (conn, sessionId, userId) => {
     const short = variance < 0;
     const memo = `${s.cashier_role} drawer · ${short ? 'short' : 'over'}`;
     const voucher = await postJournal(conn, {
+        branchId,
         businessDate: bd,
         voucherType: 'JV',
         sourceType: OTHER_SOURCE_TYPES.drawerVariance,

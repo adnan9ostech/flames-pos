@@ -11,6 +11,7 @@ import { query, withTransaction } from '@/lib/db/pool.mjs'
 import { requirePermission } from '@/lib/db/auth.mjs'
 import { openBusinessDate } from '@/lib/day/openDay.mjs'
 import { writeAudit } from '@/lib/db/audit.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 
 /* Matches the CHECK on supplier_payments.method. */
 const PAYMENT_METHODS = ['cash', 'bank', 'cheque']
@@ -178,9 +179,10 @@ export async function recordSupplierPayment({ supplierId, amount, method = 'cash
             if (suppliers.length === 0) throw new Error('That supplier no longer exists')
 
             const [result] = await conn.query(
-                `INSERT INTO supplier_payments (supplier_id, amount, method, reference)
-                 VALUES (?, ?, ?, ?)`,
-                [id, money(amt), method, ref],
+                // The till the money left is a branch's till.
+                `INSERT INTO supplier_payments (branch_id, supplier_id, amount, method, reference)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [await currentBranchId(), id, money(amt), method, ref],
             )
 
             await auditTx(conn, 'supplier_payment', {

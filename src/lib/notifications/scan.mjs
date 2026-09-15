@@ -15,7 +15,7 @@
  */
 import { query } from '../db/pool.mjs';
 import { karachiDay } from '../day/karachi.mjs';
-import { raiseNotification, resolveMissing, BRANCH_ID } from '../db/notifications.mjs';
+import { raiseNotification, resolveMissing, branchOfRequest } from '../db/notifications.mjs';
 
 // A tab this old is not a long dinner, it is a bill somebody forgot. Three
 // hours clears a leisurely dine-in and still catches a table that walked.
@@ -73,7 +73,7 @@ const scanOpenDay = async () => {
         `SELECT business_date FROM business_days
           WHERE branch_id = ? AND closed_at IS NULL AND business_date < ?
           ORDER BY business_date`,
-        [BRANCH_ID, today],
+        [await branchOfRequest(), today],
     );
     return rows.map((r) => {
         const day = asDay(r.business_date);

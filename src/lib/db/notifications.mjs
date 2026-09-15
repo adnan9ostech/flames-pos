@@ -13,7 +13,27 @@
  */
 import { query } from './pool.mjs';
 
-export const BRANCH_ID = 1;
+/*
+ * Which outlet a notice belongs to, asked for lazily.
+ *
+ * This was `export const BRANCH_ID = 1`, and the bell is one of the places the
+ * constant did real damage rather than merely mislabelling a row: the dedupe
+ * key was unique company-wide, so two outlets low on the same ingredient
+ * produced ONE notice and the second scan quietly overwrote the first outlet's
+ * alert. Migration 049 widened the key to (branch, key); this makes the reads
+ * and writes agree with it.
+ *
+ * Lazy for the same reason as everywhere else — the scanner runs from an API
+ * route with a request and from the suite with none.
+ */
+export const branchOfRequest = async () => {
+    try {
+        const { currentBranchId } = await import('./branch.mjs');
+        return await currentBranchId();
+    } catch {
+        return 1;
+    }
+};
 
 /*
  * Raise one notice, or update the one that already says this.
@@ -46,7 +66,7 @@ export const raiseNotification = async ({
            created_at = IF(resolved_at IS NULL, created_at, UTC_TIMESTAMP(3)),
            resolved_at = NULL,
            updated_at = UTC_TIMESTAMP(3)`,
-        [BRANCH_ID, kind, severity, title, body, href, permission, dedupeKey, businessDate],
+        [await branchOfRequest(), kind, severity, title, body, href, permission, dedupeKey, businessDate],
     );
 };
 
@@ -66,7 +86,8 @@ export const resolveMissing = async (kinds, liveKeys) => {
                     SET resolved_at = UTC_TIMESTAMP(3)
                   WHERE resolved_at IS NULL AND branch_id = ? AND kind IN (?)
                     ${keys.length ? 'AND dedupe_key NOT IN (?)' : ''}`;
-    await query(sql, keys.length ? [BRANCH_ID, kinds, keys] : [BRANCH_ID, kinds]);
+    const branchId = await branchOfRequest();
+    await query(sql, keys.length ? [branchId, kinds, keys] : [branchId, kinds]);
 };
 
 /* Open notices this person may see, worst first, then newest. */
@@ -77,7 +98,7 @@ export const listNotifications = async (perms = [], limit = 50) => {
           WHERE resolved_at IS NULL AND branch_id = ?
           ORDER BY FIELD(severity, 'urgent', 'warn', 'info'), created_at DESC
           LIMIT ?`,
-        [BRANCH_ID, Number(limit) || 50],
+        [await branchOfRequest(), Number(limit) || 50],
     );
     // Filtered here rather than in SQL: the permission list is short, and a
     // NULL permission means "anyone on the floor", which is fiddly to express
