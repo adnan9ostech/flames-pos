@@ -1504,15 +1504,29 @@ cannot be loaded by `node --test`. The tab only appears with a second branch.
 dine-in guest count, mandatory table/waiter, and warehouse-to-branch stock
 requests.
 
-**KNOWN GAP — the Accounts module still writes branch 1.** `BRANCH_ID = 1` is
-a named constant in `src/lib/accounts/kit.mjs` (and restated in
-`stockPost.mjs`), used by the audit writer, `businessDate`, `nextVoucherNo` and
-the manual-journal screen. The "zero literal branch filters" sweep was a grep
-for `branch_id = 1`, which this constant does not match. Consequence: with a
-second outlet, every GL journal, voucher number and accounts audit row files
-under branch 1 and the books do not separate by outlet. Wants its own pass —
-per-branch voucher sequences are the fiddly part — before a second branch
-trades.
+**CLOSED 15 Sep — the Accounts module files by outlet.** `BRANCH_ID = 1` is
+gone from `kit.mjs`, `stockPost.mjs`, `otherPost.mjs` and
+`src/lib/db/notifications.mjs`. The rule: **a journal belongs to the branch of
+the DOCUMENT it explains**, not to whoever is looking — most of these post from
+a background call with no request at all. `post.mjs` already worked this way;
+the rest now match.
+
+`nextVoucherNo` REQUIRES a branch and throws without one. The counter is keyed
+(branch, day, type), so a default would mint two outlets' vouchers from one
+sequence and hand them the same number on the same day. `branch-books.test.mjs`
+asserts both outlets' first sale of a day come back ending `-0001`.
+
+Migration 048 gave `company_receipts`, `supplier_payments`, `stock_receivings`
+and `stock_docs` a `branch_id` (DEFAULT 1 — every existing row really was the
+one outlet). Migration 049 widened the notification dedupe key to
+(branch, key): it was company-wide, so two outlets low on the same ingredient
+produced ONE notice and the second scan erased the first branch's alert.
+
+**Trap worth remembering:** `resetDb` in the test helpers must delete
+branch-referencing rows BEFORE `DELETE FROM branches`. A throw in a `before()`
+hook does not fail the file cleanly — it hangs it holding the suite lock and
+stalls every other file for the lock's full 300s, which looks like an
+inexplicably frozen suite rather than a failing test.
 
 Verified: 160 tests, build green, twenty-two screens loaded in a real browser
 with a clean console, and a live two-branch proof — the same Rs 1,000 bill
