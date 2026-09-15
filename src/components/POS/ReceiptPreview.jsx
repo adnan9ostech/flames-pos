@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { generateEMVCoPayload } from '@/lib/emvco';
 import { formatNumber as money } from '@/lib/money';
 import { applyPaperWidth } from '@/lib/printReceipt';
-import { getSettings } from '@/app/settings/actions';
+import { getEffectiveSettings } from '@/app/settings/actions';
 import { formatDateTime } from '@/lib/timeFormat';
 import styles from './ReceiptPreview.module.css';
 
@@ -106,7 +106,7 @@ const ReceiptPreview = ({
     const [settingsLoaded, setSettingsLoaded] = useState(false);
 
     useEffect(() => {
-        getSettings()
+        getEffectiveSettings()
             .then((s) => {
                 setSettings(s);
                 // Before the paper is measured, not after: the preview lays out

@@ -16,7 +16,7 @@ import { useRealtimeTable } from '@/lib/useRealtimeTable';
 import { calcTotals, itemRound, DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 import { getOrderNumber, formatOrderDate } from '@/lib/orderDisplay';
 import { loadCartDraft, saveCartDraft, clearCartDraft } from '@/lib/cartDraft';
-import { getSettings } from '@/app/settings/actions';
+import { getEffectiveSettings } from '@/app/settings/actions';
 import { printReceipt, applyPaperWidth } from '@/lib/printReceipt';
 import { printReceiptViaAgent, printKotViaAgent, openCashDrawerViaAgent } from '@/lib/thermalAgent';
 import { reportEvent } from '@/app/notifications/actions';
@@ -324,7 +324,7 @@ export default function POSPage() {
         getTaxRates().then(r => r && setTaxRates(r));
         listActiveCharges().then(r => r?.data && setActiveCharges(r.data)).catch(() => {});
         listActiveTables().then(r => r?.data && setFloorTables(r.data)).catch(() => {});
-        getSettings().then(s => {
+        getEffectiveSettings().then(s => {
             setAutoPrint(s?.auto_print !== false);
             // normalizeKotMode inside buildKotSlips guards the value, so an
             // older row with no column simply prints the default.

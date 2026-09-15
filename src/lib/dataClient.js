@@ -20,7 +20,7 @@ import {
     findCustomerByPhone as findCustomerByPhoneAction,
     getWaiters as getWaitersAction,
 } from '@/lib/orderActions';
-import { getSettings } from '@/app/settings/actions';
+import { getEffectiveSettings } from '@/app/settings/actions';
 import { DEFAULT_TAX_RATE } from '@/lib/orderTotals.mjs';
 
 // Mirrored as a literal: the server-side definition lives in a module that
@@ -214,7 +214,7 @@ export const getTaxRates = async () => {
     if (taxRatesCache !== null) return taxRatesCache;
     let row = null;
     try {
-        row = await getSettings();
+        row = await getEffectiveSettings();
     } catch (e) {
         console.error('Error fetching tax rates:', e);
     }

@@ -14,7 +14,7 @@ import { buildKotSlips, printKotSlip, runPrintQueue, DEFAULT_KOT_MODE } from '@/
 import { applyPaperWidth } from '@/lib/printReceipt';
 import { printKotViaAgent } from '@/lib/thermalAgent';
 import KotSlips from '@/components/POS/KotSlips';
-import { getSettings } from '@/app/settings/actions';
+import { getEffectiveSettings } from '@/app/settings/actions';
 import LiveClock from '@/components/Layout/LiveClock';
 import { UtensilsCrossed, Volume2, VolumeX, Maximize2, UserRound, Layers, Printer, Loader2 } from 'lucide-react';
 
@@ -296,7 +296,7 @@ export default function KDSPage() {
          * paper is. Neither is fatal — an unreadable settings row leaves the
          * defaults, and the reprint still produces paper.
          */
-        getSettings().then(settings => {
+        getEffectiveSettings().then(settings => {
             setKotMode(settings?.kot_mode || DEFAULT_KOT_MODE);
             // This board prints incoming rounds only when the store routes
             // tickets here (anything but an explicit 'till') and the kitchen

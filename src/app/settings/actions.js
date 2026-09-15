@@ -20,6 +20,37 @@ export async function getSettings() {
     }
 }
 
+/*
+ * The settings AS THEY APPLY WHERE YOU ARE STANDING.
+ *
+ * getSettings above returns the company row, which is right for the Settings
+ * screens — that is the row they edit. It is wrong for the till, the kitchen
+ * display and the receipt, which need the outlet's own answers: its tax rate,
+ * its authority, its bill footer, its float.
+ *
+ * Getting this wrong had a hard consequence. The till priced tax from the
+ * company row while the server priced it from the branch row, so at an outlet
+ * with its own rate the two numbers disagreed and the expected-total check
+ * refused the settle — "Total mismatch … reload before settling", which
+ * reloading could never fix, because the till would compute the company rate
+ * again. A second branch could not take a single cash sale. On the pay-now
+ * path it was quieter and no better: the screen showed one total and the bill
+ * printed another.
+ */
+export async function getEffectiveSettings() {
+    try {
+        const user = await requireUser()
+        const { settingsFor } = await import('@/lib/db/branchSettings.mjs')
+        const { currentBranchId } = await import('@/lib/db/branch.mjs')
+        return await settingsFor(await currentBranchId(user))
+    } catch (e) {
+        // Same contract as getSettings: null rather than a thrown error, which
+        // production would redact into something unreadable.
+        console.error('Error fetching effective settings:', e.message)
+        return null
+    }
+}
+
 export async function updateSettings(formData) {
     try {
         await requirePermission('settings')

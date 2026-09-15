@@ -1531,3 +1531,77 @@ inexplicably frozen suite rather than a failing test.
 Verified: 160 tests, build green, twenty-two screens loaded in a real browser
 with a clean console, and a live two-branch proof — the same Rs 1,000 bill
 taxed 15% at Islamabad and 5% at Lahore in the same run.
+
+## AUDIT IN PROGRESS — paused 15 Sep 2026, resume here
+
+A full end-to-end audit was run: seventeen specialist agents driving the live
+app plus my own pass. **Thirteen of seventeen areas reported (148 findings);
+the adversarial verification stage never ran** because the probes saturated the
+concurrency cap. So:
+
+- `docs/audit-agent-findings.md` — every agent finding, verbatim, with its own
+  repro and evidence. **Unverified. Treat each as a lead, not a fact.** Several
+  I checked turned out to be the agents' own test data (see below).
+- `docs/audit-reproduced-findings.md` — the ones I reproduced FIRST-HAND, with
+  the exact commands and what I observed.
+
+### Fixed and verified (five commits, all pushed)
+
+| What | Was |
+|---|---|
+| **Price authority** | `unit_price` was whatever the browser sent. A cashier rang a Rs 8,995 dish at Rs 1 — real menu_item_id, bill settled Rs 2, fiscal invoice FBR-260904-0127 minted, journal SV-260904-0055 posted. `pricedLines` now computes every line from the menu (size, modifiers from the modifiers table), and refuses a dish or size that is not there. |
+| **`pos` never enforced** | A `kitchen` login (kds only) rang and settled Rs 1,420 cash **from the Kitchen Display** — the actions are bundled into that page. Each verb now asks for its screen's right: `pos` to ring/append/settle, `kds` OR `orders` to bump, `menu` to 86 a dish, `pos` to read a customer. |
+| **Nobody knew who** | staff_id was NULL on all 199 creates and 159 settles. Threaded through; voids already carried `cancelled_by`. |
+| **Pool could stop the restaurant** | 5 connections, no acquire timeout: five transactions each asking the pool for one more wait FOREVER. Five such paths existed, all mine from the branch work. Fixed at source; the pool now refuses in 8s with words a cashier can act on. |
+| **Sticky bill state** | `clearOrderFields` forgot `includeTax` and `channelId`. One untaxed bill untaxed every bill after it — with fiscal invoice numbers. |
+| **Comped bill unclosable** | Settle wrote a payment row unconditionally against `CHECK (amount <> 0)`; the cashier saw raw MySQL. A zero total now writes no row. |
+| **Two dead screens** | `/accounts/health` and `/inventory/reports` both died on an "Illegal mix of collations". The pool never set a charset, so mysql2 chose `utf8mb4_unicode_ci` against a `0900_ai_ci` schema and any `CAST(… AS CHAR)` became uncomparable. Fixed on the connection. |
+| **Four reports read every outlet** | handover (the cash sheet), the dashboard tiles (which resolved the branch then ignored it), gross profit, menu analytics. |
+| **Gross profit claimed 100% margin on 126 of 129 recipes** | `hasRecipe` tested `!== null`; the roll-up returns 0.00 for a recipe whose ingredients have no price. |
+| **Accounts books read consolidated** | Trial balance, income statement, balance sheet, cash register. Each outlet's books now balance on their own (branch 1 Rs 11,234,076.76, branch 2 Rs 19,998). |
+| **Branch tax split the till from the server** | `dataClient.getTaxRates()` read the company row while the server read the branch row, so a second branch could not settle a single cash sale. New `getEffectiveSettings()` serves the operational screens; `getSettings()` still serves the editors, which edit the company row. |
+| **`no-undef` was off** | Plain JS, no type checker. The `const` inside the authenticating try, read after it, has shipped FOUR times. Now on — it caught its fourth in the export route before it shipped. `globals` pinned as a devDependency. |
+
+### Claims I checked that were NOT real
+
+- "82 settled bills worth Rs 80,722 never reached the ledger" — after the
+  ledger's 1 Sep start date only **four** are unposted, and all four are this
+  audit's own test orders. June/August bills predate the start date and are
+  correctly skipped. **No real revenue is missing from the books.**
+- "Session cookies are forgeable" — the code requires 32+ chars and the dev
+  value is a placeholder-shaped string. It is a **config** finding (the check is
+  length-only, no entropy test), not a code defect. **Confirm production's
+  SESSION_SECRET is not the dev value.**
+
+### Next, in this order
+
+1. **Re-run the audit workflow** for the four areas that never reported (menu,
+   inventory, branches, failure, perf, ux, regression) and, more importantly,
+   **run the verification stage** — 148 findings are still unverified.
+2. High-value findings I confirmed but did NOT fix:
+   - **Branch price override is ignored for sized dishes** (44 of 137 dishes —
+     the expensive ones). `branch_menu_items` has one price column and no size
+     dimension. Needs `variant_name` in the key and a row per size on the
+     Branch prices screen. **My bug from 14 Sep; my verification that day used
+     the base price field, not a variant-priced order.**
+   - KDS: a single failed `/api/orders/kitchen` fetch blanks the board AND
+     re-fires every live ticket to the printer (the agent counted 172).
+   - Concurrency: two settle twins consume the recipe twice; a void racing a
+     settle passes the "already settled" guard (TOCTOU).
+   - FBR: two concurrent settle hooks can post one bill twice.
+   - Drawer: two open drawers each expect ALL the branch's cash; a drawer's
+     business day is frozen at open and never re-dated.
+   - Delivery: no document anywhere prints the address; a delivery with no
+     address is accepted and charged the fee.
+   - `next@16.1.4` has a CRITICAL advisory; 16.3.5 is a semver-minor fix that
+     also clears the postcss and sharp highs. **Not done — needs a build and a
+     full regression of its own.**
+3. **Dev data to clean up**: the audit created ~150 orders in `flames_pos_dev`,
+   tagged `ORCH-*`, `AUDIT-*`, `FIXCHECK*`, `REPAUDIT-*`, `Cart*`. Branches 2,
+   4 and 5 and a `flames_perfprobe` database are also test leftovers.
+4. **Dev passwords were changed** so the audit could test role boundaries:
+   manager / cashier / frontdesk / kitchen / accountant are all `audit1234`.
+   admin is unchanged. Reset them if that matters.
+
+**Verdict as it stands: NOT production ready** — but the reasons that made it
+not ready are now fixed, and what remains is the list above.
