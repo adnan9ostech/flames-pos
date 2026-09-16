@@ -108,6 +108,13 @@ const firedAt = (order) => new Date(order.last_round_at || order.created_at).get
 export default function KDSPage() {
     const brand = useBrand();
     const [orders, setOrders] = useState([]);
+    /*
+     * The poll failed and the board is showing the last good answer. Said out
+     * loud because a cooking board that is silently minutes behind is worse
+     * than one that admits it: the kitchen would go on trusting a screen that
+     * had stopped being told about new food.
+     */
+    const [lostContact, setLostContact] = useState(false);
     const [imageMap, setImageMap] = useState({});
     // The menu, kept whole: the slip builder resolves a line's station through
     // menu_items.category_id, so the board needs categories as well as photos.
@@ -270,8 +277,21 @@ export default function KDSPage() {
             }
 
             setOrders(active);
+            setLostContact(false);
         } catch (error) {
+            /*
+             * Keep the board exactly as it is, and say so.
+             *
+             * The old handler logged and moved on, but the read it called
+             * returned [] on failure — so the board had ALREADY blanked and
+             * already forgotten which tickets it had seen, and the next good
+             * poll reprinted every live ticket as fresh food. Nothing here
+             * touches `orders` or `knownIds`: stale food on screen is a
+             * cooking board a second behind, while an empty one is a kitchen
+             * told there is nothing to make.
+             */
             console.error('Failed to load KDS orders', error);
+            setLostContact(true);
         }
     }, [chime]);
 
@@ -467,8 +487,17 @@ export default function KDSPage() {
                     <div>
                         <h1 className={styles.title}>Kitchen Display</h1>
                         <div className={styles.subtitle}>
-                            <span className={styles.liveDot} />
-                            Live service
+                            {lostContact ? (
+                                <>
+                                    <span className={styles.staleDot} />
+                                    Lost contact — showing the last tickets it received
+                                </>
+                            ) : (
+                                <>
+                                    <span className={styles.liveDot} />
+                                    Live service
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

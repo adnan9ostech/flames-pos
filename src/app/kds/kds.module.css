@@ -39,6 +39,24 @@
 /* The restaurant's name, for an install with no logo file. Sized to sit on
    the same baseline as the image it replaces so the divider beside it does not
    move. */
+/* The live dot's unhappy twin: the poll is failing and the board is showing
+   the last answer it got. Amber rather than red — the food on screen is real,
+   it is only the "is there more" that has stopped arriving. */
+.staleDot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warning, #d97706);
+    margin-right: 0.4rem;
+    animation: stalePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes stalePulse {
+    0%, 100% { opacity: 1 }
+    50% { opacity: 0.35 }
+}
+
 .logoText {
     font-size: 1.5rem;
     font-weight: 700;

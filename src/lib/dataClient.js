@@ -134,14 +134,22 @@ export const getFullMenuData = async () => {
 
 // ==================== ORDER READS ====================
 
-export const getKitchenOrders = async () => {
-    try {
-        return await fetchJson('/api/orders/kitchen');
-    } catch (e) {
-        console.error('Error fetching kitchen orders:', e);
-        return [];
-    }
-};
+/*
+ * THROWS on failure, and that is the whole point.
+ *
+ * This used to swallow the error and return [], which the kitchen display
+ * could not tell from "there is no food to cook". One failed poll — a restart,
+ * a pool hiccup, a 500 — therefore did two things: it blanked the board to
+ * "No tickets" mid-service, and it emptied the board's memory of which
+ * tickets it had already seen. The next successful poll then treated EVERY
+ * live ticket as brand new: it chimed, and it spooled every one of them to the
+ * kitchen printer as fresh food to cook, unmarked as a reprint.
+ *
+ * The caller now decides what a failure means, which is the only place that
+ * can know: for the board it means "keep showing what you have and say you
+ * have lost contact".
+ */
+export const getKitchenOrders = async () => fetchJson('/api/orders/kitchen');
 
 export const getOpenTabs = async () => {
     try {
