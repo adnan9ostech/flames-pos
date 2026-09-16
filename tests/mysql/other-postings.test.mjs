@@ -85,7 +85,14 @@ const insertSupplierPayment = async ({ amount, method, reference = null }) => {
     return one('SELECT * FROM supplier_payments WHERE id = ?', [res.insertId]);
 };
 
-const insertClosedSession = async ({ businessDate, expected, counted, open = false }) => {
+/*
+ * `closedAt` matters now: the variance journal dates itself by the day that
+ * was open when the drawer was COUNTED, not by the day the session opened —
+ * a till opened before a day-close and counted after it used to post onto the
+ * earlier, already-closed day. Defaults to noon on the session's own day,
+ * which is the ordinary case: opened and counted within one shift.
+ */
+const insertClosedSession = async ({ businessDate, expected, counted, open = false, closedAt = null }) => {
     const variance = money(counted - expected);
     const [res] = await pool.query(
         open
@@ -94,8 +101,10 @@ const insertClosedSession = async ({ businessDate, expected, counted, open = fal
             : `INSERT INTO drawer_sessions
                  (branch_id, business_date, cashier_role, opening_float, closed_at,
                   expected_amount, counted_amount, variance)
-               VALUES (1, ?, 'cashier', 5000, UTC_TIMESTAMP(3), ?, ?, ?)`,
-        open ? [businessDate] : [businessDate, expected, counted, variance],
+               VALUES (1, ?, 'cashier', 5000, ?, ?, ?, ?)`,
+        open
+            ? [businessDate]
+            : [businessDate, closedAt ?? `${businessDate} 12:00:00`, expected, counted, variance],
     );
     return one('SELECT * FROM drawer_sessions WHERE id = ?', [res.insertId]);
 };
@@ -351,7 +360,8 @@ test('c. a drawer close Rs 150 short posts one balanced journal against cash ove
     assert.equal(jv.voucher_type, 'JV');
     assert.equal(jv.reference, `DRW-${short.id}`);
     assert.equal(jv.description, 'Drawer close cashier · short');
-    assert.equal(ymd(jv.business_date), '2026-08-15', 'the variance sits on the session\'s own trading day');
+    assert.equal(ymd(jv.business_date), '2026-08-15',
+        'counted within its own shift, the variance sits on that trading day');
     assert.equal(jv.created_by, fx.users.cashier);
     const lines = await assertBalanced(jv);
     assert.deepEqual(shape(lines), shape([
@@ -396,6 +406,41 @@ test('c. a drawer close Rs 150 short posts one balanced journal against cash ove
     const all = await q('SELECT * FROM gl_journals ORDER BY id');
     assert.ok(all.length >= 7);
     for (const j of all) await assertBalanced(j);
+});
+
+test('c2. a till counted after the day closed books its variance on the day it was counted', async () => {
+    /*
+     * The case the old rule got wrong. A session's business_date is stamped
+     * when it opens and never re-dated, so a till opened before a day-close
+     * and counted after it posted its variance onto the EARLIER day — a day
+     * whose cash had already been reconciled and signed off, and which the
+     * books had finished with.
+     *
+     * The discrepancy is a fact discovered at the count. It belongs to the day
+     * that was open when the count happened.
+     */
+    const opened = '2026-08-20';
+    const counted = '2026-08-21';
+    await q(
+        `INSERT INTO business_days (branch_id, business_date, opened_at)
+         VALUES (1, ?, ?) AS n ON DUPLICATE KEY UPDATE opened_at = n.opened_at`,
+        [counted, `${counted} 06:00:00`],
+    );
+
+    const late = await insertClosedSession({
+        businessDate: opened,
+        expected: 10000,
+        counted: 9900,
+        closedAt: `${counted} 02:30:00`,
+    });
+
+    const result = await afterDrawerCloseGl(late.id, { userId: fx.users.cashier });
+    assert.equal(result.status, 'posted', result.reason);
+    const jv = await journalFor(OTHER_SOURCE_TYPES.drawerVariance, late.id);
+    assert.equal(ymd(jv.business_date), counted,
+        'the variance lands on the open day, not on the closed one it was opened in');
+    assert.notEqual(ymd(jv.business_date), opened);
+    await assertBalanced(jv);
 });
 
 test('d. the switches are honoured: posting off, or a document before the start date, books nothing', async () => {

@@ -466,7 +466,21 @@ const drawerCloseTx = async (conn, sessionId, userId) => {
     if (variance === 0) return skipped('drawer counted to the rupee, so there is no variance to book');
 
     const branchId = Number(s.branch_id) || 1;
-    const bd = ymd(s.business_date);
+    /*
+     * The day the drawer was COUNTED, not the day it was opened.
+     *
+     * A session's business_date is stamped when it opens and never re-dated,
+     * so a till opened before a day-close and counted after it posted its
+     * variance onto the earlier day — a day already closed, whose cash had
+     * already been reconciled and signed off. The discrepancy is a fact
+     * discovered at the count, and it belongs to the day that was open when
+     * the count happened.
+     *
+     * businessDayAt is the same helper a receipt and a supplier payment use to
+     * date themselves by when the money actually moved; a session closed
+     * before any day-close exists falls back to that moment's calendar day.
+     */
+    const bd = await businessDayAt(conn, s.closed_at, branchId);
     const { settings, skip } = await gate(conn, bd);
     if (skip) return skip;
 
