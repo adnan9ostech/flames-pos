@@ -44,8 +44,19 @@ const initialForm = (dish) => ({
     modifiers: [...(dish?.modifiers || [])],
 });
 
-/* Exactly what the server action is sent — and, stringified, what "unsaved
- * changes" is measured against. */
+/*
+ * Exactly what the server action is sent — and, stringified, what "unsaved
+ * changes" is measured against.
+ *
+ * `modifiers` was missing from here, and it was missing twice over. The save
+ * therefore sent no modifier list at all, the action's cleanModifierKeys read
+ * `undefined` as "none", and the UPDATE wrote `[]` — so opening any dish and
+ * pressing Save silently unhooked every add-on it had. And because this same
+ * object is the dirty baseline, ticking a modifier did not register as a change
+ * either: the feature could destroy a dish's modifiers but never attach one,
+ * which is why 155 of this menu's 157 dishes carry an empty list under a UI
+ * that has always offered the ticks.
+ */
 const payloadOf = (form, dish) => ({
     id: dish?.id,
     name: form.name.trim(),
@@ -60,6 +71,7 @@ const payloadOf = (form, dish) => ({
     variants: form.priceMode === 'sizes'
         ? form.rows.map((r) => ({ name: r.name.trim(), price: String(r.price).trim() }))
         : [],
+    modifiers: form.modifiers,
 });
 
 export default function DishEditor({ dish = null, formData, onSaved, onDirtyChange }) {

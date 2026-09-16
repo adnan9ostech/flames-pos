@@ -91,6 +91,20 @@ export const slugKey = (name) => String(name ?? '')
 
 /* The modifier keys a dish links, restricted to keys that exist. */
 export const cleanModifierKeys = (input, knownKeys) => {
+    /*
+     * ABSENT IS NOT THE SAME AS NONE, and reading them as the same cost this
+     * menu its add-ons.
+     *
+     * The dish editor's payload omitted `modifiers` entirely, so this received
+     * `undefined`, answered `[]`, and the UPDATE wrote an empty list — every
+     * save silently unhooked whatever the dish had. An empty ARRAY is a real
+     * answer ("this dish has no add-ons") and stays legal; a missing field is
+     * a caller that forgot, and refusing it means the next one finds out at
+     * once instead of after the data is gone.
+     */
+    if (input === undefined || input === null) {
+        throw new Error('The modifier list is missing — reload the dish and save again');
+    }
     const known = new Set(knownKeys ?? []);
     const out = [];
     for (const k of Array.isArray(input) ? input : []) {

@@ -254,3 +254,33 @@ test('a branch sells the same menu, with only its own differences', async () => 
         await q('DELETE FROM menu_items WHERE id = ?', [dishId]);
     }
 });
+
+/*
+ * A dish's add-ons survive an ordinary save.
+ *
+ * They did not. The editor's payload object left `modifiers` out, so the save
+ * sent no list, cleanModifierKeys read `undefined` as "none", and the UPDATE
+ * wrote `[]` — opening any dish and pressing Save unhooked every add-on it
+ * had. The same object is the dirty baseline, so ticking a modifier did not
+ * even register as a change: the editor could destroy a dish's modifiers but
+ * never attach one. 155 of 157 dishes carry an empty list under a UI that has
+ * always offered the ticks.
+ *
+ * Two halves, so two guards. The payload now carries the list (asserted by the
+ * editor's own shape, which this suite cannot load) and the rule now refuses a
+ * MISSING list while still accepting an empty one — because "no add-ons" is a
+ * real answer and "you forgot to tell me" is not.
+ */
+test('the modifier rule tells an empty list from a missing one', () => {
+    const known = ['raita', 'spiciness'];
+
+    // A real answer: this dish has no add-ons.
+    assert.deepEqual(cleanModifierKeys([], known), []);
+
+    // A caller that forgot. Silently answering [] here is what wiped the menu.
+    assert.throws(() => cleanModifierKeys(undefined, known), /missing/);
+    assert.throws(() => cleanModifierKeys(null, known), /missing/);
+
+    // And the ordinary round trip, which is what a save must preserve.
+    assert.deepEqual(cleanModifierKeys(['raita', 'spiciness'], known), ['raita', 'spiciness']);
+});
