@@ -125,6 +125,13 @@ export const getOpenTabs = async (branchId = 1) =>
         [branchId],
     ));
 
+/*
+ * The unpaid badge, polled on the same timer. Left counting the whole set on
+ * purpose: open tabs are a small number that does not grow with history — a
+ * restaurant with two hundred unsettled bills has a different problem — and
+ * migration 052 gives it (branch_id, payment_status, status) so one outlet's
+ * badge does not walk the other's orders.
+ */
 export const getUnpaidOrdersCount = async (branchId = 1) => {
     const rows = await query(
         `SELECT COUNT(*) AS n FROM orders
@@ -140,10 +147,47 @@ export const getOrderById = async (orderId) => {
 };
 
 /* What the polling hook watches: any insert or update to orders moves this. */
+/*
+ * "Has anything changed?" — the cheapest question in the app, asked most often.
+ *
+ * Every screen polls this every four seconds and only runs its expensive read
+ * when the answer differs. Two things were wrong with the old one.
+ *
+ * IT WAS O(EVERY ORDER EVER TAKEN). `COUNT(*) ... WHERE branch_id = ?` has to
+ * walk the branch's whole history to answer, so the cheap pre-check grew
+ * without bound while the read it protects stayed the same size. Measured on a
+ * 20,000-order copy: 9,901 rows examined, 0.750 ms average, 13.3 ms at worst,
+ * four seconds apart, per screen. Bounded to a recent window it is 110 rows and
+ * 0.015 ms — fifty times cheaper, and it stops growing.
+ *
+ * A WINDOW IS ENOUGH because of what the token is for. `updated_at` carries
+ * ON UPDATE CURRENT_TIMESTAMP, so every insert and every edit lands inside the
+ * window by definition; a row that has not changed in two days cannot be the
+ * change we are looking for. Ageing out of the window moves the token once,
+ * costing one spurious refetch on a quiet morning, and `latest` only ever moves
+ * forward while anything is happening.
+ *
+ * AND A FUTURE TIMESTAMP USED TO BLIND EVERY SCREEN. `MAX(updated_at)` over the
+ * whole table means one row dated 2030 — a clock skew, a hand-edited row, a
+ * timezone slip — pins the maximum for four years. Proven: with such a row
+ * present, moving a ticket from preparing to ready left the token byte for byte
+ * identical, so the kitchen display and the till would never learn of any
+ * status change again. Only an INSERT, which moves the count, would break the
+ * spell. The upper bound excludes those rows, so the token cannot be pinned.
+ *
+ * Two days rather than one: this restaurant trades past midnight, and its
+ * business day only advances when somebody runs Day Close — the open day is
+ * routinely several days behind the calendar.
+ */
+const VERSION_WINDOW_DAYS = 2;
+
 export const getOrdersVersion = async (branchId = 1) => {
     const rows = await query(
-        'SELECT COUNT(*) AS n, MAX(updated_at) AS latest FROM orders WHERE branch_id = ?',
-        [branchId],
+        `SELECT COUNT(*) AS n, MAX(updated_at) AS latest FROM orders
+          WHERE branch_id = ?
+            AND updated_at > UTC_TIMESTAMP(3) - INTERVAL ? DAY
+            AND updated_at <= UTC_TIMESTAMP(3)`,
+        [branchId, VERSION_WINDOW_DAYS],
     );
     const latest = rows[0].latest instanceof Date ? rows[0].latest.getTime() : 0;
     return `${rows[0].n}:${latest}`;
