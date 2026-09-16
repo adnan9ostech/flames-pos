@@ -106,9 +106,35 @@ const findOpenSession = async (run, branchId, role, { forUpdate = false } = {}) 
  * they actually took cash out of it (paid_from 'drawer', status 'paid').
  */
 const sessionFlows = async (run, branchId, session) => {
+    /*
+     * THIS TILL'S cash, by session rather than by time window.
+     *
+     * The window summed every cash payment the branch took since this drawer
+     * opened, with no link to which till took it. Two drawers open at once —
+     * and `cashier` and `frontdesk` both hold `pos` and `drawer`, so two is
+     * the normal shape — both claimed the same notes, so the first to count
+     * came out level and every other reported a short made of the other
+     * till's takings.
+     *
+     * Payments now carry drawer_session_id (migration 051). Closed sessions
+     * froze their expected figure at close and do not recompute, so their
+     * history is untouched by the change of method.
+     */
     const cashRows = await run(
         `SELECT COALESCE(SUM(amount), 0) AS total FROM payments
-         WHERE branch_id = ? AND method = 'cash'
+         WHERE drawer_session_id = ? AND method = 'cash'`,
+        [session.id],
+    )
+
+    /*
+     * And the cash that belongs to no till: rung while every drawer was
+     * closed, so nobody's count includes it. Reported rather than folded into
+     * this session — it is real money, and the person counting needs to know
+     * it is not theirs to explain.
+     */
+    const orphanRows = await run(
+        `SELECT COALESCE(SUM(amount), 0) AS total FROM payments
+         WHERE branch_id = ? AND method = 'cash' AND drawer_session_id IS NULL
            AND paid_at >= ? AND paid_at <= UTC_TIMESTAMP(3)`,
         [branchId, session.opened_at],
     )
@@ -127,6 +153,7 @@ const sessionFlows = async (run, branchId, session) => {
     )
     return {
         cashSales: round2(cashRows[0].total),
+        unattributedCash: round2(orphanRows[0].total),
         paidIn: round2(moveRows[0].paid_in),
         paidOut: round2(moveRows[0].paid_out),
         drawerExpenses: round2(expenseRows[0].total),

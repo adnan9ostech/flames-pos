@@ -84,6 +84,14 @@ const TEST_USERS = [
 export const resetDb = async () => {
     for (const table of [
         'payments', 'order_items', 'order_rounds', 'fbr_invoices',
+        /*
+         * The till's own cash custody. These were never wiped, so a session
+         * left OPEN by one test changed what the next one saw — a sale rung
+         * with "no till open" quietly landed in a stranger's drawer, and the
+         * test that asserted otherwise failed for a reason nothing in it
+         * explained. Children first: movements reference their session.
+         */
+        'drawer_movements', 'drawer_sessions',
         'orders', 'audit_log', 'invoice_counters', 'business_days',
         // Charge config changes totals (the seeded 5% service charge broke
         // every dine-in expectation the day it landed) — tests that want a

@@ -369,6 +369,7 @@ class TwinExists extends Error {
  */
 const settleOrderTx = async (conn, orderId, {
     userId = null,
+    cashierRole = null,
     method = 'cash', discount = null, discountReason = null,
     includeTax = null, expectedTotal = null, clientRequestId = null,
     companyId = null, cashReceived = null, cardReference = null,
@@ -473,6 +474,36 @@ const settleOrderTx = async (conn, orderId, {
     }
 
     /*
+     * WHICH TILL took the cash.
+     *
+     * A drawer's expected cash was the sum of every cash payment the branch
+     * took since that drawer opened, because the payment row said nothing
+     * about which till it came through. On two tills — and `cashier` and
+     * `frontdesk` both hold `pos` and `drawer`, so two is the normal shape —
+     * both drawers claimed the same notes, and every drawer but the first to
+     * count reported a short made of the other till's takings.
+     *
+     * Only cash needs it: a card or city-ledger sale puts nothing in a
+     * drawer. NULL means no drawer was open, which is a real state and is now
+     * reported as its own line at close rather than folded into whichever
+     * session happened to be running.
+     *
+     * Sessions are keyed (branch, cashier_role) — one drawer per till — so the
+     * role is how a settle finds the right one. It is passed in rather than
+     * looked up: the wrapper already holds the account.
+     */
+    let drawerSessionId = null;
+    if (method === 'cash' && cashierRole) {
+        const [[open] = []] = await conn.query(
+            `SELECT id FROM drawer_sessions
+              WHERE branch_id = ? AND cashier_role = ? AND closed_at IS NULL
+              ORDER BY opened_at DESC LIMIT 1`,
+            [order.branch_id, cashierRole],
+        );
+        drawerSessionId = open?.id ?? null;
+    }
+
+    /*
      * A payment row records money that MOVED — which is why the column carries
      * CHECK (amount <> 0), and why a void writes a negative row rather than
      * deleting the original. A bill that comes to nothing (a fully comped
@@ -487,10 +518,11 @@ const settleOrderTx = async (conn, orderId, {
      */
     if (Number(order.total) !== 0) {
         await conn.query(
-            `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id, company_id, reference)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO payments (id, order_id, branch_id, method, amount, client_request_id,
+                                   company_id, reference, drawer_session_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [randomUUID(), orderId, order.branch_id, method, order.total, clientRequestId,
-             method === 'city_ledger' ? companyId : null, reference],
+             method === 'city_ledger' ? companyId : null, reference, drawerSessionId],
         );
     }
 
@@ -818,7 +850,7 @@ export const appendRound = async (orderId, items, clientRequestId = null, expect
  * this function trusts it, matching how the RPC trusted its caller, but the
  * gate now lives on the server instead of in the browser.
  */
-export const voidOrder = async (orderId, reason, by = null, userId = null) => {
+export const voidOrder = async (orderId, reason, by = null, userId = null, cashierRole = null) => {
     if (!reason || String(reason).trim() === '') throw new Error('A void needs a reason');
 
     const row = await withTransaction(async (conn) => {
@@ -839,10 +871,28 @@ export const voidOrder = async (orderId, reason, by = null, userId = null) => {
                 );
                 companyId = rows[0]?.company_id ?? null;
             }
+            /*
+             * The refund leaves the drawer that is OPEN NOW, not the one that
+             * took the money. If the original session has closed, its expected
+             * figure was frozen at close and cannot change — so attributing
+             * the refund there would leave the notes missing from a till that
+             * has to balance tonight.
+             */
+            let refundSessionId = null;
+            if (order.payment_mode === 'cash' && cashierRole) {
+                const [[open] = []] = await conn.query(
+                    `SELECT id FROM drawer_sessions
+                      WHERE branch_id = ? AND cashier_role = ? AND closed_at IS NULL
+                      ORDER BY opened_at DESC LIMIT 1`,
+                    [order.branch_id, cashierRole],
+                );
+                refundSessionId = open?.id ?? null;
+            }
             await conn.query(
-                `INSERT INTO payments (id, order_id, branch_id, method, amount, company_id)
-                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [randomUUID(), orderId, order.branch_id, order.payment_mode, -Number(order.total), companyId],
+                `INSERT INTO payments (id, order_id, branch_id, method, amount, company_id, drawer_session_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [randomUUID(), orderId, order.branch_id, order.payment_mode, -Number(order.total),
+                    companyId, refundSessionId],
             );
         }
 

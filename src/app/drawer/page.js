@@ -339,6 +339,20 @@ export default function DrawerPage() {
                                 <span className={styles.statLabel}>Cash sales</span>
                                 <span className={styles.statValue}>{money(state.cashSales)}</span>
                             </div>
+                            {/*
+                              * Cash rung while every drawer was closed. It is
+                              * real money that belongs to no till, so it is
+                              * shown rather than folded into this count — the
+                              * person counting needs to know it is not theirs
+                              * to explain. Hidden when there is none, which is
+                              * every ordinary shift.
+                              */}
+                            {state.unattributedCash > 0 && (
+                                <div className={styles.stat}>
+                                    <span className={styles.statLabel}>Cash with no open till</span>
+                                    <span className={styles.statValue}>{money(state.unattributedCash)}</span>
+                                </div>
+                            )}
                             <div className={styles.stat}>
                                 <span className={styles.statLabel}>Paid in</span>
                                 <span className={styles.statValue}>{money(state.paidIn)}</span>

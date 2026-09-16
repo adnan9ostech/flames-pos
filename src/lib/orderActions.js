@@ -173,6 +173,9 @@ export const settleOrder = async (orderId, {
         const user = await requirePermission('pos');
         const data = await settleOrderVerb(orderId, {
             userId: user.id,
+            // Drawer sessions are one per till, keyed by role — this is how
+            // the settle knows which drawer the notes went into.
+            cashierRole: user.role,
             method: paymentMode,
             companyId: companyId || null,
             cashReceived: cashReceived ?? null,
@@ -225,7 +228,7 @@ export const cancelOrder = async (orderId, { reason } = {}) => {
             throw new Error('A reason is required to void an order.');
         }
 
-        const data = await voidOrder(orderId, reason.trim(), actor.name || actor.role, actor.id);
+        const data = await voidOrder(orderId, reason.trim(), actor.name || actor.role, actor.id, actor.role);
         if (data) { fireInventoryAfterVoid(data); fireGlAfterVoid(data); }
         return { data };
     } catch (e) {
