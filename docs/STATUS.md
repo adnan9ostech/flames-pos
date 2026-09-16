@@ -1532,7 +1532,7 @@ Verified: 160 tests, build green, twenty-two screens loaded in a real browser
 with a clean console, and a live two-branch proof — the same Rs 1,000 bill
 taxed 15% at Islamabad and 5% at Lahore in the same run.
 
-## AUDIT IN PROGRESS — paused 15 Sep 2026, resume here
+## AUDIT — round one, 15 Sep 2026 (superseded by the round-two section below)
 
 A full end-to-end audit was run: seventeen specialist agents driving the live
 app plus my own pass. **Thirteen of seventeen areas reported (148 findings);
@@ -1605,3 +1605,95 @@ concurrency cap. So:
 
 **Verdict as it stands: NOT production ready** — but the reasons that made it
 not ready are now fixed, and what remains is the list above.
+
+
+## AUDIT ROUND TWO — 16 Sep 2026
+
+Resumed and worked to a four-hour budget. Twelve fixes landed on the 15th; nine
+more landed today, every one reproduced first-hand before it was touched and
+re-proved against the rebuilt app afterwards.
+
+### Fixed today
+
+| What | Was |
+|---|---|
+| **Branch price per size** | `branch_menu_items` had one price column and no size dimension, so a branch price could only mean the dish's BASE price — which a sized dish never charges. The tile shows a range built from the sizes and the bill rings the chosen size, so neither ever consulted the override. A setting that silently did nothing for 44 of 137 dishes, the expensive ones. My own verification on the 14th compared the base price field — the same blind spot as the bug. |
+| **Hooks fired twice, acted twice** | Five concurrent consumptions wrote FOUR ledger movements: 8 units off the shelf for a sale that consumed 2. Measured. The void reversal had the same shape. Both now lock the order row before the check. |
+| **FBR posted twice** | The enqueue was safe; the decision to post read `status` in one query and acted in another, so two hooks both saw 'pending' and minted TWO fiscal invoice numbers for one bill. Now one atomic claim on `attempts`. |
+| **Saving a dish wiped its add-ons** | The editor's save payload omitted `modifiers` entirely, so every save wrote `[]`. The same object is the dirty baseline, so ticking one never registered either: the editor could DESTROY a dish's modifiers and never ATTACH one. 155 of 157 dishes carried an empty list under a UI that always offered the ticks. |
+| **Two tills claimed the same cash** | A drawer's expected cash summed every cash payment the branch took since it opened, with no link to which till. Both drawers claimed the same notes: first to count came out level, every other reported a phantom short. Payments now carry `drawer_session_id`; cash rung with no till open is shown as its own line rather than folded in. |
+| **Variance dated by the count** | A session's business_date is stamped at open and never re-dated, so a till opened before a day-close and counted after it filed its discrepancy onto the already-closed day. |
+| **KDS blanked and reprinted the service** | `getKitchenOrders` returned `[]` on failure, which the board could not tell from "no food". One failed poll blanked the board AND emptied its seen-map, so the next good poll reprinted every live ticket as fresh food. It now throws; the board keeps what it has and says "Lost contact". |
+| **Ledger, printers, expense vouchers** | All read or wrote the wrong outlet. The voucher writer had a literal `const branchId = 1` while the list filtered by the reader's branch, so a voucher raised anywhere else went to head office and vanished. |
+| **Next 16.3.5** | Cleared a CRITICAL advisory (request smuggling, Image Optimizer DoS) plus HIGH in postcss and sharp. The last HIGH was `ws`, reaching the tree only through `@supabase/supabase-js`, which nothing imports — moved to devDependencies. `npm audit --omit=dev`: **0 vulnerabilities**. |
+
+### Two patterns, not coincidences
+
+1. **An absent answer read as an empty one.** The modifier wipe (`undefined` → `[]`)
+   and the KDS blank (`catch` → `[]`). Both now distinguish "none" from "I could
+   not ask". Worth checking any new code against.
+2. **Check-then-act with nothing serialising the gap.** Stock consumption, the
+   FBR post, and — caught by its own new guard — the ledger's dropped branch.
+
+### Verified, not assumed
+
+- Suite **203/203**. Build green on 16.3.5. `no-undef` clean.
+- **65/65 pages** load as admin with no page error, console error or 5xx.
+- The role gate is clean across all five accounts: manager reaches 63/65,
+  accountant 42, frontdesk 10, cashier 8, kitchen 4 — everything else
+  redirects, nothing 500s.
+- **All six exploits re-run and closed**: the Rs 1 price claim now stores
+  Rs 8,995; kitchen cannot ring, settle, or read a customer; cashier cannot
+  void; accountant cannot 86 a dish.
+- A real three-dish bill rung through the till as `cashier` showed Rs 1,251 on
+  Rs 1,035 of food, which is 1035 + 52 service + 163 GST + 1 POS fee —
+  independently recomputed and exact.
+- The books balance after the cleanup: Rs 763,889.68 both sides, 0 unbalanced,
+  0 empty journals, 0 orders whose arithmetic fails.
+
+### Dev database restored to its pre-audit baseline
+
+The audit inserted ~20,400 orders (one agent bulk-loaded a year of scale data
+into `flames_pos_dev` despite the rule against it) and 8 test branches. All of
+it was tagged, so removal was surgical: orders 56, payments 53, branches 1,
+users 6, dishes 134, ingredients 167 — every one matching the snapshot taken
+before the audit began. `flames_perfprobe` and `flames_perf_scale` dropped.
+
+**Dev passwords are still `audit1234`** for manager/cashier/frontdesk/kitchen/
+accountant (admin unchanged). Left in place deliberately: they are the only way
+to sign in as those roles, and this is a development database.
+
+### Still open — in priority order
+
+1. **`docs/audit-round-two.md`** holds 32 new findings from performance and
+   UX, plus 28 verification votes (17 stood, 11 refuted, 8 real-but-already-
+   fixed). **Unverified: reproduce before acting.** Three of five areas —
+   inventory, failure modes, whole-app regression — never reported at all, so
+   they are NOT covered.
+2. **Cash paid in/out of the drawer never reaches the ledger.** Real gap, not
+   fixed on purpose: it needs a decision about WHICH account the money moves
+   to, and "cash out of the till" could be a bank drop, a supplier paid in
+   cash, or petty cash. That is a decision about these books and it is Adnan's.
+3. **The KDS poll still scans the whole order history.** Measured yesterday at
+   22k orders: `type: ALL`, 10,867 rows examined, every few seconds on every
+   kitchen screen. Adding `business_date` to the kitchen read AND a
+   `(branch_id, business_date, status, last_round_at)` index drops it to 10 —
+   the index alone is not enough, the optimiser will not choose it. A drafted
+   migration is in the scratch notes; it needs the read changed with it.
+4. **`users.branch_id` cannot be set anywhere in the app**, so branch
+   confinement is unreachable and every user is effectively company-wide.
+   Harmless today at one outlet.
+5. **Per-branch FBR registration** collected on the Branches screen and ignored
+   by the payload builder, which reads only `process.env`.
+6. **35 pre-existing lint errors** (react-hooks/set-state-in-effect and
+   friends) in report and list `page.js` files. Untouched all session; each is
+   a cascading-render smell rather than a defect.
+
+### Verdict
+
+**Not yet production ready, but the reasons it was not are fixed.** Nothing
+now known lets a till user set their own price, ring without the right, lose a
+dish's add-ons, double-consume stock, double-file a fiscal invoice, or leave a
+drawer unreconcilable. What remains is the list above — one accounting decision,
+one measured performance fix, and a body of unverified findings that needs
+another pass.
