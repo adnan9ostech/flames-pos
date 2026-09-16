@@ -37,8 +37,16 @@ export async function GET() {
             { src: '/icon.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ];
 
+    /*
+     * "Mandi House POS" reads well; "POS POS" does not, and that is exactly
+     * what a fresh install produced — getBrand falls back to 'POS' before
+     * anybody has set a name, and this appended another. Caught by booting the
+     * app against an empty database as a first deploy would.
+     */
+    const name = /\bPOS\b/i.test(brand.name) ? brand.name : `${brand.name} POS`;
+
     return Response.json({
-        name: `${brand.name} POS`,
+        name,
         short_name: brand.name,
         description: `Point of sale for ${brand.name}`,
         start_url: '/pos',
