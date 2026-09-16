@@ -1663,6 +1663,48 @@ before the audit began. `flames_perfprobe` and `flames_perf_scale` dropped.
 accountant (admin unchanged). Left in place deliberately: they are the only way
 to sign in as those roles, and this is a development database.
 
+### The kitchen board, bounded — 16 Sep 2026
+
+Item 3 above, closed, and the way it closed is worth keeping because my own
+notes on it were wrong twice.
+
+**What shipped:** a 24-hour NULL-safe window on `last_round_at` in
+`getKitchenOrders`, **no new index**, and `getStaleKitchenCount` so the older
+live tickets are counted on the board ("8 older tickets not shown") instead of
+vanishing. The window exists because nothing in this app ever clears a live
+ticket — `bumpOrder` needs a human — so an unbumped ticket sits there forever
+and the query grows without end. Dev proves it: eight live tickets, every one
+over a day old, oldest nine days back. The `IS NULL` arm is load-bearing;
+`last_round_at` is nullable and without it a ticket carrying one would be
+hidden from the kitchen entirely.
+
+**Correction 1 — the 10,867-row plan is real, and no index fixes it.** I had
+written it off as my own bad fixture. It reproduces: churn orders through the
+kitchen statuses while any one connection holds a read view open (a service
+running beside a long report or a backup) and undo on the status index inflates
+its range estimate until the planner abandons it, at ~18 ms. Commit the blocker
+and it is back under a millisecond. **The plan is bistable and mid-service is
+the bad half** — which is why measurements of it disagree, mine included. Every
+candidate index was re-measured in the churned state and every one was still
+ignored. Bounding the query is what works.
+
+**Correction 2 — `business_date` was the wrong fix, and I had drafted it.**
+22 tickets on the board before Day Close and 1 after; 22 and then 0 at midnight
+where `business_days` is empty, because the fallback is the Karachi calendar day
+and it rolls unattended. `appendRound` never restamps `business_date` either, so
+food added after a rollover to a pre-rollover tab would never reach the kitchen.
+A day filter empties the kitchen screen mid-shift. It is not a performance
+question at all.
+
+`idx_orders_branch_updated` from the change-token commit was re-checked against
+the same standard before being kept: the optimiser picks it unaided and the read
+becomes index-only, which the pre-existing `orders_updated_at_idx` cannot manage
+(no `branch_id`, so it forces a row lookup). The millisecond difference at 20k
+rows is inside noise — the window did that work — so it earns its place on the
+plan, and on the clock as the window fills and outlets are added.
+
+Suite 212/212, build clean, all four live polls 3–5 ms.
+
 ### Still open — in priority order
 
 1. **`docs/audit-round-two.md`** holds 32 new findings from performance and
@@ -1674,18 +1716,12 @@ to sign in as those roles, and this is a development database.
    fixed on purpose: it needs a decision about WHICH account the money moves
    to, and "cash out of the till" could be a bank drop, a supplier paid in
    cash, or petty cash. That is a decision about these books and it is Adnan's.
-3. **The KDS poll still scans the whole order history.** Measured yesterday at
-   22k orders: `type: ALL`, 10,867 rows examined, every few seconds on every
-   kitchen screen. Adding `business_date` to the kitchen read AND a
-   `(branch_id, business_date, status, last_round_at)` index drops it to 10 —
-   the index alone is not enough, the optimiser will not choose it. A drafted
-   migration is in the scratch notes; it needs the read changed with it.
-4. **`users.branch_id` cannot be set anywhere in the app**, so branch
+3. **`users.branch_id` cannot be set anywhere in the app**, so branch
    confinement is unreachable and every user is effectively company-wide.
    Harmless today at one outlet.
-5. **Per-branch FBR registration** collected on the Branches screen and ignored
+4. **Per-branch FBR registration** collected on the Branches screen and ignored
    by the payload builder, which reads only `process.env`.
-6. **35 pre-existing lint errors** (react-hooks/set-state-in-effect and
+5. **35 pre-existing lint errors** (react-hooks/set-state-in-effect and
    friends) in report and list `page.js` files. Untouched all session; each is
    a cascading-render smell rather than a defect.
 
@@ -1694,6 +1730,5 @@ to sign in as those roles, and this is a development database.
 **Not yet production ready, but the reasons it was not are fixed.** Nothing
 now known lets a till user set their own price, ring without the right, lose a
 dish's add-ons, double-consume stock, double-file a fiscal invoice, or leave a
-drawer unreconcilable. What remains is the list above — one accounting decision,
-one measured performance fix, and a body of unverified findings that needs
-another pass.
+drawer unreconcilable. What remains is the list above — one accounting decision
+and a body of unverified findings that needs another pass.
