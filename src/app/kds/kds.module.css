@@ -42,6 +42,17 @@
 /* The live dot's unhappy twin: the poll is failing and the board is showing
    the last answer it got. Amber rather than red — the food on screen is real,
    it is only the "is there more" that has stopped arriving. */
+/* Live tickets past the board's window — a count, not a warning: it is
+   information the kitchen can act on when it has a moment, not an alarm. */
+.staleNote {
+    margin-right: 0.6rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+}
+
 .staleDot {
     display: inline-block;
     width: 8px;

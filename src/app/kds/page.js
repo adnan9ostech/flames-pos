@@ -115,6 +115,12 @@ export default function KDSPage() {
      * had stopped being told about new food.
      */
     const [lostContact, setLostContact] = useState(false);
+    /*
+     * Live tickets older than the board's 24-hour window. Almost always a bill
+     * somebody never closed, which is worth going to look at — so it is said
+     * out loud rather than left as an invisible backlog.
+     */
+    const [staleCount, setStaleCount] = useState(0);
     const [imageMap, setImageMap] = useState({});
     // The menu, kept whole: the slip builder resolves a line's station through
     // menu_items.category_id, so the board needs categories as well as photos.
@@ -202,7 +208,11 @@ export default function KDSPage() {
         try {
             // Already narrowed to the live statuses by the query, so what
             // comes back is the board.
-            const active = await getKitchenOrders();
+            // { orders, stale } — the board is windowed to the last day and
+            // `stale` counts the live tickets older than that, so they can be
+            // reported rather than silently dropped.
+            const { orders: active, stale } = await getKitchenOrders();
+            setStaleCount(stale || 0);
 
             /*
              * Chime for food the kitchen has not been told about yet: a ticket
@@ -487,6 +497,11 @@ export default function KDSPage() {
                     <div>
                         <h1 className={styles.title}>Kitchen Display</h1>
                         <div className={styles.subtitle}>
+                            {staleCount > 0 && !lostContact && (
+                                <span className={styles.staleNote}>
+                                    {staleCount} older ticket{staleCount === 1 ? '' : 's'} not shown
+                                </span>
+                            )}
                             {lostContact ? (
                                 <>
                                     <span className={styles.staleDot} />

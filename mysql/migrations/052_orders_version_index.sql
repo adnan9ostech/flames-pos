@@ -16,10 +16,18 @@
 --                   Using index — 0.015 ms average, 0.155 ms at worst
 --
 -- Fifty times cheaper on average, eighty-six times at the tail, and it stops
--- growing with the order count. The optimiser picks it unaided, which the
--- alternatives did not: a (branch_id, status, last_round_at) composite had to
--- be forced, because branch_id samples at cardinality 1 on a single-outlet
--- restaurant and the planner reasonably ignores it.
+-- growing with the order count.
+--
+-- The optimiser picks this index unaided AND the read becomes index-only
+-- ("Using index"), which the pre-existing orders_updated_at_idx cannot manage:
+-- it has no branch_id, so the branch predicate forces a row lookup. At 20,000
+-- rows the millisecond difference between the two is inside noise — the WINDOW
+-- is what did the work — so this index earns its place on the plan rather than
+-- on the clock today, and earns it on the clock as the window fills and as
+-- outlets are added.
+--
+-- A (branch_id, status, last_round_at) composite for the kitchen read had to be
+-- FORCED to be used at all, which is why none was added; see below.
 --
 -- NOT ADDED, and worth recording: an index for the kitchen display's own poll.
 -- That query was reported as a full scan needing one, and at a realistic status
@@ -29,6 +37,22 @@
 -- made 60% of rows live tickets, which is not a restaurant. Every candidate
 -- index examined the same 18 rows and improved nothing, so adding one would
 -- have cost disk and slowed every settle for no gain.
+--
+-- CORRECTION, from three independent re-measurements on their own fixtures:
+-- the 10,867-row plan IS real and reproducible, but not for the reason given
+-- above and not fixable by an index. Churn a few thousand orders through the
+-- kitchen statuses while any one connection holds a read view open — a service
+-- running alongside a long report or a backup — and undo on the status index
+-- inflates its range estimate until the planner abandons it, at which point the
+-- query costs ~18 ms. Commit the blocking transaction and it is back under a
+-- millisecond. The plan is bistable and mid-service is the bad half, so every
+-- measurement of it reports whichever half it happened to land on.
+--
+-- No index fixes that: each candidate was measured in the churned state and
+-- every one was still ignored. What does fix it is bounding the query, which is
+-- what getKitchenOrders now does on last_round_at — and which also bounds the
+-- board's real unbounded growth, since nothing in this app ever clears a live
+-- ticket without somebody pressing it.
 SET @add := (
     SELECT IF(COUNT(*) = 0,
         'ALTER TABLE orders ADD KEY idx_orders_branch_updated (branch_id, updated_at)',

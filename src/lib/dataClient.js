@@ -149,7 +149,18 @@ export const getFullMenuData = async () => {
  * can know: for the board it means "keep showing what you have and say you
  * have lost contact".
  */
-export const getKitchenOrders = async () => fetchJson('/api/orders/kitchen');
+/*
+ * Still THROWS on failure — see below; that is the whole reason this is not a
+ * try/catch returning []. The route now answers { orders, stale }: the board is
+ * windowed to a day and `stale` counts the live tickets older than that, so
+ * the screen can report them instead of losing them.
+ */
+export const getKitchenOrders = async () => {
+    const body = await fetchJson('/api/orders/kitchen');
+    // Tolerates the old bare-array shape, so a stale client against a new
+    // server still draws a board rather than nothing.
+    return Array.isArray(body) ? { orders: body, stale: 0 } : body;
+};
 
 export const getOpenTabs = async () => {
     try {

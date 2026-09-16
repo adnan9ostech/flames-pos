@@ -110,3 +110,75 @@ test('an order too old for the window does not keep the token alive', async () =
     assert.equal(quiet, '0:0', 'nothing recent means nothing to report');
     assert.equal(await getOrdersVersion(1), quiet, 'and it is stable, not flapping');
 });
+
+/*
+ * The kitchen board is bounded, and what falls outside it is counted.
+ *
+ * Nothing in this app ever clears a live ticket by itself — bumpOrder is the
+ * only path out of new/preparing/ready and it needs somebody to press it — so
+ * an unwindowed board grows for good. Not hypothetical: the development
+ * database holds eight live tickets and every one is over a day old, the
+ * oldest from nine days back. Two independent measurements put the board at
+ * 3,000 accumulated tickets costing 10-31 ms per poll, several times a minute,
+ * on every kitchen screen.
+ *
+ * The window is on last_round_at, NOT on business_date. A business_date filter
+ * was the obvious candidate and is a nightly outage: the open day is whatever
+ * Day Close last left open, and where business_days is empty it falls back to
+ * the Karachi calendar day, which rolls at midnight unattended. Either way a
+ * ticket fired at 11:40pm and still cooking at 00:01 would vanish from the
+ * screen with the food on the stove. These tests fix that choice in place.
+ */
+test('the board shows what was fired recently, and counts what was not', async () => {
+    const { getKitchenOrders, getStaleKitchenCount } = await import('../../src/lib/db/reads.mjs');
+
+    const live = async (age) => {
+        const order = await ring();
+        await q(
+            `UPDATE orders SET status = 'preparing',
+                    last_round_at = UTC_TIMESTAMP(3) - INTERVAL ? HOUR WHERE id = ?`,
+            [age, order.id],
+        );
+        return order.id;
+    };
+
+    const fresh = await live(1);
+    const lateLastNight = await live(10);
+    const yesterday = await live(30);
+    const lastWeek = await live(24 * 7);
+
+    const shown = (await getKitchenOrders(1)).map((o) => o.id);
+    assert.ok(shown.includes(fresh), 'an hour ago is on the board');
+    assert.ok(shown.includes(lateLastNight), 'and so is ten hours ago — a shift that ran past midnight');
+    assert.ok(!shown.includes(yesterday), 'thirty hours ago is not being cooked');
+    assert.ok(!shown.includes(lastWeek));
+
+    assert.equal(await getStaleKitchenCount(1), 2,
+        'the two that fell outside are counted, not forgotten');
+});
+
+test('a ticket with no last_round_at is never hidden', async () => {
+    /*
+     * last_round_at is NULLABLE, so a window without the NULL arm would hide
+     * such a ticket from the kitchen completely — the exact failure the window
+     * exists to prevent. The guard is one clause and this is why it stays.
+     */
+    const { getKitchenOrders, getStaleKitchenCount } = await import('../../src/lib/db/reads.mjs');
+
+    const order = await ring();
+    await q("UPDATE orders SET status = 'new', last_round_at = NULL WHERE id = ?", [order.id]);
+
+    const shown = (await getKitchenOrders(1)).map((o) => o.id);
+    assert.ok(shown.includes(order.id), 'a NULL fired-at still reaches the kitchen');
+
+    const staleBefore = await getStaleKitchenCount(1);
+    await q("UPDATE orders SET last_round_at = NULL WHERE id = ?", [order.id]);
+    assert.equal(await getStaleKitchenCount(1), staleBefore,
+        'and it is not double-counted as stale either');
+});
+
+test('the board is scoped to one outlet', async () => {
+    const { getKitchenOrders } = await import('../../src/lib/db/reads.mjs');
+    await q("INSERT INTO branches (id, name, code, is_active) VALUES (78, 'Board Branch', 'BRD', 1) AS n ON DUPLICATE KEY UPDATE name = n.name");
+    assert.deepEqual(await getKitchenOrders(78), [], 'a second outlet sees its own empty board');
+});

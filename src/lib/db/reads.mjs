@@ -109,13 +109,65 @@ const KITCHEN_COLUMNS =
 // Every live order reaches the kitchen the moment it is sent, paid or not: a
 // dine-in table is cooked and served before it settles, so the ticket cannot
 // wait on payment. Narrowed to the active kitchen statuses only.
+/*
+ * How long a ticket stays on the board.
+ *
+ * Nothing in this app ever clears a live ticket by itself: bumpOrder is the
+ * only path out of 'new'/'preparing'/'ready', and it needs somebody to press
+ * it. So a ticket nobody bumps sits there for good, and the query that draws
+ * the board grows without bound. It is not hypothetical — the development
+ * database has eight live tickets right now and every one is over a day old,
+ * the oldest from nine days back.
+ *
+ * Twenty-four hours is the honest line: food fired yesterday is not being
+ * cooked. The older ones are COUNTED rather than dropped (see
+ * getStaleKitchenCount) — silently retiring them would turn today's visible
+ * clutter into an invisible backlog, which is a worse trade than the clutter.
+ *
+ * NOT a business_date filter, which was the obvious candidate and is a nightly
+ * outage. This restaurant's open business day is whatever Day Close last left
+ * open — currently twelve days behind the calendar — and where business_days is
+ * empty the open day falls back to the Karachi CALENDAR day, which rolls at
+ * midnight with nobody touching anything. Either way a ticket fired at 11:40pm
+ * and still cooking at 00:01 would vanish off the screen while the food was on
+ * the stove. Two independent measurements put the board at 22 tickets before a
+ * Day Close and 1 after it.
+ */
+const KITCHEN_WINDOW_HOURS = 24;
+
+/*
+ * The NULL arm is load-bearing: last_round_at is nullable, so without it a
+ * ticket that has one would be hidden from the kitchen entirely — the exact
+ * failure this window exists to avoid.
+ */
+const KITCHEN_LIVE = `status IN (?)
+           AND (last_round_at IS NULL
+                OR last_round_at >= UTC_TIMESTAMP(3) - INTERVAL ? HOUR)`;
+
 export const getKitchenOrders = async (branchId = 1) =>
     serializeRows('orders', await query(
         `SELECT ${KITCHEN_COLUMNS} FROM orders
-         WHERE branch_id = ? AND status IN (?)
+         WHERE branch_id = ? AND ${KITCHEN_LIVE}
          ORDER BY last_round_at ASC`,
-        [branchId, KITCHEN_STATUSES],
+        [branchId, KITCHEN_STATUSES, KITCHEN_WINDOW_HOURS],
     ));
+
+/*
+ * Live tickets too old for the board. Reported so the kitchen display can say
+ * "9 older tickets" instead of quietly forgetting them — a stale ticket is
+ * usually a bill somebody never closed, which is a real thing to go and look
+ * at, not noise to bury.
+ */
+export const getStaleKitchenCount = async (branchId = 1) => {
+    const rows = await query(
+        `SELECT COUNT(*) AS n FROM orders
+          WHERE branch_id = ? AND status IN (?)
+            AND last_round_at IS NOT NULL
+            AND last_round_at < UTC_TIMESTAMP(3) - INTERVAL ? HOUR`,
+        [branchId, KITCHEN_STATUSES, KITCHEN_WINDOW_HOURS],
+    );
+    return Number(rows[0].n) || 0;
+};
 
 export const getOpenTabs = async (branchId = 1) =>
     serializeRows('orders', await query(
