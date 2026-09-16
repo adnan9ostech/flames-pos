@@ -176,14 +176,31 @@ const pricedLines = async (conn, items, branchId) => {
     )];
 
     const [dishes] = ids.length === 0 ? [[]] : await conn.query(
-        `SELECT m.id, m.name, m.variants, COALESCE(b.price, m.price) AS price
+        `SELECT m.id, m.name, m.variants, m.price
            FROM menu_items m
-           LEFT JOIN branch_menu_items b
-             ON b.menu_item_id = m.id AND b.branch_id = ?
           WHERE m.id IN (?) AND m.is_archived = 0`,
-        [branchId, ids],
+        [ids],
     );
     const byId = new Map(dishes.map((d) => [d.id, d]));
+
+    /*
+     * This branch's exceptions, keyed (dish, size). A row with variant_name ''
+     * overrides the dish's own price; a row naming a size overrides that size.
+     *
+     * The join this replaced could only reach the base price, so a sized dish
+     * — 44 of 137 here, and the expensive ones — ignored its branch price
+     * entirely: the tile showed a range built from the sizes and the bill rang
+     * the chosen size, and neither ever looked at the override. The same
+     * lookup now serves getMenuItems, so the card and the bill cannot part.
+     */
+    const [overrides] = ids.length === 0 ? [[]] : await conn.query(
+        `SELECT menu_item_id, variant_name, price FROM branch_menu_items
+          WHERE branch_id = ? AND menu_item_id IN (?)`,
+        [branchId, ids],
+    );
+    const branchPrice = new Map(
+        overrides.filter((o) => o.price != null).map((o) => [`${o.menu_item_id}|${o.variant_name}`, Number(o.price)]),
+    );
 
     // Option prices come from the modifier definitions, never from the
     // option objects the browser echoes back. One small table, read once.
@@ -201,14 +218,16 @@ const pricedLines = async (conn, items, branchId) => {
         }
 
         const wantedSize = i.selectedVariant?.name ?? null;
-        let price = Number(dish.price);
+        let price = branchPrice.has(`${dish.id}|`) ? branchPrice.get(`${dish.id}|`) : Number(dish.price);
         if (wantedSize != null) {
             const variants = Array.isArray(dish.variants) ? dish.variants : [];
             const size = variants.find((v) => v?.name === wantedSize);
             if (!size) {
                 throw new Error(`"${wantedSize}" is no longer a size of ${dish.name} — reload the till`);
             }
-            price = Number(size.price);
+            // This branch's price for THIS size, or the size's company price.
+            const own = branchPrice.get(`${dish.id}|${wantedSize}`);
+            price = own !== undefined ? own : Number(size.price);
         }
 
         for (const [modifierId, chosen] of Object.entries(i.selectedModifiers || {})) {

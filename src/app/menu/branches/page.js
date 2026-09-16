@@ -26,7 +26,12 @@ import { listBranchMenu, setBranchMenuItem, clearBranchMenu } from './actions';
  * sideways inside the table rather than widening the page.
  */
 
-const key = (branchId, dishId) => `${branchId}:${dishId}`;
+/*
+ * A cell is (branch, dish, SIZE). The size was missing, so a sized dish had
+ * one box against its base price — a price a sized dish never charges, which
+ * made those boxes silently inert. '' is a dish priced whole.
+ */
+const key = (branchId, dishId, variant) => `${branchId}:${dishId}:${variant ?? ''}`;
 
 export default function BranchMenuPage() {
     // `can(key)`, not a property lookup: usePermissions returns { perms, can },
@@ -63,14 +68,16 @@ export default function BranchMenuPage() {
             if (q && !d.name.toLowerCase().includes(q)
                 && !d.category_name.toLowerCase().includes(q)) return false;
             if (!onlyDiffs) return true;
-            return data.branches.some((b) => data.overrides[key(b.id, d.id)]);
+            return data.branches.some((b) => data.overrides[key(b.id, d.id, d.variant)]);
         });
     }, [data, search, onlyDiffs]);
 
     const save = async (branchId, dish, price, isAvailable) => {
-        const k = key(branchId, dish.id);
+        const k = key(branchId, dish.id, dish.variant);
         setSaving(k);
-        const res = await setBranchMenuItem({ branchId, menuItemId: dish.id, price, isAvailable });
+        const res = await setBranchMenuItem({
+            branchId, menuItemId: dish.id, variantName: dish.variant || '', price, isAvailable,
+        });
         setSaving('');
         if (res.error) { setMessage({ type: 'error', text: res.error }); return; }
 
@@ -178,7 +185,7 @@ export default function BranchMenuPage() {
                     Only what differs
                 </label>
                 <span className={local.count}>
-                    {rows.length} of {data.dishes.length} dishes
+                    {rows.length} of {data.dishes.length} prices
                 </span>
             </div>
 
@@ -232,9 +239,12 @@ export default function BranchMenuPage() {
                                 </td>
                             </tr>
                         ) : rows.map((dish) => (
-                            <tr key={dish.id} className={dish.is_available ? '' : local.offMenu}>
+                            <tr key={`${dish.id}:${dish.variant}`} className={dish.is_available ? '' : local.offMenu}>
                                 <td className={local.dishCell}>
-                                    <span className={local.dishName}>{dish.name}</span>
+                                    <span className={local.dishName}>
+                                        {dish.name}
+                                        {dish.variant && <span className={local.sizeTag}>{dish.variant}</span>}
+                                    </span>
                                     {dish.category_name && (
                                         <span className={local.dishCat}>{dish.category_name}</span>
                                     )}
@@ -245,7 +255,7 @@ export default function BranchMenuPage() {
                                 <td className={local.menuCell}>{formatRupees(dish.price)}</td>
 
                                 {data.branches.map((b) => {
-                                    const k = key(b.id, dish.id);
+                                    const k = key(b.id, dish.id, dish.variant);
                                     const over = data.overrides[k];
                                     const busy = saving === k;
                                     const on = over ? over.is_available : true;
@@ -273,7 +283,7 @@ export default function BranchMenuPage() {
                                                         save(b.id, dish, draft, on);
                                                     }}
                                                     onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                                                    aria-label={`${dish.name} price at ${b.name}`}
+                                                    aria-label={`${dish.name}${dish.variant ? ' ' + dish.variant : ''} price at ${b.name}`}
                                                 />
                                                 <button
                                                     type="button"
@@ -284,7 +294,7 @@ export default function BranchMenuPage() {
                                                         ? 'This dish is off across the whole menu'
                                                         : on ? `Take off sale at ${b.name}` : `Put back on sale at ${b.name}`}
                                                     aria-pressed={on}
-                                                    aria-label={`${dish.name} on sale at ${b.name}`}
+                                                    aria-label={`${dish.name}${dish.variant ? ' ' + dish.variant : ''} on sale at ${b.name}`}
                                                 >
                                                     {busy ? <Loader2 size={13} className={styles.spinner} /> : (on ? 'on' : 'off')}
                                                 </button>

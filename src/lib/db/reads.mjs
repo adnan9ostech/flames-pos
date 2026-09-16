@@ -26,18 +26,64 @@ export const getCategories = async () =>
  * "unavailable here" and "unavailable everywhere" arrive as the same field and
  * the till needs to know nothing about branches at all.
  */
-export const getMenuItems = async (branchId = 1) =>
-    serializeRows('menu_items', await query(
-        `SELECT m.*,
-                COALESCE(b.price, m.price) AS price,
-                CASE WHEN b.is_available = 0 THEN 0 ELSE m.is_available END AS is_available
-           FROM menu_items m
-           LEFT JOIN branch_menu_items b
-             ON b.menu_item_id = m.id AND b.branch_id = ?
-          WHERE m.is_archived = 0
-          ORDER BY m.sort_order, m.name`,
-        [branchId],
-    ));
+/*
+ * The menu as one outlet sells it.
+ *
+ * The branch's exceptions are laid over the company menu — and they reach the
+ * SIZES too, which they did not until now. The overlay used to be a single
+ * COALESCE on the base price, so a sized dish showed its branch price on the
+ * card and rang the company price on the bill: the customer was quoted one
+ * number and charged another, at the very outlet that had set the other
+ * number. 44 of this menu's 137 dishes are sized, and they are the expensive
+ * ones.
+ *
+ * Merged in JS rather than in SQL because the sizes live in a JSON column and
+ * rewriting one element of a JSON array per row in SQL is unreadable for no
+ * gain — this is one extra query over a table that holds only the differences.
+ *
+ * A row with variant_name = '' overrides the dish's own price; a row naming a
+ * size overrides that size. `is_available = 0` on ANY of a dish's rows takes
+ * the whole dish off this branch's till, which is the honest reading: a branch
+ * that has switched a dish off has switched it off.
+ */
+export const getMenuItems = async (branchId = 1) => {
+    const [dishes, overrides] = await Promise.all([
+        query(
+            `SELECT * FROM menu_items WHERE is_archived = 0 ORDER BY sort_order, name`,
+        ),
+        query(
+            `SELECT menu_item_id, variant_name, price, is_available
+               FROM branch_menu_items WHERE branch_id = ?`,
+            [branchId],
+        ),
+    ]);
+
+    const byDish = new Map();
+    for (const o of overrides) {
+        if (!byDish.has(o.menu_item_id)) byDish.set(o.menu_item_id, []);
+        byDish.get(o.menu_item_id).push(o);
+    }
+
+    return serializeRows('menu_items', dishes.map((m) => {
+        const rows = byDish.get(m.id);
+        if (!rows) return m;
+
+        const base = rows.find((r) => r.variant_name === '');
+        const bySize = new Map(rows.filter((r) => r.variant_name !== '').map((r) => [r.variant_name, r]));
+
+        const variants = Array.isArray(m.variants) ? m.variants.map((v) => {
+            const o = bySize.get(v?.name);
+            return o && o.price != null ? { ...v, price: Number(o.price) } : v;
+        }) : m.variants;
+
+        return {
+            ...m,
+            price: base?.price != null ? Number(base.price) : m.price,
+            variants,
+            is_available: rows.some((r) => r.is_available === 0) ? 0 : m.is_available,
+        };
+    }));
+};
 
 export const getModifiers = async () =>
     serializeRows('modifiers', await query('SELECT * FROM modifiers'));

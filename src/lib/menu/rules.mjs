@@ -223,3 +223,26 @@ export const branchMenuOverride = (submittedPrice, submittedAvailable, menuPrice
     const price = rounded === Math.round(Number(menuPrice) * 100) / 100 ? null : rounded;
     return { price, isAvailable, isOverride: price !== null || !isAvailable };
 };
+
+/*
+ * Which menu price a branch cell is an exception TO.
+ *
+ * For a dish priced whole that is the dish's price. For a SIZE it is that
+ * size's own price — and getting this wrong is not academic: comparing a
+ * Full-portion override against the dish's base price would either store an
+ * "override" that merely restates the base, or discard a real one that
+ * happens to equal it. The Half of a Rs 1,000 karahi costs Rs 600, so every
+ * Half override would have been judged against the wrong number.
+ *
+ * Lives here, with branchMenuOverride, because the suite cannot load a
+ * 'use server' file and this is the half of the decision that is easy to get
+ * subtly wrong.
+ */
+export const branchCellMenuPrice = (dish, variantName) => {
+    const size = String(variantName || '');
+    if (size === '') return Number(dish?.price);
+    const sizes = Array.isArray(dish?.variants) ? dish.variants : [];
+    const found = sizes.find((v) => String(v?.name) === size);
+    if (!found) throw new Error(`"${size}" is no longer a size of ${dish?.name}`);
+    return Number(found.price);
+};

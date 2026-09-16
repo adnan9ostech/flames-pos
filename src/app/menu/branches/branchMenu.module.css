@@ -180,6 +180,20 @@
 
 .dishName { display: block; font-weight: 600; color: var(--foreground) }
 
+/* The size, beside the dish name: a sized dish now has one row per size, and
+   without this the rows read as duplicates of each other. */
+.sizeTag {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+    background: var(--surface-raise);
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
 .dishCat {
     display: block;
     margin-top: 0.1rem;
