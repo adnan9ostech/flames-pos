@@ -45,6 +45,29 @@ export const consumeForOrder = async (order) => {
     try {
         if (!order?.id) return;
         await withTransaction(async (conn) => {
+            /*
+             * SERIALISE ON THE ORDER ROW FIRST.
+             *
+             * The check below is a check-then-act: two hooks firing for one
+             * order both read zero 'sale' rows, both believe they are first,
+             * and both insert. Proven — five concurrent calls wrote four
+             * ledger rows and took 8 units off the shelf for a sale that
+             * consumed 2. A settle retried by the till, a void racing a
+             * settle, or two devices finishing the same bill is enough.
+             *
+             * A unique key on the ledger would be the stronger guard but it is
+             * the wrong shape here: a receiving legitimately writes one row per
+             * LINE, so two lines of the same ingredient in one delivery are two
+             * honest rows with the same (source, item, warehouse). Locking the
+             * order instead costs nothing, needs no schema, and is how the rest
+             * of this codebase serialises — invoice_counters and the drawer
+             * session both take the row's own lock.
+             *
+             * The second hook waits here, then reads the first one's committed
+             * rows and returns having done nothing, which is the whole point.
+             */
+            await conn.query('SELECT id FROM orders WHERE id = ? FOR UPDATE', [order.id]);
+
             // Already consumed — a replayed settle changes nothing twice.
             const [seen] = await conn.query(
                 "SELECT 1 FROM stock_ledger WHERE source_type = 'sale' AND source_id = ? LIMIT 1",
@@ -133,8 +156,12 @@ export const reverseForOrder = async (order) => {
     try {
         if (!order?.id) return;
         await withTransaction(async (conn) => {
+            await conn.query('SELECT id FROM orders WHERE id = ? FOR UPDATE', [order.id]);
+
             // Already reversed — voiding a void moves nothing.
             const [seen] = await conn.query(
+                // Same lock, same reason: a void whose hook fires twice would
+                // otherwise hand the stock back twice.
                 "SELECT 1 FROM stock_ledger WHERE source_type = 'void' AND source_id = ? LIMIT 1",
                 [order.id],
             );

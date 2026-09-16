@@ -41,20 +41,49 @@ export const afterSettleFbr = async (order) => {
             [order.id, order.invoice_number, JSON.stringify(payload)],
         );
 
-        // Post only while the row is pending: if a twin already sent it, a
-        // second post would mint a second FBR invoice for one sale.
+        /*
+         * CLAIM THE ROW, then post. One statement, so exactly one caller wins.
+         *
+         * This used to SELECT the status and post if it read 'pending' — a
+         * read and an act in two separate pool queries, which is not a guard
+         * at all: two settle hooks for one bill both read 'pending' and both
+         * posted, minting TWO fiscal invoice numbers for one sale. That is a
+         * tax-filing problem, not a data one, and the old comment named the
+         * risk while the code ran into it.
+         *
+         * The claim rides on `attempts` because the status column's CHECK
+         * allows only pending/sent/failed and there is no room for a 'sending'
+         * state without a migration — and `attempts` already means exactly
+         * "how many times we have tried to send this". Taking it from 0 to 1
+         * IS the attempt. affectedRows tells the winner from the loser.
+         *
+         * A loser returns having done nothing. A genuine send failure leaves
+         * the row pending with attempts = 1, which is precisely what
+         * scripts/fbr-worker.mjs looks for, so a retry is still the worker's
+         * job and nothing is stranded.
+         */
+        const claim = await query(
+            `UPDATE fbr_invoices SET attempts = attempts + 1
+              WHERE order_id = ? AND status = 'pending' AND attempts = 0`,
+            [order.id],
+        );
+        if (claim.affectedRows !== 1) return;
+
         const [row] = await query(
             'SELECT status, payload FROM fbr_invoices WHERE order_id = ?', [order.id],
         );
-        if (!row || row.status !== 'pending') return;
+        if (!row) return;
 
         // The stored payload is the document of record — post that, so what
         // FBR received is always exactly what the queue row says it received.
         const res = await postInvoice(row.payload);
         if (res.ok) {
             await query(
+                // attempts was incremented by the claim above — this send IS
+                // that attempt, and counting it twice would bring the row
+                // closer to the worker's give-up threshold for succeeding.
                 `UPDATE fbr_invoices SET
-                   status = 'sent', fbr_invoice_number = ?, attempts = attempts + 1,
+                   status = 'sent', fbr_invoice_number = ?,
                    last_error = NULL, sent_at = UTC_TIMESTAMP(3)
                  WHERE order_id = ?`,
                 [res.fbrInvoiceNumber, order.id],
@@ -65,7 +94,9 @@ export const afterSettleFbr = async (order) => {
             );
         } else {
             await query(
-                'UPDATE fbr_invoices SET attempts = attempts + 1, last_error = ? WHERE order_id = ?',
+                // Likewise: the claim counted the attempt. The row stays
+                // pending, which is what the worker retries.
+                'UPDATE fbr_invoices SET last_error = ? WHERE order_id = ?',
                 [res.error, order.id],
             );
         }
