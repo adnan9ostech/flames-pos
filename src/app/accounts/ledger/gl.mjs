@@ -74,7 +74,12 @@ const resolveFilters = async (f = {}) => {
     const voucherType = VOUCHER_TYPES[f.voucherType] ? f.voucherType : null;
     const accountId = Number.isInteger(Number(f.accountId)) && Number(f.accountId) > 0
         ? Number(f.accountId) : null;
-    return { from, to, voucherType, accountId };
+    // The branch rides through with the rest. This function rebuilds the filter
+    // object from named fields rather than spreading it, so a field it does not
+    // mention is silently dropped — which is how the branch got as far as the
+    // WHERE clause and vanished.
+    const branchId = Number(f.branchId) > 0 ? Number(f.branchId) : null;
+    return { from, to, voucherType, accountId, branchId };
 };
 
 const pageArgs = (p = {}) => {
@@ -122,9 +127,19 @@ const LEDGER_FROM = `
       JOIN gl_journals j ON j.id = l.journal_id
       JOIN accounts a ON a.id = l.account_id`;
 
+/*
+ * The branch leads every filter here.
+ *
+ * gl_journals carries branch_id and numbers vouchers per branch, so the ledger
+ * is written per outlet — and these two screens read it consolidated. Standing
+ * at Flames Lahore you read head office's journals, under Lahore's name. The
+ * branch is required rather than defaulted: a screen that forgot to pass it
+ * should fail loudly here, not quietly show another outlet's books.
+ */
 const ledgerWhere = (f) => {
-    const clauses = ["j.status = 'posted'", 'j.business_date BETWEEN ? AND ?'];
-    const params = [f.from, f.to];
+    if (!(Number(f.branchId) > 0)) throw new Error('The ledger needs the branch it is reading');
+    const clauses = ['j.branch_id = ?', "j.status = 'posted'", 'j.business_date BETWEEN ? AND ?'];
+    const params = [f.branchId, f.from, f.to];
     if (f.accountId) { clauses.push('l.account_id = ?'); params.push(f.accountId); }
     if (f.voucherType) { clauses.push('j.voucher_type = ?'); params.push(f.voucherType); }
     return { where: ` WHERE ${clauses.join(' AND ')}`, params };
@@ -176,8 +191,9 @@ export const ledgerLines = async (filters, page) => {
 /* ---- Voucher list ---- */
 
 const journalWhere = (f) => {
-    const clauses = ['j.business_date BETWEEN ? AND ?'];
-    const params = [f.from, f.to];
+    if (!(Number(f.branchId) > 0)) throw new Error('The voucher list needs the branch it is reading');
+    const clauses = ['j.branch_id = ?', 'j.business_date BETWEEN ? AND ?'];
+    const params = [f.branchId, f.from, f.to];
     if (f.voucherType) { clauses.push('j.voucher_type = ?'); params.push(f.voucherType); }
     return { where: ` WHERE ${clauses.join(' AND ')}`, params };
 };

@@ -170,3 +170,47 @@ test('the ledger separates by branch when asked', async () => {
     assert.equal(rows.length, 2, 'both outlets have journals of their own');
     assert.ok(Number(rows[1].n) >= 3, 'Lahore has its sale, its waste and its adjustment');
 });
+
+/*
+ * And the ledger SCREENS read one outlet, not their sum.
+ *
+ * The journals were already written per branch — that is what the tests above
+ * prove. The two screens that read them were not: ledgerWhere and journalWhere
+ * filtered on the date and the voucher type and never on the branch, so
+ * standing at Flames Lahore you read head office's journals under Lahore's
+ * name.
+ *
+ * The branch is now REQUIRED rather than defaulted, because a screen that
+ * forgets should fail loudly instead of quietly showing the wrong outlet's
+ * books. The subtle part, and the reason this test exists: resolveFilters
+ * rebuilds the filter object from named fields rather than spreading it, so it
+ * silently dropped the branch on the way to the WHERE clause. The guard caught
+ * that; without the guard it would have shipped scoped-looking and unscoped.
+ */
+test('the ledger screens read one branch and refuse without one', async () => {
+    const { ledgerLines, journalList } = await import('../../src/app/accounts/ledger/gl.mjs');
+
+    const day = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+    const range = { from: day, to: day };
+
+    await assert.rejects(() => ledgerLines(range), /needs the branch/,
+        'a missing branch is refused, not defaulted');
+    await assert.rejects(() => journalList(range), /needs the branch/);
+
+    // Both outlets traded today in the tests above, so each screen must see
+    // only its own — and the two must not be the same set.
+    const head = await ledgerLines({ ...range, branchId: 1 });
+    const lahore = await ledgerLines({ ...range, branchId: LAHORE });
+    assert.ok(head.rows.length > 0, 'head office has lines today');
+    assert.ok(lahore.rows.length > 0, 'so does Lahore');
+
+    const ids = (r) => new Set(r.rows.map((x) => x.journal_id));
+    const shared = [...ids(head)].filter((id) => ids(lahore).has(id));
+    assert.deepEqual(shared, [], 'and no journal appears in both');
+
+    const headVouchers = await journalList({ ...range, branchId: 1 });
+    const lahoreVouchers = await journalList({ ...range, branchId: LAHORE });
+    assert.ok(headVouchers.rows.length > 0 && lahoreVouchers.rows.length > 0);
+    assert.notEqual(headVouchers.totals.count, headVouchers.totals.count + lahoreVouchers.totals.count,
+        'neither list is the sum of both');
+});

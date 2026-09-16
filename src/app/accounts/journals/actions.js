@@ -1,6 +1,7 @@
 'use server'
 
 import { requirePermission } from '@/lib/db/auth.mjs'
+import { currentBranchId } from '@/lib/db/branch.mjs'
 import { requireId, requireDate } from '@/lib/accounts/helpers.mjs'
 import { VOUCHER_TYPES } from '@/lib/accounts/constants.mjs'
 import {
@@ -20,7 +21,7 @@ import {
  * means "the current business day" and is resolved server-side, so the
  * screen learns the day from the response rather than guessing it.
  */
-const cleanFilters = (input = {}) => {
+const cleanFilters = (input = {}, branchId = null) => {
     const from = String(input.from || '').trim()
     const to = String(input.to || '').trim()
     const voucherType = String(input.voucherType || '').trim().toUpperCase()
@@ -32,6 +33,10 @@ const cleanFilters = (input = {}) => {
         to: to ? requireDate(to, 'to date') : null,
         voucherType: voucherType && voucherType !== 'ALL' ? voucherType : null,
         accountId: input.accountId ? requireId(input.accountId, 'account') : null,
+        // The outlet whose ledger this is. gl.mjs refuses without it rather
+        // than defaulting, because a screen that forgot would otherwise show
+        // another outlet's journals under this outlet's name.
+        branchId,
     }
 }
 
@@ -47,8 +52,8 @@ const cleanPage = (input = {}) => ({
  */
 export async function listLedgerLines(input) {
     try {
-        await requirePermission('accounts')
-        const data = await ledgerLines(cleanFilters(input), cleanPage(input))
+        const user = await requirePermission('accounts')
+        const data = await ledgerLines(cleanFilters(input, await currentBranchId(user)), cleanPage(input))
         return { data }
     } catch (e) {
         return { error: e.message }
@@ -58,8 +63,8 @@ export async function listLedgerLines(input) {
 /* Voucher list: one row per journal. { from, to, voucherType, offset, limit } */
 export async function listJournals(input) {
     try {
-        await requirePermission('accounts')
-        const data = await journalList(cleanFilters(input), cleanPage(input))
+        const user = await requirePermission('accounts')
+        const data = await journalList(cleanFilters(input, await currentBranchId(user)), cleanPage(input))
         return { data }
     } catch (e) {
         return { error: e.message }

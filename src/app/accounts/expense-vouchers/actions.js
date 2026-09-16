@@ -116,7 +116,8 @@ export async function getVoucher(id) {
 export async function saveDraft(input) {
     try {
         const user = await requirePermission('accounts')
-        const id = await withTransaction((conn) => saveDraftTx(conn, input, user.id))
+        const branchId = await currentBranchId(user)
+        const id = await withTransaction((conn) => saveDraftTx(conn, input, user.id, branchId))
         return { data: await loadVoucher(pool, id) }
     } catch (e) {
         return { error: e.message }
@@ -131,8 +132,9 @@ export async function saveDraft(input) {
 export async function postVoucher(input) {
     try {
         const user = await requirePermission('accounts')
+        const branchId = await currentBranchId(user)
         const id = await withTransaction(async (conn) => {
-            const voucherId = await saveDraftTx(conn, input, user.id)
+            const voucherId = await saveDraftTx(conn, input, user.id, branchId)
             await postVoucherTx(conn, voucherId, user.id)
             return voucherId
         })

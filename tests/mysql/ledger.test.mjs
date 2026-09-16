@@ -15,9 +15,21 @@ import { acquireSuiteLock, resetDb, closeDb, q, one, count, createOrder } from '
 import { voidOrder } from '../../src/lib/db/orders.mjs';
 import { afterSettleGl, afterVoidGl, ORDER_SOURCE_TYPES } from '../../src/lib/accounts/post.mjs';
 import {
-    ledgerLines, journalList, journalById, accountOptions, reverseJournal,
+    ledgerLines as ledgerLinesRaw, journalList as journalListRaw,
+    journalById, accountOptions, reverseJournal,
     REVERSAL_SOURCE_TYPE, PAGE_SIZE,
 } from '../../src/app/accounts/ledger/gl.mjs';
+
+/*
+ * The ledger reads one outlet's journals and now REFUSES without a branch,
+ * rather than defaulting to 1 — a screen that forgot to pass it was showing
+ * another outlet's books under this outlet's name. These tests all work at the
+ * single outlet every fixture writes to, so they say so once here instead of
+ * at thirteen call sites.
+ */
+const BRANCH = 1;
+const ledgerLines = (filters, page) => ledgerLinesRaw({ ...filters, branchId: BRANCH }, page);
+const journalList = (filters, page) => journalListRaw({ ...filters, branchId: BRANCH }, page);
 import { postManualJournal } from '../../src/app/accounts/journals/new/manualJournal.mjs';
 
 const money = (n) => Math.round((Number(n) || 0) * 100) / 100;

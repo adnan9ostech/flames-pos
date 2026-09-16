@@ -416,7 +416,7 @@ const checkReferences = async (conn, lines, payments) => {
  * payments (a draft is not in the books, so rewriting it is safe). Returns
  * the voucher id. Never touches a posted voucher.
  */
-export const saveDraft = async (conn, input, userId = null) => {
+export const saveDraft = async (conn, input, userId = null, branchId = 1) => {
     const business_date = requireDate(input?.business_date, 'voucher date');
     const remarks = clip(String(input?.remarks ?? '').trim()) || null;
     const lines = cleanLines(input?.lines);
@@ -428,7 +428,16 @@ export const saveDraft = async (conn, input, userId = null) => {
     }
     await checkReferences(conn, lines, payments);
 
-    const branchId = 1;
+    /*
+     * The outlet raising the voucher. This was `const branchId = 1`, while the
+     * voucher LIST filters on the branch the reader is standing in — so a
+     * voucher raised at any other outlet was written to head office and then
+     * invisible to the branch that raised it, and its voucher number came from
+     * head office's sequence.
+     *
+     * Passed in rather than resolved here: this module is plain Node, loaded
+     * by the suite, and resolving a branch needs a request.
+     */
     let id = input?.id ? requireId(input.id, 'voucher') : null;
     let voucherNo;
     if (id) {
