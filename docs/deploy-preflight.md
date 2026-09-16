@@ -48,13 +48,19 @@ DB_NAME=ostech_flamespos
 DB_USER=ostech_flamespos
 DB_PASSWORD=<the cPanel MySQL user's password>
 DB_SOCKET=/var/lib/mysql/mysql.sock
-SESSION_SECRET=b3fc8de26de80d3c8d4636c6462062bae07a5e3483652c6237cb0fe0a9dd2a1d
+SESSION_SECRET=<paste the output of: openssl rand -hex 32>
 NODE_ENV=production
 UPLOAD_DIR=/home/ostech/apps/flames-pos/uploads
 ```
 
-   That SESSION_SECRET was generated for this file and has never been used
-   anywhere. **Do not reuse the development one** — the dev value is
+   **Generate the SESSION_SECRET on the box** — `openssl rand -hex 32` — and
+   let it exist only in that file. An earlier revision of this doc printed a
+   pre-generated one, which was wrong of me: a secret written into the repo is
+   a secret shared with everyone who can read the repo and everyone who ever
+   clones it, and this project's own rule (CLAUDE.md) is that SESSION_SECRET is
+   server-env only. That value was never used anywhere and must not be.
+
+   **Do not reuse the development one** either — the dev value is
    placeholder-shaped, and the code only checks its LENGTH, not its randomness.
    Two installs sharing a secret would make each other's session cookies valid.
 
