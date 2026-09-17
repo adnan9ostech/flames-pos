@@ -209,8 +209,10 @@ is killed mid-build. Two ways through, in order of preference:
    `next.config.mjs` plus an rsync.
 
 The runbook's reason for building on the server is that `NEXT_PUBLIC_*` values
-bake into the client bundle; building locally is perfectly safe so long as
-those values are set to the production ones. **Do not add swap or raise
+bake into the client bundle. That is true in general but **does not apply to
+this app: it has no live `NEXT_PUBLIC_*` variables at all** (checked 17 Sep —
+every one left in `.env.local` is dead or migration-only). So building locally
+carries no matching-values caveat whatsoever. **Do not add swap or raise
 limits** — both are global.
 
 ### The production hostname is compiled into the app

@@ -4,10 +4,13 @@
 #
 #   ssh ostech@server '~/apps/flames-pos/deploy.sh'
 #
-# The build happens ON the server on purpose: NEXT_PUBLIC_* values bake into
-# the client bundle at build time, so a bundle built elsewhere carries the
-# wrong ones. First-time setup is docs/deploy-cpanel.md; this script is only
-# the repeatable update path.
+# The build happens ON the server for convenience, not necessity. The original
+# reason given here was that NEXT_PUBLIC_* values bake into the client bundle —
+# true in general, but this app has no live NEXT_PUBLIC_* variables (checked
+# 17 Sep 2026), so a bundle built elsewhere is fine. If the box's memory limit
+# kills `npm run build`, build locally and ship it; see docs/deploy-env.md.
+# First-time setup is docs/deploy-cpanel.md; this script is only the
+# repeatable update path.
 set -euo pipefail
 
 cd ~/apps/flames-pos

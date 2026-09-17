@@ -50,7 +50,7 @@ DB_PASSWORD=<the cPanel MySQL user's password>
 DB_SOCKET=/var/lib/mysql/mysql.sock
 SESSION_SECRET=<paste the output of: openssl rand -hex 32>
 NODE_ENV=production
-UPLOAD_DIR=/home/ostech/apps/flames-pos/uploads
+UPLOAD_DIR=/home/ostech/apps/flames-pos-uploads
 ```
 
    **Generate the SESSION_SECRET on the box** — `openssl rand -hex 32` — and
@@ -64,9 +64,12 @@ UPLOAD_DIR=/home/ostech/apps/flames-pos/uploads
    placeholder-shaped, and the code only checks its LENGTH, not its randomness.
    Two installs sharing a secret would make each other's session cookies valid.
 
+   `UPLOAD_DIR` is a SIBLING of the checkout, not a child — menu photos must
+   sit outside the git tree or a `git pull` can clobber them.
+
    Leave the FBR keys out until the POS is registered. Add them to this file
-   only — never the database:
-   `FBR_ENABLED`, `FBR_MODE`, `FBR_BPOSID`, `FBR_TOKEN`, `FBR_SELLER_NTN`.
+   only — never the database. There are eight, not five; the full list and
+   every other variable is in `docs/deploy-env.md`.
 
 5. **`npm ci && npm run build`** on the server. The build must happen there:
    `NEXT_PUBLIC_*` values bake into the client bundle.
