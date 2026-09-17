@@ -138,71 +138,32 @@
 
 @media print {
     /*
-     * Same isolation technique as the receipt (globals.css): hide the whole
-     * document, re-show one subtree, scoped by :has() so a print with no slip
-     * mounted is untouched. visibility, not display, for the same reason as
-     * there — ancestors must keep their boxes.
+     * ONE rule lives here and the rest moved to globals.css on 18 Sep 2026.
      *
-     * !important on both halves is the one deliberate difference: a slip can
-     * be mounted while the receipt modal is open (Send & Pay Now fires the
-     * kitchen slips before the customer receipt), and the receipt's own
-     * visibility rules in globals.css are unimportant — so while
-     * #kot-print-root is in the DOM, the slip owns the paper and the receipt
-     * stays off it. The page unmounts the slip (job = null) before the
-     * receipt prints.
-     */
-    :global(body:has(#kot-print-root) *) {
-        visibility: hidden !important;
-    }
-
-    /* The ancestor is repeated for the same specificity reason as the
-       receipt's (see globals.css): `body:has(#kot-print-root) *` scores
-       (1,0,1) and a bare `#kot-print-root` scores (1,0,0), so !important on
-       both halves settled nothing — the hide won and a slip printed blank. */
-    :global(body:has(#kot-print-root) #kot-print-root),
-    :global(body:has(#kot-print-root) #kot-print-root *) {
-        visibility: visible !important;
-    }
-
-    :global(#kot-print-root) {
-        /* On paper the off-screen parking spot becomes the top of the page.
-           Padding and type are NOT restated here — they come from .slip, so
-           the measured height is the printed height. */
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: var(--receipt-width, 80mm);
-        margin: 0;
-        background: #fff;
-        color: #000;
-    }
-
-    /* Thermal printers are one colour; nothing may rely on a light grey */
-    :global(#kot-print-root *) {
-        background: transparent !important;
-        color: #000 !important;
-        box-shadow: none !important;
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-    }
-
-    /*
-     * The one exception to the rule above. The knockout band is the whole
-     * point of the reprint marker, and `background: transparent !important`
-     * would flatten it into ordinary bold text. print-color-adjust is already
-     * set on the subtree, so the black actually prints.
+     * Why the others left: every one of them was a selector made entirely of
+     * :global(), which CSS Modules calls impure — "must contain at least one
+     * local class or id" — and webpack's css-loader REFUSES to compile. It
+     * never failed here because `next build` uses Turbopack, which does not
+     * enforce that rule; the box fell back to webpack and the deploy died on
+     * `:global(#kot-print-root div)`. Rewriting them to satisfy the rule would
+     * have meant trading `#kot-print-root` (1,0,0) for `.slip` (0,1,0), and
+     * the comments in globals.css record what that specificity cost the last
+     * time it was got wrong: the slip printed as a blank strip. So they moved
+     * intact instead, to the file where the receipt's identical rules already
+     * live, keeping every score and the !important that lets a kitchen slip
+     * take the paper off a receipt mounted at the same time.
      *
-     * Only the id is :global here — .reprint stays a module class so it keeps
-     * hashing with the one above, and the pair scores (1,1,0) against the
-     * blanket rule's (1,0,0).
+     * This one stays because .reprint is a module class: hashed, and unknown
+     * to a global sheet. It is already pure, and it out-ranks the blanket
+     * `#kot-print-root *` rule on specificity — (1,1,0) against (1,0,0) — so
+     * it does not depend on which file loads first.
+     *
+     * The knockout band is the whole point of the reprint marker, and
+     * `background: transparent !important` would flatten it into ordinary bold
+     * text. print-color-adjust is already set on the subtree, so it prints.
      */
     :global(#kot-print-root) .reprint {
         background: #000 !important;
         color: #fff !important;
-    }
-
-    /* A slip is one continuous strip — never break mid-line */
-    :global(#kot-print-root div) {
-        break-inside: avoid;
     }
 }

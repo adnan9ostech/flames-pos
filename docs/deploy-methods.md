@@ -206,6 +206,20 @@ deploy runner is a poor place for a Next build (see below), and that the
 
 ## Two things that bite regardless of method
 
+### Build it the way the server will, before you ship it
+
+`next build` uses **Turbopack**; the server fell back to **webpack**, and the
+two do not agree. Turbopack does not enforce the CSS Modules purity rule, so a
+selector made entirely of `:global()` compiled here for weeks and killed the
+deploy build outright on 18 Sep. Before any deploy:
+
+```
+npx next build --webpack
+```
+
+If it passes and Turbopack passes, the box will build. This costs two minutes
+and it is the only check that would have caught that one.
+
 ### The build is the hungriest thing this app will ever ask of the box
 
 `npm run build` wants roughly a gigabyte of RAM, on a machine shared with ~150

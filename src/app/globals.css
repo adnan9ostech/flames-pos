@@ -727,3 +727,64 @@ h6 {
     height: auto !important;
   }
 }
+
+/*
+ * THE KITCHEN SLIP'S PRINT ISOLATION — moved here from
+ * src/components/POS/kotSlips.module.css on 18 Sep 2026.
+ *
+ * It is the receipt's technique above, repeated for #kot-print-root, and it
+ * belongs in a global sheet for a reason that is not stylistic: a selector
+ * made entirely of :global() is impure under CSS Modules and webpack's
+ * css-loader will not compile it. Turbopack does not enforce that, so
+ * `next build` passed here for weeks while the deploy build on the server
+ * failed outright. Here there is no purity rule and every selector keeps its
+ * exact specificity, which the receipt's own comments explain is load-bearing.
+ *
+ * It must come AFTER the receipt's block: these rules are !important on both
+ * halves and the receipt's are not, which is what lets a kitchen slip take the
+ * paper off a receipt mounted at the same time — Send & Pay Now fires the
+ * kitchen slips before the customer receipt, and the page unmounts the slip
+ * (job = null) before the receipt prints.
+ *
+ * Padding and type are NOT restated here: they come from .slip in the module,
+ * so the measured height stays the printed height.
+ */
+@media print {
+  body:has(#kot-print-root) * {
+    visibility: hidden !important;
+  }
+
+  /* The ancestor is repeated for the same specificity reason as the receipt's
+     above: `body:has(#kot-print-root) *` scores (1,0,1) and a bare
+     `#kot-print-root` scores (1,0,0), so !important on both halves settled
+     nothing — the hide won and a slip printed blank. */
+  body:has(#kot-print-root) #kot-print-root,
+  body:has(#kot-print-root) #kot-print-root * {
+    visibility: visible !important;
+  }
+
+  #kot-print-root {
+    /* On paper the off-screen parking spot becomes the top of the page. */
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: var(--receipt-width, 80mm);
+    margin: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  /* Thermal printers are one colour; nothing may rely on a light grey */
+  #kot-print-root * {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* A slip is one continuous strip — never break mid-line */
+  #kot-print-root div {
+    break-inside: avoid;
+  }
+}
