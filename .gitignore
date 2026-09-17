@@ -73,3 +73,8 @@ qa-review.html
 
 # Marketing image assets — large binaries, kept out of the code repo
 social-media/
+
+# A point-in-time export of one restaurant's own data (scripts/db/export-master.mjs).
+# Not committed: it holds customer names, and a snapshot in git rots the day
+# somebody edits a price. Generate it when you need it.
+mysql/master-data.sql

@@ -18,6 +18,14 @@ here so the deploy is mechanical once access exists.
 | `npm audit --omit=dev` | 0 vulnerabilities |
 | Migrations | all 52 apply to an empty database → 66 tables |
 
+## The schema is not the data
+
+`migrate.mjs` gives you 66 empty tables and the reference rows a POS needs to
+boot. **It does not carry the menu.** Exporting the 135 dishes, 125 recipes and
+1,371 recipe lines onto the new box — and deliberately leaving the test bills
+and the ledger behind — is `docs/deploy-data.md`. Read it before Phase 2; it
+also carries the collation trap that can leave a first deploy half-migrated.
+
 ## What blocks every method
 
 1. **The subdomain does not exist.** `pos.flamesbytheindus.com` returns

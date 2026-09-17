@@ -58,6 +58,48 @@ if (maj < 8 || (maj === 8 && min === 0 && patch < 16)) {
     process.exit(1);
 }
 
+/*
+ * Collation, checked BEFORE the first DDL and not after.
+ *
+ * The migrations are written against MySQL 8's own default, utf8mb4_0900_ai_ci,
+ * and several compare a literal against a column. Create the database with any
+ * other collation — cPanel's dropdown offers several, and utf8mb4_unicode_ci is
+ * a common pick — and 009_expense_codes_seed.sql dies on "Illegal mix of
+ * collations" with eight migrations already applied and implicitly committed.
+ * That half-applied state is the worst outcome available here, and it is
+ * entirely avoidable: on an empty database the fix is one ALTER and costs
+ * nothing.
+ *
+ * Only refused while the database is still empty. Once migrations have run the
+ * tables carry their own collations, an ALTER DATABASE would not retrofit them,
+ * and blocking a routine update over it would do more harm than the warning.
+ */
+const [[db]] = await conn.query(
+    `SELECT default_character_set_name AS charset, default_collation_name AS collation
+       FROM information_schema.schemata WHERE schema_name = ?`,
+    [DB_NAME],
+);
+const WANT = 'utf8mb4_0900_ai_ci';
+if (db && db.collation !== WANT) {
+    const [[{ n: alreadyRun }]] = await conn.query(
+        `SELECT COUNT(*) AS n FROM information_schema.tables
+          WHERE table_schema = ? AND table_name = 'schema_migrations'`,
+        [DB_NAME],
+    ).catch(() => [[{ n: 0 }]]);
+
+    const line = `${DB_NAME} is ${db.charset}/${db.collation}; the migrations need ${WANT}.`;
+    if (!alreadyRun) {
+        console.error(`\n${line}\n`);
+        console.error('Nothing has been applied. Fix it first — the database is empty, so this is free:\n');
+        console.error(`    ALTER DATABASE \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE ${WANT};\n`);
+        console.error('Then run this again.\n');
+        await conn.end();
+        process.exit(1);
+    }
+    console.warn(`\nWARNING: ${line}`);
+    console.warn('Tables already exist, so this is not retrofittable here. Continuing.\n');
+}
+
 await conn.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
   name VARCHAR(191) NOT NULL PRIMARY KEY,
   applied_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
